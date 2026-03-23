@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Image from 'next/image';
 
 export function Shell({ title, subtitle, actions, children }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode }) {
   return (
@@ -6,7 +7,7 @@ export function Shell({ title, subtitle, actions, children }: { title: string; s
       <div className="card" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <img src="/logo.png" alt="劇団Birth" style={{ height: 48, width: 'auto', objectFit: 'contain' }} />
+            <Image src="/logo.png" alt="劇団Birth" width={48} height={48} style={{ height: 48, width: 'auto', objectFit: 'contain' }} priority />
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', color: '#e74c3c' }}>BIRTH FINANCE SYSTEM</div>
               <h1 className="title brand">{title}</h1>
