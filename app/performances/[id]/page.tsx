@@ -418,7 +418,7 @@ export default function PerformancePage() {
               });
               if (res.ok) { setGoodsForm({ name: '', unitPrice: '' }); setGoodsList(null); fetch(`/api/performances/${id}/goods`).then(r => r.json()).then(setGoodsList); }
               else { const d = await res.json(); alert(d.message || 'エラー'); }
-            }} style={{ display: 'grid', gridTemplateColumns: '1fr 120px auto', gap: 8, alignItems: 'end', marginTop: 8 }}>
+            }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8, alignItems: 'end', marginTop: 8 }}>
               <div><label className="subtitle">グッズ名</label><input className="input" value={goodsForm.name} onChange={e => setGoodsForm(f => ({ ...f, name: e.target.value }))} required /></div>
               <div><label className="subtitle">単価</label><input className="input" type="number" value={goodsForm.unitPrice} onChange={e => setGoodsForm(f => ({ ...f, unitPrice: e.target.value }))} required /></div>
               <button className="primary" type="submit">追加</button>
@@ -712,7 +712,7 @@ export default function PerformancePage() {
         <div className="grid">
           <div className="card">
             <h2 className="brand">協賛金登録</h2>
-            <form onSubmit={handleAddSponsorship} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 8, alignItems: 'end', marginTop: 8 }}>
+            <form onSubmit={handleAddSponsorship} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8, alignItems: 'end', marginTop: 8 }}>
               <div>
                 <label className="subtitle">協賛者名</label>
                 <input className="input" value={spForm.sponsorName} onChange={e => setSpForm(f => ({ ...f, sponsorName: e.target.value }))} placeholder="例: 株式会社○○" required />

@@ -118,7 +118,7 @@ export default function UsersPage() {
 
       <div className="card" style={{ marginBottom: 16 }}>
         <h2 className="brand">ユーザー追加</h2>
-        <form onSubmit={handleAdd} autoComplete="off" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 8, alignItems: 'end', marginTop: 8 }}>
+        <form onSubmit={handleAdd} autoComplete="off" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8, alignItems: 'end', marginTop: 8 }}>
           <div>
             <label className="subtitle">ログインID</label>
             <input className="input" value={newLoginId} onChange={e => setNewLoginId(e.target.value)} placeholder="例: tanaka" required autoComplete="off" />
