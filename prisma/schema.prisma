@@ -19,16 +19,16 @@ enum ImportStatus {
 }
 
 model User {
-  id                BigInt        @id @default(autoincrement())
-  loginId           String        @unique @map("login_id") @db.VarChar(100)
-  passwordHash      String?       @map("password_hash") @db.VarChar(255)
-  displayName       String        @map("display_name") @db.VarChar(100)
-  isActive          Boolean       @default(true) @map("is_active")
+  id                 BigInt       @id @default(autoincrement())
+  loginId            String       @unique @map("login_id") @db.VarChar(100)
+  passwordHash       String?      @map("password_hash") @db.VarChar(255)
+  displayName        String       @map("display_name") @db.VarChar(100)
+  isActive           Boolean      @default(true) @map("is_active")
   mustChangePassword Boolean      @default(true) @map("must_change_password")
-  createdAt         DateTime      @default(now()) @map("created_at")
-  updatedAt         DateTime      @updatedAt @map("updated_at")
-  expenses          Expense[]
-  settlements       Settlement[]
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
+  expenses           Expense[]
+  settlements        Settlement[]
 
   @@map("users")
 }
@@ -51,6 +51,7 @@ model Performance {
   expenses              Expense[]
   settlements           Settlement[]
   sponsorships          Sponsorship[]
+  goods                 Goods[]
 
   @@map("performances")
 }
@@ -63,21 +64,22 @@ model PerformanceStage {
   stageDate     DateTime?   @map("stage_date") @db.Date
   sortOrder     Int         @map("sort_order")
   performance   Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  goodsSales    GoodsSale[]
 
   @@unique([performanceId, stageNo])
   @@map("performance_stages")
 }
 
 model Cast {
-  id                   BigInt      @id @default(autoincrement())
-  performanceId        BigInt      @map("performance_id")
-  name                 String      @db.VarChar(200)
-  normaTicketCount     Int         @default(0) @map("norma_ticket_count")
-  normaUnitPrice       Int         @default(0) @map("norma_unit_price")
-  isTicketBackTarget   Boolean     @default(true) @map("is_ticket_back_target")
-  sortOrder            Int         @default(0) @map("sort_order")
-  performance          Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
-  sales                Sale[]
+  id                 BigInt      @id @default(autoincrement())
+  performanceId      BigInt      @map("performance_id")
+  name               String      @db.VarChar(200)
+  normaTicketCount   Int         @default(0) @map("norma_ticket_count")
+  normaUnitPrice     Int         @default(0) @map("norma_unit_price")
+  isTicketBackTarget Boolean     @default(true) @map("is_ticket_back_target")
+  sortOrder          Int         @default(0) @map("sort_order")
+  performance        Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  sales              Sale[]
 
   @@unique([performanceId, name])
   @@map("casts")
@@ -97,16 +99,16 @@ model TicketBackRule {
 }
 
 model SalesImportHistory {
-  id                 BigInt       @id @default(autoincrement())
-  performanceId      BigInt       @map("performance_id")
-  fileName           String       @map("file_name") @db.VarChar(255)
-  fileEncoding       String       @map("file_encoding") @db.VarChar(20)
-  importedRowCount   Int          @map("imported_row_count")
-  insertedSalesCount Int          @map("inserted_sales_count")
+  id                 BigInt        @id @default(autoincrement())
+  performanceId      BigInt        @map("performance_id")
+  fileName           String        @map("file_name") @db.VarChar(255)
+  fileEncoding       String        @map("file_encoding") @db.VarChar(20)
+  importedRowCount   Int           @map("imported_row_count")
+  insertedSalesCount Int           @map("inserted_sales_count")
   status             ImportStatus
-  errorMessage       String?      @map("error_message") @db.Text
-  importedAt         DateTime     @default(now()) @map("imported_at")
-  performance        Performance  @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  errorMessage       String?       @map("error_message") @db.Text
+  importedAt         DateTime      @default(now()) @map("imported_at")
+  performance        Performance   @relation(fields: [performanceId], references: [id], onDelete: Cascade)
   rawRows            SalesRawRow[]
   sales              Sale[]
 
@@ -124,18 +126,18 @@ model SalesRawRow {
 }
 
 model Sale {
-  id               BigInt             @id @default(autoincrement())
-  performanceId    BigInt             @map("performance_id")
-  importHistoryId  BigInt             @map("import_history_id")
-  castId           BigInt             @map("cast_id")
-  handledCastName  String             @map("handled_cast_name") @db.VarChar(200)
-  ticketCount      Int                @map("ticket_count")
-  salesAmount      Int                @map("sales_amount")
-  visitedAt        DateTime           @map("visited_at") @db.Date
-  sourceRowNo      Int                @map("source_row_no")
-  performance      Performance        @relation(fields: [performanceId], references: [id], onDelete: Cascade)
-  importHistory    SalesImportHistory @relation(fields: [importHistoryId], references: [id], onDelete: Cascade)
-  cast             Cast               @relation(fields: [castId], references: [id])
+  id              BigInt             @id @default(autoincrement())
+  performanceId   BigInt             @map("performance_id")
+  importHistoryId BigInt             @map("import_history_id")
+  castId          BigInt             @map("cast_id")
+  handledCastName String             @map("handled_cast_name") @db.VarChar(200)
+  ticketCount     Int                @map("ticket_count")
+  salesAmount     Int                @map("sales_amount")
+  visitedAt       DateTime           @map("visited_at") @db.Date
+  sourceRowNo     Int                @map("source_row_no")
+  performance     Performance        @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  importHistory   SalesImportHistory @relation(fields: [importHistoryId], references: [id], onDelete: Cascade)
+  cast            Cast               @relation(fields: [castId], references: [id])
 
   @@map("sales")
 }
@@ -194,4 +196,29 @@ model Sponsorship {
   performance   Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
 
   @@map("sponsorships")
+}
+
+model Goods {
+  id            BigInt      @id @default(autoincrement())
+  performanceId BigInt      @map("performance_id")
+  name          String      @db.VarChar(200)
+  unitPrice     Int         @default(0) @map("unit_price")
+  sortOrder     Int         @default(0) @map("sort_order")
+  performance   Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  sales         GoodsSale[]
+
+  @@unique([performanceId, name])
+  @@map("goods")
+}
+
+model GoodsSale {
+  id                 BigInt           @id @default(autoincrement())
+  goodsId            BigInt           @map("goods_id")
+  performanceStageId BigInt           @map("performance_stage_id")
+  quantity           Int              @default(0)
+  goods              Goods            @relation(fields: [goodsId], references: [id], onDelete: Cascade)
+  performanceStage   PerformanceStage @relation(fields: [performanceStageId], references: [id], onDelete: Cascade)
+
+  @@unique([goodsId, performanceStageId])
+  @@map("goods_sales")
 }

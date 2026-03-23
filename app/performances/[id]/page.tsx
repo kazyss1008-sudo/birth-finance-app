@@ -18,11 +18,13 @@ type ImportHistory = { id: string; fileName: string; importedRowCount: number; s
 type Sale = { id: string; handledCastName: string; ticketCount: number; salesAmount: number; visitedAt: string; };
 type ExpenseCategory = { id: string; name: string; };
 type Expense = { id: string; expenseDate: string; amount: number; itemName: string; memo: string | null; isSettled: boolean; createdBy: string; category: { name: string }; creator: { displayName: string }; };
-type Summary = { totalSales: number; totalTickets: number; totalExpenses: number; totalSponsorship: number; totalGara: number; netBalance: number; castDetails: CastDetail[]; };
+type Summary = { totalSales: number; totalTickets: number; totalExpenses: number; totalSponsorship: number; totalGoodsSales: number; totalGara: number; netBalance: number; castDetails: CastDetail[]; };
 type CastDetail = { castId: string; castName: string; ticketCount: number; salesAmount: number; backTotal: number; normaDeduction: number; settlement: number; normaTicketCount: number; normaUnitPrice: number; };
 type EditCast = { id: string; name: string; normaTicketCount: number; normaUnitPrice: number; isTicketBackTarget: boolean; sortOrder: number; changed?: boolean; };
+type GoodsItem = { id: string; name: string; unitPrice: number; sortOrder: number; sales: { id: string; performanceStageId: string; quantity: number; performanceStage: { id: string; stageName: string } }[] };
+type GoodsSaleCell = { goodsId: string; performanceStageId: string; quantity: number };
 
-const TABS = ['CSV取込', '売上', 'キャスト', 'バック', '経費', '協賛金', '収支'] as const;
+const TABS = ['CSV取込', '売上', 'キャスト', 'バック', 'グッズ', '経費', '協賛金', '収支'] as const;
 type TabName = typeof TABS[number];
 
 function yen(n: number) { return `¥${n.toLocaleString()}`; }
@@ -57,6 +59,14 @@ export default function PerformancePage() {
   const [spForm, setSpForm] = useState({ sponsorName: '', amount: '', memo: '' });
   const [spSubmitting, setSpSubmitting] = useState(false);
 
+  // Goods state
+  const [goodsList, setGoodsList] = useState<GoodsItem[] | null>(null);
+  const [goodsForm, setGoodsForm] = useState({ name: '', unitPrice: '' });
+  const [goodsEditing, setGoodsEditing] = useState<string | null>(null);
+  const [goodsEditForm, setGoodsEditForm] = useState({ name: '', unitPrice: '' });
+  const [goodsSaleEdits, setGoodsSaleEdits] = useState<Map<string, number>>(new Map());
+  const [goodsSaving, setGoodsSaving] = useState(false);
+
   // Cast edit state
   const [editCasts, setEditCasts] = useState<EditCast[] | null>(null);
   const [castSaving, setCastSaving] = useState(false);
@@ -86,6 +96,9 @@ export default function PerformancePage() {
         if (categories.length === 0) fetch(`/api/expense-categories`).then(r => r.json()).then(setCategories);
         if (users.length === 0) fetch(`/api/users`).then(r => r.json()).then((data: { id: string; displayName: string; isActive: boolean }[]) => setUsers(data.filter(u => u.isActive)));
         break;
+      case 'グッズ':
+        if (!goodsList) fetch(`/api/performances/${id}/goods`).then(r => r.json()).then(setGoodsList);
+        break;
       case '協賛金':
         if (!sponsorships) fetch(`/api/performances/${id}/sponsorships`).then(r => r.json()).then(setSponsorships);
         break;
@@ -93,7 +106,7 @@ export default function PerformancePage() {
         if (!summary) fetch(`/api/performances/${id}/summary`).then(r => r.json()).then(setSummary);
         break;
     }
-  }, [id, sales, expenses, categories, users, summary, editCasts, sponsorships]);
+  }, [id, sales, expenses, categories, users, summary, editCasts, sponsorships, goodsList]);
 
   useEffect(() => { loadTabData(activeTab); }, [activeTab, loadTabData]);
 
@@ -389,6 +402,148 @@ export default function PerformancePage() {
         </div>
       )}
 
+      {/* グッズ Tab */}
+      {activeTab === 'グッズ' && (
+        <div className="grid">
+          {/* グッズ登録フォーム */}
+          <div className="card">
+            <h2 className="brand">グッズ登録</h2>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const res = await fetch(`/api/performances/${id}/goods`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: goodsForm.name, unitPrice: Number(goodsForm.unitPrice) || 0 }),
+              });
+              if (res.ok) { setGoodsForm({ name: '', unitPrice: '' }); setGoodsList(null); fetch(`/api/performances/${id}/goods`).then(r => r.json()).then(setGoodsList); }
+              else { const d = await res.json(); alert(d.message || 'エラー'); }
+            }} style={{ display: 'grid', gridTemplateColumns: '1fr 120px auto', gap: 8, alignItems: 'end', marginTop: 8 }}>
+              <div><label className="subtitle">グッズ名</label><input className="input" value={goodsForm.name} onChange={e => setGoodsForm(f => ({ ...f, name: e.target.value }))} required /></div>
+              <div><label className="subtitle">単価</label><input className="input" type="number" value={goodsForm.unitPrice} onChange={e => setGoodsForm(f => ({ ...f, unitPrice: e.target.value }))} required /></div>
+              <button className="primary" type="submit">追加</button>
+            </form>
+          </div>
+
+          {/* グッズ一覧 */}
+          {goodsList && goodsList.length > 0 && (
+            <div className="card">
+              <h2 className="brand">登録済みグッズ</h2>
+              <table className="table">
+                <thead><tr><th>グッズ名</th><th>単価</th><th>販売合計</th><th>売上合計</th><th></th></tr></thead>
+                <tbody>
+                  {goodsList.map(g => {
+                    const totalQty = g.sales.reduce((s, r) => s + r.quantity, 0);
+                    return (
+                      <tr key={g.id}>
+                        <td>
+                          {goodsEditing === g.id
+                            ? <input className="input" value={goodsEditForm.name} onChange={e => setGoodsEditForm(f => ({ ...f, name: e.target.value }))} style={{ padding: '6px 8px' }} />
+                            : <span style={{ fontWeight: 700 }}>{g.name}</span>
+                          }
+                        </td>
+                        <td>
+                          {goodsEditing === g.id
+                            ? <input className="input" type="number" value={goodsEditForm.unitPrice} onChange={e => setGoodsEditForm(f => ({ ...f, unitPrice: e.target.value }))} style={{ width: 100, padding: '6px 8px' }} />
+                            : yen(g.unitPrice)
+                          }
+                        </td>
+                        <td>{totalQty}個</td>
+                        <td style={{ fontWeight: 700 }}>{yen(totalQty * g.unitPrice)}</td>
+                        <td>
+                          {goodsEditing === g.id ? (
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <button className="primary" style={{ fontSize: 12, padding: '6px 10px' }} onClick={async () => {
+                                await fetch(`/api/performances/${id}/goods`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ goodsId: g.id, name: goodsEditForm.name, unitPrice: Number(goodsEditForm.unitPrice) }) });
+                                setGoodsEditing(null); setGoodsList(null); fetch(`/api/performances/${id}/goods`).then(r => r.json()).then(setGoodsList);
+                              }}>保存</button>
+                              <button className="secondary" style={{ fontSize: 12, padding: '6px 10px' }} onClick={() => setGoodsEditing(null)}>取消</button>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <button className="secondary" style={{ fontSize: 12, padding: '6px 10px' }} onClick={() => { setGoodsEditing(g.id); setGoodsEditForm({ name: g.name, unitPrice: String(g.unitPrice) }); }}>編集</button>
+                              <button className="danger" style={{ fontSize: 12 }} onClick={async () => { if (!confirm(`${g.name}を削除しますか？`)) return; await fetch(`/api/performances/${id}/goods`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ goodsId: g.id }) }); setGoodsList(null); fetch(`/api/performances/${id}/goods`).then(r => r.json()).then(setGoodsList); }}>削除</button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* ステージ別販売実績入力 */}
+          {goodsList && goodsList.length > 0 && perf && perf.stages.length > 0 && (
+            <div className="card">
+              <h2 className="brand">ステージ別販売実績</h2>
+              <p className="subtitle">各セルに販売個数を入力し「保存」を押してください。</p>
+              <div style={{ overflowX: 'auto', marginTop: 12 }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th style={{ position: 'sticky', left: 0, background: '#fff', zIndex: 1 }}>グッズ</th>
+                      {perf.stages.map(st => <th key={st.id} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{st.stageName}<br/><span className="subtitle" style={{ fontSize: 11 }}>{st.stageDate?.slice(5, 10)}</span></th>)}
+                      <th style={{ textAlign: 'center' }}>合計</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {goodsList.map(g => {
+                      let rowTotal = 0;
+                      return (
+                        <tr key={g.id}>
+                          <td style={{ position: 'sticky', left: 0, background: '#fff', fontWeight: 700, whiteSpace: 'nowrap' }}>{g.name}<span className="subtitle" style={{ marginLeft: 6 }}>{yen(g.unitPrice)}</span></td>
+                          {perf.stages.map(st => {
+                            const key = `${g.id}_${st.id}`;
+                            const existing = g.sales.find(s => s.performanceStageId === st.id);
+                            const val = goodsSaleEdits.has(key) ? goodsSaleEdits.get(key)! : (existing?.quantity ?? 0);
+                            rowTotal += val;
+                            return (
+                              <td key={st.id} style={{ textAlign: 'center' }}>
+                                <input className="input" type="number" min="0" value={val} onChange={e => {
+                                  const newMap = new Map(goodsSaleEdits);
+                                  newMap.set(key, Number(e.target.value) || 0);
+                                  setGoodsSaleEdits(newMap);
+                                }} style={{ width: 70, padding: '6px 8px', textAlign: 'center' }} />
+                              </td>
+                            );
+                          })}
+                          <td style={{ textAlign: 'center', fontWeight: 900 }}>{rowTotal}個<br/><span style={{ color: '#153b96' }}>{yen(rowTotal * g.unitPrice)}</span></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                <button className="primary" disabled={goodsSaving} onClick={async () => {
+                  setGoodsSaving(true);
+                  const records: GoodsSaleCell[] = [];
+                  for (const g of goodsList) {
+                    for (const st of perf.stages) {
+                      const key = `${g.id}_${st.id}`;
+                      const existing = g.sales.find(s => s.performanceStageId === st.id);
+                      const qty = goodsSaleEdits.has(key) ? goodsSaleEdits.get(key)! : (existing?.quantity ?? 0);
+                      records.push({ goodsId: g.id, performanceStageId: st.id, quantity: qty });
+                    }
+                  }
+                  await fetch(`/api/performances/${id}/goods-sales`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ records }) });
+                  setGoodsSaleEdits(new Map());
+                  setGoodsList(null);
+                  setSummary(null);
+                  fetch(`/api/performances/${id}/goods`).then(r => r.json()).then(setGoodsList);
+                  setGoodsSaving(false);
+                }}>{goodsSaving ? '保存中...' : '販売実績を保存'}</button>
+              </div>
+            </div>
+          )}
+
+          {goodsList && goodsList.length === 0 && (
+            <div className="card"><p className="subtitle">グッズが登録されていません。上のフォームから追加してください。</p></div>
+          )}
+          {!goodsList && <div className="card"><p className="subtitle">読み込み中...</p></div>}
+        </div>
+      )}
+
       {/* 経費 Tab */}
       {activeTab === '経費' && (
         <div className="grid">
@@ -492,10 +647,14 @@ export default function PerformancePage() {
             <>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'stretch' }}>
                 {/* 内訳 */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
                   <div className="card" style={{ padding: 16, background: '#f0f4ff' }}>
-                    <div className="subtitle" style={{ fontSize: 12 }}>総売上 <span style={{ marginLeft: 4 }}>{summary.totalTickets}枚</span></div>
+                    <div className="subtitle" style={{ fontSize: 12 }}>チケット売上 <span style={{ marginLeft: 4 }}>{summary.totalTickets}枚</span></div>
                     <div style={{ fontSize: 22, fontWeight: 900, color: '#153b96' }}>{yen(summary.totalSales)}</div>
+                  </div>
+                  <div className="card" style={{ padding: 16, background: '#f0f4ff' }}>
+                    <div className="subtitle" style={{ fontSize: 12 }}>グッズ売上</div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#153b96' }}>{yen(summary.totalGoodsSales)}</div>
                   </div>
                   <div className="card" style={{ padding: 16, background: '#f0f4ff' }}>
                     <div className="subtitle" style={{ fontSize: 12 }}>協賛金</div>

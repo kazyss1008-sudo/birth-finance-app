@@ -22,7 +22,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const performanceId = BigInt(id);
 
   // Fetch all needed data
-  const [salesAgg, expenseAgg, sponsorAgg, casts, rules, salesByCast] = await Promise.all([
+  const [salesAgg, expenseAgg, sponsorAgg, casts, rules, salesByCast, goodsWithSales] = await Promise.all([
     prisma.sale.aggregate({
       where: { performanceId },
       _sum: { salesAmount: true, ticketCount: true },
@@ -43,6 +43,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       where: { performanceId },
       _sum: { ticketCount: true, salesAmount: true },
     }),
+    prisma.goods.findMany({
+      where: { performanceId },
+      include: { sales: true },
+    }),
   ]);
 
   const totalSales = salesAgg._sum.salesAmount ?? 0;
@@ -50,6 +54,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const totalExpenses = expenseAgg._sum.amount ?? 0;
   const totalSponsorship = sponsorAgg._sum.amount ?? 0;
   const expenseCount = expenseAgg._count;
+
+  // Calculate total goods sales
+  const totalGoodsSales = goodsWithSales.reduce((sum, goods) => {
+    const goodsTotal = goods.sales.reduce((s, sale) => s + sale.quantity * goods.unitPrice, 0);
+    return sum + goodsTotal;
+  }, 0);
 
   // Calculate cast settlements (back - norma for each cast)
   const castSalesMap = new Map(salesByCast.map(s => [s.castId.toString(), { tickets: s._sum.ticketCount ?? 0, sales: s._sum.salesAmount ?? 0 }]));
@@ -78,13 +88,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     };
   });
 
-  const netBalance = totalSales + totalSponsorship - totalExpenses - totalGara;
+  const netBalance = totalSales + totalSponsorship + totalGoodsSales - totalExpenses - totalGara;
 
   return NextResponse.json(serializeBigInt({
     totalSales,
     totalTickets,
     totalExpenses,
     totalSponsorship,
+    totalGoodsSales,
     expenseCount,
     totalGara,
     netBalance,
