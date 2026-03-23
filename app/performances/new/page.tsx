@@ -390,6 +390,11 @@ export default function NewPerformancePage() {
       <div className="card">
         <span className="badge">Step 2 / 4</span>
         <h2 className="brand" style={{ margin: '12px 0 16px' }}>ステージ登録</h2>
+        <div style={{ marginBottom: 12 }}>
+          <button type="button" className="secondary" onClick={addStage}>
+            + 行追加
+          </button>
+        </div>
         {stages.length === 0 ? (
           <p className="subtitle">ステージがありません。行を追加してください。</p>
         ) : (
@@ -407,11 +412,6 @@ export default function NewPerformancePage() {
             ))}
           </div>
         )}
-        <div style={{ marginTop: 12 }}>
-          <button type="button" className="secondary" onClick={addStage}>
-            + 行追加
-          </button>
-        </div>
       </div>
     );
   }
@@ -421,6 +421,11 @@ export default function NewPerformancePage() {
       <div className="card">
         <span className="badge">Step 3 / 4</span>
         <h2 className="brand" style={{ margin: '12px 0 16px' }}>キャスト登録</h2>
+        <div style={{ marginBottom: 12 }}>
+          <button type="button" className="secondary" onClick={addCast}>
+            + 行追加
+          </button>
+        </div>
         {casts.length === 0 ? (
           <p className="subtitle">キャストがありません。行を追加してください。</p>
         ) : (
@@ -439,11 +444,6 @@ export default function NewPerformancePage() {
             ))}
           </div>
         )}
-        <div style={{ marginTop: 12 }}>
-          <button type="button" className="secondary" onClick={addCast}>
-            + 行追加
-          </button>
-        </div>
       </div>
     );
   }
@@ -456,6 +456,11 @@ export default function NewPerformancePage() {
         <p className="subtitle" style={{ marginBottom: 12 }}>
           枚数に応じたバック単価を段階的に設定します。最大枚数を空欄にすると「上限なし」になります。
         </p>
+        <div style={{ marginBottom: 12 }}>
+          <button type="button" className="secondary" onClick={addRule}>
+            + 行追加
+          </button>
+        </div>
         {rules.length === 0 ? (
           <p className="subtitle">ルールがありません。行を追加してください。</p>
         ) : (
@@ -471,11 +476,6 @@ export default function NewPerformancePage() {
             ))}
           </div>
         )}
-        <div style={{ marginTop: 12 }}>
-          <button type="button" className="secondary" onClick={addRule}>
-            + 行追加
-          </button>
-        </div>
       </div>
     );
   }
