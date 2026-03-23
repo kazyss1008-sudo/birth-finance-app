@@ -630,7 +630,7 @@ export default function PerformancePage() {
                       <td><span className="badge">{exp.category?.name}</span></td>
                       <td>{exp.itemName}</td>
                       <td>{yen(exp.amount)}</td>
-                      <td className="subtitle">{exp.memo ?? ''}</td>
+                      <td><input className="input" value={exp.memo ?? ''} placeholder="メモ" onChange={e => { const val = e.target.value; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, memo: val } : x) ?? null); }} onBlur={e => { fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId: exp.id, memo: e.target.value }) }); }} style={{ padding: '6px 8px', fontSize: 13, minWidth: 80 }} /></td>
                       <td><button className="danger" onClick={() => handleDeleteExpense(exp.id)}>削除</button></td>
                     </tr>
                   ))}
@@ -746,7 +746,7 @@ export default function PerformancePage() {
                       <tr key={sp.id}>
                         <td>{sp.sponsorName}</td>
                         <td>{yen(sp.amount)}</td>
-                        <td className="subtitle">{sp.memo ?? ''}</td>
+                        <td><input className="input" value={sp.memo ?? ''} placeholder="メモ" onChange={e => { const val = e.target.value; setSponsorships(prev => prev?.map(x => x.id === sp.id ? { ...x, memo: val } : x) ?? null); }} onBlur={e => { fetch(`/api/performances/${id}/sponsorships`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sponsorshipId: sp.id, memo: e.target.value }) }); }} style={{ padding: '6px 8px', fontSize: 13, minWidth: 80 }} /></td>
                         <td><button className="danger" onClick={() => handleDeleteSponsorship(sp.id)}>削除</button></td>
                       </tr>
                     ))}

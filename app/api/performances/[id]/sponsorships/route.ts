@@ -53,6 +53,25 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 }
 
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const { sponsorshipId, memo } = body;
+    if (!sponsorshipId) {
+      return NextResponse.json({ ok: false, message: 'IDが必要です。' }, { status: 400 });
+    }
+    const data: Record<string, unknown> = {};
+    if (memo !== undefined) data.memo = memo || null;
+    const s = await prisma.sponsorship.update({
+      where: { id: BigInt(sponsorshipId) },
+      data,
+    });
+    return NextResponse.json(serializeBigInt(s));
+  } catch {
+    return NextResponse.json({ ok: false, message: 'サーバーエラーが発生しました。' }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: Request) {
   try {
     const { sponsorshipId } = await request.json();

@@ -76,11 +76,12 @@ export async function PUT(request: Request) {
       return NextResponse.json({ ok: false, message: '経費IDが必要です。' }, { status: 400 });
     }
 
-    // Partial update (isSettled or createdBy)
-    if (typeof isSettled === 'boolean' || body.createdBy) {
+    // Partial update (isSettled, createdBy, memo)
+    if (typeof isSettled === 'boolean' || body.createdBy || body.memo !== undefined) {
       const data: Record<string, unknown> = {};
       if (typeof isSettled === 'boolean') data.isSettled = isSettled;
       if (body.createdBy) data.createdBy = BigInt(body.createdBy);
+      if (body.memo !== undefined) data.memo = body.memo || null;
       const expense = await prisma.expense.update({
         where: { id: BigInt(expenseId) },
         data,
