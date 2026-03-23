@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>劇団Birth公演収支管理 - 利用手順書</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Hiragino Sans', 'Yu Gothic', Arial, sans-serif; background: #f7f7ff; color: #1f2937; line-height: 1.7; }
+.container { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+.header { background: linear-gradient(135deg, #153b96, #305fd6); color: white; padding: 40px 32px; border-radius: 24px; margin-bottom: 32px; }
+.header h1 { font-size: 28px; font-weight: 900; margin-bottom: 8px; }
+.header p { opacity: 0.9; font-size: 15px; }
+.card { background: white; border-radius: 20px; padding: 28px; box-shadow: 0 8px 24px rgba(61,72,152,0.08); margin-bottom: 24px; }
+h2 { color: #153b96; font-size: 22px; margin-bottom: 16px; border-left: 4px solid #153b96; padding-left: 12px; }
+h3 { color: #153b96; font-size: 17px; margin: 20px 0 10px; }
+p { margin-bottom: 12px; }
+ul, ol { margin: 0 0 16px 24px; }
+li { margin-bottom: 6px; }
+code { background: #edf2ff; padding: 2px 8px; border-radius: 6px; font-size: 14px; color: #153b96; font-family: 'Consolas', 'Monaco', monospace; }
+pre { background: #1e293b; color: #e2e8f0; padding: 16px 20px; border-radius: 12px; overflow-x: auto; margin: 12px 0 16px; font-size: 14px; line-height: 1.6; }
+pre code { background: none; color: inherit; padding: 0; }
+.badge { display: inline-block; border-radius: 9999px; padding: 4px 12px; font-size: 12px; font-weight: 700; background: #edf2ff; color: #153b96; }
+.step { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 20px; }
+.step-num { flex-shrink: 0; width: 36px; height: 36px; background: #153b96; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; }
+.step-body { flex: 1; }
+.warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 12px 12px 0; margin: 12px 0; font-size: 14px; }
+.info { background: #dbeafe; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 0 12px 12px 0; margin: 12px 0; font-size: 14px; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0 16px; }
+th, td { padding: 10px 14px; border: 1px solid #e5e7eb; text-align: left; font-size: 14px; }
+th { background: #f4f7ff; color: #153b96; font-weight: 700; }
+.toc { list-style: none; margin: 0; padding: 0; }
+.toc li { margin-bottom: 8px; }
+.toc a { color: #153b96; text-decoration: none; font-weight: 600; }
+.toc a:hover { text-decoration: underline; }
+.footer { text-align: center; color: #64748b; font-size: 13px; margin-top: 40px; padding: 20px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>劇団Birth公演収支管理</h1>
+  <p>アプリケーション利用手順書 v1.0</p>
+</div>
+
+<!-- 目次 -->
+<div class="card">
+  <h2>目次</h2>
+  <ol class="toc">
+    <li><a href="#env">1. 環境構築・セットアップ</a></li>
+    <li><a href="#login">2. 初回パスワード設定・ログイン</a></li>
+    <li><a href="#perf-list">3. 公演選択</a></li>
+    <li><a href="#perf-create">4. 公演新規作成（ウィザード）</a></li>
+    <li><a href="#csv">5. CSV取込</a></li>
+    <li><a href="#sales">6. 売上確認</a></li>
+    <li><a href="#expense">7. 経費管理</a></li>
+    <li><a href="#settlement">8. 精算管理</a></li>
+    <li><a href="#balance">9. 収支確認</a></li>
+    <li><a href="#cast-detail">10. キャスト精算内訳</a></li>
+    <li><a href="#env-vars">11. 環境変数一覧</a></li>
+    <li><a href="#troubleshoot">12. トラブルシューティング</a></li>
+  </ol>
+</div>
+
+<!-- 1. 環境構築 -->
+<div class="card" id="env">
+  <h2>1. 環境構築・セットアップ</h2>
+
+  <h3>前提条件</h3>
+  <ul>
+    <li>Node.js 18 以上</li>
+    <li>PostgreSQL データベース（Neon, Supabase, ローカル等）</li>
+    <li>npm または yarn</li>
+  </ul>
+
+  <h3>ローカル起動手順</h3>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>依存パッケージのインストール</strong>
+      <pre><code>cd birth-finance-app
+npm install</code></pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>環境変数の設定</strong>
+      <p><code>.env.example</code> をコピーして <code>.env</code> を作成し、値を設定します。</p>
+      <pre><code>cp .env.example .env</code></pre>
+      <pre><code># .env の中身
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/birth_finance?sslmode=require"
+SESSION_COOKIE_NAME="birth_finance_session"
+SESSION_SECRET="任意のランダム文字列（32文字以上推奨）"</code></pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>データベースのマイグレーション</strong>
+      <pre><code>npx prisma migrate dev --name init</code></pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <strong>初期データの投入（Seed）</strong>
+      <p>管理者ユーザー（admin）と17種類の経費カテゴリが作成されます。</p>
+      <pre><code>npm run db:seed</code></pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-body">
+      <strong>開発サーバーの起動</strong>
+      <pre><code>npm run dev</code></pre>
+      <p>ブラウザで <code>http://localhost:3000</code> を開きます。</p>
+    </div>
+  </div>
+
+  <div class="info">Vercel へのデプロイ時は、Vercel の環境変数設定画面で同じ変数を設定してください。</div>
+</div>
+
+<!-- 2. ログイン -->
+<div class="card" id="login">
+  <h2>2. 初回パスワード設定・ログイン</h2>
+
+  <h3>初回パスワード設定</h3>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <p>ログイン画面で <code>admin</code> と任意のパスワードを入力して「ログイン」をクリックします。</p>
+      <p>パスワードが未設定の場合、自動的に「初回パスワード設定」画面に遷移します。</p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <p>8文字以上のパスワードを入力し、確認用にもう一度入力して「パスワードを設定」をクリックします。</p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <p>設定完了後、ログイン画面に戻ります。設定したパスワードでログインしてください。</p>
+    </div>
+  </div>
+
+  <div class="warning">パスワードは bcrypt でハッシュ化されて保存されます。平文で保存されることはありません。</div>
+
+  <h3>通常ログイン</h3>
+  <p>ログインID（<code>admin</code>）とパスワードを入力して「ログイン」ボタンをクリックします。セッションは8時間有効です。</p>
+</div>
+
+<!-- 3. 公演選択 -->
+<div class="card" id="perf-list">
+  <h2>3. 公演選択</h2>
+  <p>ログイン後、登録済みの公演がカード形式で一覧表示されます。</p>
+  <p>各カードには以下が表示されます：</p>
+  <ul>
+    <li><span class="badge">ステータス</span>（準備中 / 進行中 / 終了）</li>
+    <li>公演名</li>
+    <li>期間（開始日 〜 終了日）</li>
+  </ul>
+  <p>カードをクリックすると、その公演の管理画面に遷移します。</p>
+  <p>右上の「新規公演作成」ボタンからウィザード画面に遷移できます。</p>
+</div>
+
+<!-- 4. 公演新規作成 -->
+<div class="card" id="perf-create">
+  <h2>4. 公演新規作成（ウィザード）</h2>
+  <p>4ステップのウィザード形式で公演を作成します。全ステップ完了後に一括保存されます。</p>
+
+  <h3>Step 1: 公演基本情報</h3>
+  <table>
+    <tr><th>項目</th><th>説明</th><th>必須</th></tr>
+    <tr><td>公演名</td><td>公演のタイトル</td><td>必須</td></tr>
+    <tr><td>開始日</td><td>公演の開始日</td><td>任意</td></tr>
+    <tr><td>終了日</td><td>公演の終了日</td><td>任意</td></tr>
+    <tr><td>ステージ数</td><td>次のステップで行が自動生成されます</td><td>任意</td></tr>
+    <tr><td>デフォルトノルマ単価</td><td>キャスト登録時の初期値になります</td><td>任意</td></tr>
+  </table>
+
+  <h3>Step 2: ステージ登録</h3>
+  <p>Step1のステージ数に応じて行が自動生成されます。行の追加・削除も可能です。</p>
+
+  <h3>Step 3: キャスト登録</h3>
+  <p>キャスト名、ノルマ枚数、ノルマ単価、バック対象を設定します。</p>
+  <div class="warning">キャスト名は CSV 取込時の「取扱窓口」と完全一致させる必要があります。前後の空白は自動除去されます。</div>
+
+  <h3>Step 4: チケットバックルール</h3>
+  <p>段階式のバックルールを設定します。最大枚数を空欄にすると「上限なし」として扱われます。</p>
+</div>
+
+<!-- 5. CSV取込 -->
+<div class="card" id="csv">
+  <h2>5. CSV取込</h2>
+  <p>公演管理画面の「CSV取込」タブからCSVファイルをアップロードします。</p>
+
+  <h3>CSV要件</h3>
+  <ul>
+    <li>文字コード: CP932（Shift-JIS）または UTF-8</li>
+    <li>必須ヘッダー: <code>取扱窓口</code>, <code>枚数</code>, <code>合計額</code>, <code>公演日時</code></li>
+  </ul>
+
+  <h3>処理ルール</h3>
+  <ul>
+    <li>「取扱窓口」の値でキャスト名と照合します（完全一致、前後空白除去のみ）</li>
+    <li>1件でもキャスト名が一致しない場合、全件ロールバックしてエラーを表示します</li>
+    <li>再取込は公演単位で全削除→再登録です（差分更新ではありません）</li>
+    <li>金額文字列の <code>,</code> と <code>円</code> は自動除去されます</li>
+  </ul>
+
+  <h3>エラー時の表示</h3>
+  <p>不一致があった場合、以下が表示されます：</p>
+  <ul>
+    <li>不一致件数</li>
+    <li>行番号と不一致だったキャスト名</li>
+    <li>全件ロールバックした旨のメッセージ</li>
+  </ul>
+</div>
+
+<!-- 6. 売上 -->
+<div class="card" id="sales">
+  <h2>6. 売上確認</h2>
+  <p>「売上」タブでCSV取込済みの売上データを一覧表示します。</p>
+  <table>
+    <tr><th>列</th><th>内容</th></tr>
+    <tr><td>取扱窓口</td><td>キャスト名</td></tr>
+    <tr><td>枚数</td><td>販売チケット枚数</td></tr>
+    <tr><td>金額</td><td>売上金額</td></tr>
+    <tr><td>公演日</td><td>公演日時から日付部分</td></tr>
+  </table>
+</div>
+
+<!-- 7. 経費 -->
+<div class="card" id="expense">
+  <h2>7. 経費管理</h2>
+  <p>「経費」タブで経費の登録・一覧表示・削除ができます。</p>
+
+  <h3>登録項目</h3>
+  <table>
+    <tr><th>項目</th><th>説明</th></tr>
+    <tr><td>日付</td><td>経費が発生した日付</td></tr>
+    <tr><td>カテゴリ</td><td>17種類のプリセットから選択</td></tr>
+    <tr><td>品名</td><td>経費の内容</td></tr>
+    <tr><td>支払先</td><td>支払先の名称</td></tr>
+    <tr><td>金額</td><td>金額（円）</td></tr>
+    <tr><td>メモ</td><td>任意のメモ</td></tr>
+  </table>
+
+  <h3>経費カテゴリ一覧</h3>
+  <p>劇場費 / 舞台美術費 / 舞台監督費 / 舞台監督雑費 / 仕込みバラシ要員費 / 照明費 / 宣伝費 / 制作費 / 稽古場費 / 荷出し・荷返し費 / 小道具費 / スチール費 / 音響費 / 編曲費 / 食材費 / レコーディング費 / 廃棄費</p>
+</div>
+
+<!-- 8. 精算 -->
+<div class="card" id="settlement">
+  <h2>8. 精算管理</h2>
+  <p>「精算」タブで精算記録の登録・一覧表示・削除ができます。</p>
+  <p>画面上部にはユーザー別の精算サマリ（経費立替合計・精算済合計・残高）が表示されます。</p>
+  <div class="info">経費と精算は直接JOINせず、それぞれをユーザー単位で先に集計してから結合しています。これにより件数の掛け算による集計誤りを防いでいます。</div>
+</div>
+
+<!-- 9. 収支 -->
+<div class="card" id="balance">
+  <h2>9. 収支確認</h2>
+  <p>「収支」タブで公演全体の収支を確認できます。</p>
+
+  <h3>サマリカード</h3>
+  <table>
+    <tr><th>項目</th><th>計算式</th></tr>
+    <tr><td>総売上</td><td>SUM(sales.sales_amount)</td></tr>
+    <tr><td>総経費</td><td>SUM(expenses.amount)</td></tr>
+    <tr><td>ギャラ</td><td>SUM(キャストごとのバック精算額)</td></tr>
+    <tr><td>最終収支</td><td>売上 - 経費 - ギャラ</td></tr>
+  </table>
+
+  <h3>キャスト別バック試算</h3>
+  <p>各キャストの販売枚数・売上・バック総額・ノルマ控除・精算額が表示されます。</p>
+  <p>「内訳」リンクから各キャストの詳細精算画面に遷移できます。</p>
+  <div class="info">チケットバックの計算結果はDBに保存されません。画面表示のたびに都度再計算されます。</div>
+</div>
+
+<!-- 10. キャスト精算 -->
+<div class="card" id="cast-detail">
+  <h2>10. キャスト精算内訳</h2>
+  <p>キャストごとの精算内訳を表示します（画面表示のみ、PDF出力・印刷機能は非搭載）。</p>
+
+  <h3>表示内容</h3>
+  <ul>
+    <li>販売枚数 / 売上金額 / ノルマ控除額 / 最終精算額</li>
+    <li>段階式バック内訳テーブル（対象範囲・該当枚数・単価・小計）</li>
+    <li>計算式の表示</li>
+    <li>ステージ別販売実績テーブル</li>
+  </ul>
+
+  <h3>バック計算ロジック</h3>
+  <pre><code>for each rule:
+  applicable = max(min(N, max) - min + 1, 0)
+  total += applicable × unit_price
+
+精算額 = バック総額 - (ノルマ枚数 × ノルマ単価)</code></pre>
+</div>
+
+<!-- 11. 環境変数 -->
+<div class="card" id="env-vars">
+  <h2>11. 環境変数一覧</h2>
+  <table>
+    <tr><th>変数名</th><th>必須</th><th>説明</th><th>例</th></tr>
+    <tr><td><code>DATABASE_URL</code></td><td>必須</td><td>PostgreSQL接続URL</td><td><code>postgresql://user:pass@host:5432/dbname</code></td></tr>
+    <tr><td><code>SESSION_COOKIE_NAME</code></td><td>任意</td><td>セッションCookie名（デフォルト: birth_finance_session）</td><td><code>birth_finance_session</code></td></tr>
+    <tr><td><code>SESSION_SECRET</code></td><td>推奨</td><td>セッション署名用シークレット</td><td>32文字以上のランダム文字列</td></tr>
+  </table>
+</div>
+
+<!-- 12. トラブルシューティング -->
+<div class="card" id="troubleshoot">
+  <h2>12. トラブルシューティング</h2>
+
+  <h3>「パスワードが未設定です」と表示される</h3>
+  <p>初回ログイン時に表示されます。パスワード設定画面で8文字以上のパスワードを設定してください。</p>
+
+  <h3>CSV取込で「キャスト不一致」エラー</h3>
+  <p>CSVの「取扱窓口」列の値と、公演に登録されたキャスト名が完全一致しません。以下を確認してください：</p>
+  <ul>
+    <li>キャスト名のスペル（全角/半角を含む）</li>
+    <li>前後の空白（自動除去されますが、名前中のスペースは区別されます）</li>
+    <li>キャストが公演に登録済みであること</li>
+  </ul>
+
+  <h3>ビルドエラー「DATABASE_URL not found」</h3>
+  <p><code>.env</code> ファイルに <code>DATABASE_URL</code> が設定されていることを確認してください。Vercel の場合は環境変数設定で追加してください。</p>
+
+  <h3>Prisma マイグレーションエラー</h3>
+  <pre><code>npx prisma migrate reset  # DBをリセットして再マイグレーション
+npm run db:seed            # Seedデータを再投入</code></pre>
+</div>
+
+<div class="footer">
+  劇団Birth公演収支管理 v1.0 &copy; 2026
+</div>
+
+</div>
+</body>
+</html>

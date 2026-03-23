@@ -1,0 +1,22 @@
+import type { ReactNode } from 'react';
+
+export function Shell({ title, subtitle, actions, children }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="container">
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <img src="/logo.png" alt="劇団Birth" style={{ height: 48, width: 'auto', objectFit: 'contain' }} />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', color: '#e74c3c' }}>BIRTH FINANCE SYSTEM</div>
+              <h1 className="title brand">{title}</h1>
+              {subtitle ? <p className="subtitle">{subtitle}</p> : null}
+            </div>
+          </div>
+          {actions}
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}

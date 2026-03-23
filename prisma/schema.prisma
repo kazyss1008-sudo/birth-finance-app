@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PerformanceStatus {
+  PREPARING
+  ACTIVE
+  CLOSED
+}
+
+enum ImportStatus {
+  SUCCESS
+  FAILED
+}
+
+model User {
+  id                BigInt        @id @default(autoincrement())
+  loginId           String        @unique @map("login_id") @db.VarChar(100)
+  passwordHash      String?       @map("password_hash") @db.VarChar(255)
+  displayName       String        @map("display_name") @db.VarChar(100)
+  isActive          Boolean       @default(true) @map("is_active")
+  mustChangePassword Boolean      @default(true) @map("must_change_password")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  expenses          Expense[]
+  settlements       Settlement[]
+
+  @@map("users")
+}
+
+model Performance {
+  id                    BigInt               @id @default(autoincrement())
+  name                  String               @db.VarChar(200)
+  startDate             DateTime?            @map("start_date") @db.Date
+  endDate               DateTime?            @map("end_date") @db.Date
+  stageCount            Int                  @default(0) @map("stage_count")
+  defaultNormaUnitPrice Int                  @default(0) @map("default_norma_unit_price")
+  status                PerformanceStatus    @default(PREPARING)
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+  stages                PerformanceStage[]
+  casts                 Cast[]
+  ticketBackRules       TicketBackRule[]
+  importHistories       SalesImportHistory[]
+  sales                 Sale[]
+  expenses              Expense[]
+  settlements           Settlement[]
+  sponsorships          Sponsorship[]
+
+  @@map("performances")
+}
+
+model PerformanceStage {
+  id            BigInt      @id @default(autoincrement())
+  performanceId BigInt      @map("performance_id")
+  stageNo       Int         @map("stage_no")
+  stageName     String      @map("stage_name") @db.VarChar(100)
+  stageDate     DateTime?   @map("stage_date") @db.Date
+  sortOrder     Int         @map("sort_order")
+  performance   Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+
+  @@unique([performanceId, stageNo])
+  @@map("performance_stages")
+}
+
+model Cast {
+  id                   BigInt      @id @default(autoincrement())
+  performanceId        BigInt      @map("performance_id")
+  name                 String      @db.VarChar(200)
+  normaTicketCount     Int         @default(0) @map("norma_ticket_count")
+  normaUnitPrice       Int         @default(0) @map("norma_unit_price")
+  isTicketBackTarget   Boolean     @default(true) @map("is_ticket_back_target")
+  sortOrder            Int         @default(0) @map("sort_order")
+  performance          Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  sales                Sale[]
+
+  @@unique([performanceId, name])
+  @@map("casts")
+}
+
+model TicketBackRule {
+  id             BigInt      @id @default(autoincrement())
+  performanceId  BigInt      @map("performance_id")
+  stepNo         Int         @map("step_no")
+  minTicketCount Int         @map("min_ticket_count")
+  maxTicketCount Int?        @map("max_ticket_count")
+  backUnitPrice  Int         @map("back_unit_price")
+  performance    Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+
+  @@unique([performanceId, stepNo])
+  @@map("ticket_back_rules")
+}
+
+model SalesImportHistory {
+  id                 BigInt       @id @default(autoincrement())
+  performanceId      BigInt       @map("performance_id")
+  fileName           String       @map("file_name") @db.VarChar(255)
+  fileEncoding       String       @map("file_encoding") @db.VarChar(20)
+  importedRowCount   Int          @map("imported_row_count")
+  insertedSalesCount Int          @map("inserted_sales_count")
+  status             ImportStatus
+  errorMessage       String?      @map("error_message") @db.Text
+  importedAt         DateTime     @default(now()) @map("imported_at")
+  performance        Performance  @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  rawRows            SalesRawRow[]
+  sales              Sale[]
+
+  @@map("sales_import_histories")
+}
+
+model SalesRawRow {
+  id              BigInt             @id @default(autoincrement())
+  importHistoryId BigInt             @map("import_history_id")
+  rowNo           Int                @map("row_no")
+  rawJson         Json               @map("raw_json")
+  importHistory   SalesImportHistory @relation(fields: [importHistoryId], references: [id], onDelete: Cascade)
+
+  @@map("sales_raw_rows")
+}
+
+model Sale {
+  id               BigInt             @id @default(autoincrement())
+  performanceId    BigInt             @map("performance_id")
+  importHistoryId  BigInt             @map("import_history_id")
+  castId           BigInt             @map("cast_id")
+  handledCastName  String             @map("handled_cast_name") @db.VarChar(200)
+  ticketCount      Int                @map("ticket_count")
+  salesAmount      Int                @map("sales_amount")
+  visitedAt        DateTime           @map("visited_at") @db.Date
+  sourceRowNo      Int                @map("source_row_no")
+  performance      Performance        @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  importHistory    SalesImportHistory @relation(fields: [importHistoryId], references: [id], onDelete: Cascade)
+  cast             Cast               @relation(fields: [castId], references: [id])
+
+  @@map("sales")
+}
+
+model ExpenseCategory {
+  id        BigInt    @id @default(autoincrement())
+  name      String    @unique @db.VarChar(100)
+  sortOrder Int       @default(0) @map("sort_order")
+  isActive  Boolean   @default(true) @map("is_active")
+  expenses  Expense[]
+
+  @@map("expense_categories")
+}
+
+model Expense {
+  id                BigInt          @id @default(autoincrement())
+  performanceId     BigInt          @map("performance_id")
+  expenseDate       DateTime        @map("expense_date") @db.Date
+  amount            Int
+  expenseCategoryId BigInt          @map("expense_category_id")
+  itemName          String          @map("item_name") @db.VarChar(200)
+  payee             String          @db.VarChar(200)
+  memo              String?         @db.Text
+  createdBy         BigInt          @map("created_by")
+  isSettled         Boolean         @default(false) @map("is_settled")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  performance       Performance     @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  category          ExpenseCategory @relation(fields: [expenseCategoryId], references: [id])
+  creator           User            @relation(fields: [createdBy], references: [id])
+
+  @@map("expenses")
+}
+
+model Settlement {
+  id            BigInt      @id @default(autoincrement())
+  performanceId BigInt      @map("performance_id")
+  userId        BigInt      @map("user_id")
+  amount        Int
+  settledAt     DateTime    @map("settled_at")
+  memo          String?     @db.Text
+  createdAt     DateTime    @default(now()) @map("created_at")
+  performance   Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id])
+
+  @@map("settlements")
+}
+
+model Sponsorship {
+  id            BigInt      @id @default(autoincrement())
+  performanceId BigInt      @map("performance_id")
+  sponsorName   String      @map("sponsor_name") @db.VarChar(200)
+  amount        Int
+  memo          String?     @db.Text
+  createdAt     DateTime    @default(now()) @map("created_at")
+  performance   Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+
+  @@map("sponsorships")
+}
