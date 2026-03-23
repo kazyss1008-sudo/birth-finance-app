@@ -15,12 +15,19 @@ button, input, select { font: inherit; }
 .secondary { background: #edf2ff; color: #153b96; border: none; border-radius: 16px; padding: 12px 16px; font-weight: 700; cursor: pointer; }
 .input, .select { width: 100%; border: 1px solid #dbe2ea; border-radius: 16px; padding: 12px 14px; background: white; color: #1f2937; }
 .select { appearance: auto; -webkit-appearance: menulist; cursor: pointer; }
-.table { width: 100%; border-collapse: collapse; }
+.table { width: 100%; border-collapse: collapse; display: table; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .table th, .table td { padding: 12px 14px; border-top: 1px solid #eef2f7; text-align: left; }
 .table thead th { background: #f4f7ff; color: #153b96; border-top: 0; }
 @media (max-width: 900px) {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .title { font-size: 24px; }
+  .title { font-size: 20px; white-space: normal; }
+  .container { padding: 12px; }
+  .card { padding: 16px; border-radius: 16px; }
+  .tab { padding: 8px 12px; font-size: 13px; }
+  .table th, .table td { padding: 8px 6px; font-size: 13px; }
+  .primary, .secondary { padding: 10px 14px; font-size: 14px; }
+  .input, .select { padding: 10px 12px; border-radius: 12px; }
 }
 .tabs { display: flex; gap: 4px; border-bottom: 2px solid #edf2ff; margin-bottom: 16px; overflow-x: auto; }
 .tab { padding: 10px 18px; border: none; background: none; cursor: pointer; font-weight: 700; color: #64748b; border-bottom: 3px solid transparent; white-space: nowrap; font-size: 14px; }
@@ -29,3 +36,12 @@ button, input, select { font: inherit; }
 .danger { background: #fee2e2; color: #dc2626; border: none; border-radius: 12px; padding: 6px 12px; font-weight: 700; cursor: pointer; font-size: 12px; }
 .success-msg { background: #d1fae5; color: #059669; padding: 12px 16px; border-radius: 12px; font-weight: 700; }
 .error-msg { background: #fee2e2; color: #dc2626; padding: 12px 16px; border-radius: 12px; font-weight: 700; }
+.balance-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.responsive-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 600px) {
+  .balance-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .balance-grid .card { padding: 12px !important; }
+  .balance-grid .card div[style*="font-size: 22"] { font-size: 18px !important; }
+  .tabs { gap: 2px; }
+  .tab { padding: 8px 10px; font-size: 12px; }
+}

@@ -359,7 +359,8 @@ export default function PerformancePage() {
           ) : editCasts.length === 0 ? (
             <p className="subtitle">キャストが登録されていません。</p>
           ) : (
-            <table className="table">
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table className="table" style={{ minWidth: 600 }}>
               <thead><tr><th style={{width:40}}></th><th>キャスト名</th><th style={{width:120}}>ノルマ枚数</th><th style={{width:120}}>ノルマ単価</th><th style={{width:80, textAlign:'center'}}>バック対象</th><th style={{width:80}}></th></tr></thead>
               <tbody>
                 {editCasts.map((c, i) => (
@@ -374,6 +375,7 @@ export default function PerformancePage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}
@@ -549,7 +551,7 @@ export default function PerformancePage() {
         <div className="grid">
           <div className="card">
             <h2 className="brand">経費登録</h2>
-            <form onSubmit={handleAddExpense} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, alignItems: 'end', marginTop: 8 }}>
+            <form onSubmit={handleAddExpense} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8, alignItems: 'end', marginTop: 8 }}>
               <div>
                 <label className="subtitle">日付</label>
                 <input className="input" type="date" value={expForm.expenseDate} onChange={e => setExpForm(f => ({ ...f, expenseDate: e.target.value }))} required />
@@ -590,7 +592,7 @@ export default function PerformancePage() {
             }
             const users = Array.from(byUser.values());
             return (
-              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(users.length, 4)}, 1fr)`, gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
                 {users.map(u => (
                   <div key={u.name} className="card" style={{ padding: 16 }}>
                     <div className="subtitle">{u.name}</div>
@@ -611,7 +613,8 @@ export default function PerformancePage() {
             ) : expenses.length === 0 ? (
               <p className="subtitle">経費が登録されていません。</p>
             ) : (
-              <table className="table">
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table className="table" style={{ minWidth: 700 }}>
                 <thead><tr><th style={{width:60,textAlign:'center'}}>精算</th><th>日付</th><th>担当者</th><th>カテゴリ</th><th>品名</th><th>金額</th><th>メモ</th><th></th></tr></thead>
                 <tbody>
                   {expenses.map(exp => (
@@ -633,6 +636,7 @@ export default function PerformancePage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         </div>
@@ -645,35 +649,33 @@ export default function PerformancePage() {
             <div className="card"><p className="subtitle">読み込み中...</p></div>
           ) : (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'stretch' }}>
-                {/* 内訳 */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-                  <div className="card" style={{ padding: 16, background: '#f0f4ff' }}>
-                    <div className="subtitle" style={{ fontSize: 12 }}>チケット売上 <span style={{ marginLeft: 4 }}>{summary.totalTickets}枚</span></div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: '#153b96' }}>{yen(summary.totalSales)}</div>
-                  </div>
-                  <div className="card" style={{ padding: 16, background: '#f0f4ff' }}>
-                    <div className="subtitle" style={{ fontSize: 12 }}>グッズ売上</div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: '#153b96' }}>{yen(summary.totalGoodsSales)}</div>
-                  </div>
-                  <div className="card" style={{ padding: 16, background: '#f0f4ff' }}>
-                    <div className="subtitle" style={{ fontSize: 12 }}>協賛金</div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: '#153b96' }}>{yen(summary.totalSponsorship)}</div>
-                  </div>
-                  <div className="card" style={{ padding: 16, background: '#fef2f2' }}>
-                    <div className="subtitle" style={{ fontSize: 12 }}>総経費</div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: '#e74c3c' }}>{yen(summary.totalExpenses)}</div>
-                  </div>
-                  <div className="card" style={{ padding: 16, background: -summary.totalGara >= 0 ? '#f0fdf4' : '#fef2f2' }}>
-                    <div className="subtitle" style={{ fontSize: 12 }}>ギャラ収支</div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: -summary.totalGara >= 0 ? '#059669' : '#e74c3c' }}>{yen(-summary.totalGara)}</div>
-                  </div>
+              {/* 最終収支 */}
+              <div className="card" style={{ border: '3px solid', borderColor: summary.netBalance >= 0 ? '#059669' : '#e74c3c', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '24px 32px', marginBottom: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#64748b', marginBottom: 8 }}>最終収支</div>
+                <div style={{ fontSize: 42, lineHeight: 1.1, fontWeight: 900, color: summary.netBalance >= 0 ? '#059669' : '#e74c3c' }}>{yen(summary.netBalance)}</div>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>売上 + グッズ + 協賛 - 経費 - ギャラ</div>
+              </div>
+              {/* 内訳 */}
+              <div className="balance-grid">
+                <div className="card" style={{ padding: 16, background: '#f0f4ff' }}>
+                  <div className="subtitle" style={{ fontSize: 12 }}>チケット売上 <span style={{ marginLeft: 4 }}>{summary.totalTickets}枚</span></div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#153b96' }}>{yen(summary.totalSales)}</div>
                 </div>
-                {/* 最終収支 */}
-                <div className="card" style={{ border: '3px solid', borderColor: summary.netBalance >= 0 ? '#059669' : '#e74c3c', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '24px 40px', minWidth: 240 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#64748b', marginBottom: 8 }}>最終収支</div>
-                  <div style={{ fontSize: 42, lineHeight: 1.1, fontWeight: 900, color: summary.netBalance >= 0 ? '#059669' : '#e74c3c' }}>{yen(summary.netBalance)}</div>
-                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>売上 + 協賛 - 経費 - ギャラ</div>
+                <div className="card" style={{ padding: 16, background: '#f0f4ff' }}>
+                  <div className="subtitle" style={{ fontSize: 12 }}>グッズ売上</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#153b96' }}>{yen(summary.totalGoodsSales)}</div>
+                </div>
+                <div className="card" style={{ padding: 16, background: '#f0f4ff' }}>
+                  <div className="subtitle" style={{ fontSize: 12 }}>協賛金</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#153b96' }}>{yen(summary.totalSponsorship)}</div>
+                </div>
+                <div className="card" style={{ padding: 16, background: '#fef2f2' }}>
+                  <div className="subtitle" style={{ fontSize: 12 }}>総経費</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#e74c3c' }}>{yen(summary.totalExpenses)}</div>
+                </div>
+                <div className="card" style={{ padding: 16, background: -summary.totalGara >= 0 ? '#f0fdf4' : '#fef2f2' }}>
+                  <div className="subtitle" style={{ fontSize: 12 }}>ギャラ収支</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: -summary.totalGara >= 0 ? '#059669' : '#e74c3c' }}>{yen(-summary.totalGara)}</div>
                 </div>
               </div>
               <div className="card">
