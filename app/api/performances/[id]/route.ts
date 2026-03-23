@@ -18,6 +18,19 @@ function serializeBigInt(obj: unknown): unknown {
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  // Auto-update status based on dates
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const perf = await prisma.performance.findUnique({ where: { id: BigInt(id) }, select: { status: true, startDate: true, endDate: true } });
+  if (perf) {
+    if (perf.status === 'PREPARING' && perf.startDate && perf.startDate <= today) {
+      await prisma.performance.update({ where: { id: BigInt(id) }, data: { status: 'ACTIVE' } });
+    } else if (perf.status === 'ACTIVE' && perf.endDate && perf.endDate < today) {
+      await prisma.performance.update({ where: { id: BigInt(id) }, data: { status: 'CLOSED' } });
+    }
+  }
+
   const performance = await prisma.performance.findUnique({
     where: { id: BigInt(id) },
     include: {

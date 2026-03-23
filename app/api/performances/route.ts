@@ -50,6 +50,19 @@ const createSchema = z.object({
 });
 
 export async function GET() {
+  // Auto-update status based on dates
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  await prisma.performance.updateMany({
+    where: { status: 'PREPARING', startDate: { lte: today } },
+    data: { status: 'ACTIVE' },
+  });
+  await prisma.performance.updateMany({
+    where: { status: 'ACTIVE', endDate: { lt: today } },
+    data: { status: 'CLOSED' },
+  });
+
   const performances = await prisma.performance.findMany({
     orderBy: { startDate: 'desc' },
   });
