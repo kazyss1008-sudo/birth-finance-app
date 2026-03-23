@@ -551,7 +551,7 @@ export default function PerformancePage() {
         <div className="grid">
           <div className="card">
             <h2 className="brand">経費登録</h2>
-            <form onSubmit={handleAddExpense} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8, alignItems: 'end', marginTop: 8 }}>
+            <form onSubmit={handleAddExpense} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8, alignItems: 'end', marginTop: 8 }}>
               <div>
                 <label className="subtitle">日付</label>
                 <input className="input" type="date" value={expForm.expenseDate} onChange={e => setExpForm(f => ({ ...f, expenseDate: e.target.value }))} required />
