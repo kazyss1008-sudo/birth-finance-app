@@ -499,7 +499,7 @@ export default function PerformancePage() {
                             rowTotal += val;
                             return (
                               <td key={st.id} style={{ textAlign: 'center' }}>
-                                <input className="input" type="number" min="0" value={val} onChange={e => {
+                                <input className="input" type="number" min="0" value={val || ''} placeholder="0" onFocus={e => e.target.select()} onChange={e => {
                                   const newMap = new Map(goodsSaleEdits);
                                   newMap.set(key, Number(e.target.value) || 0);
                                   setGoodsSaleEdits(newMap);
