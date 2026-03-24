@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Shell } from '@/components/Shell';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 
 type Performance = {
   id: string; name: string; startDate: string; endDate: string;
@@ -32,10 +32,12 @@ function statusLabel(s: string) { return s === 'PREPARING' ? '準備中' : s ===
 
 export default function PerformancePage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = params.id as string;
+  const initialTab = (searchParams.get('tab') as TabName) || 'CSV取込';
 
   const [perf, setPerf] = useState<Performance | null>(null);
-  const [activeTab, setActiveTab] = useState<TabName>('CSV取込');
+  const [activeTab, setActiveTab] = useState<TabName>(TABS.includes(initialTab as TabName) ? initialTab : 'CSV取込');
   const [loading, setLoading] = useState(true);
 
   // Tab data states
@@ -715,7 +717,7 @@ export default function PerformancePage() {
                 </div>
               </div>
               <div className="card">
-                <h2 className="brand">キャスト別バック試算</h2>
+                <h2 className="brand">キャスト毎精算管理</h2>
                 <p className="subtitle">段階式ルールで都度再計算。計算結果はDB保存なし。</p>
                 {summary.castDetails && summary.castDetails.length > 0 ? (
                   <table className="table">
