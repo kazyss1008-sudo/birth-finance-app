@@ -135,6 +135,12 @@ model Sale {
   salesAmount     Int                @map("sales_amount")
   visitedAt       DateTime           @map("visited_at") @db.Date
   sourceRowNo     Int                @map("source_row_no")
+  reservationNo   String?            @map("reservation_no") @db.VarChar(50)
+  ticketType      String?            @map("ticket_type") @db.VarChar(100)
+  paymentMethod   String?            @map("payment_method") @db.VarChar(100)
+  customerName    String?            @map("customer_name") @db.VarChar(200)
+  customerKana    String?            @map("customer_kana") @db.VarChar(200)
+  note            String?            @db.Text
   performance     Performance        @relation(fields: [performanceId], references: [id], onDelete: Cascade)
   importHistory   SalesImportHistory @relation(fields: [importHistoryId], references: [id], onDelete: Cascade)
   cast            Cast               @relation(fields: [castId], references: [id])

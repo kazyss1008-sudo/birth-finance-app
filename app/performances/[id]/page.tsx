@@ -15,7 +15,7 @@ type Stage = { id: string; stageNo: number; stageName: string; stageDate: string
 type Cast = { id: string; name: string; normaTicketCount: number; normaUnitPrice: number; isTicketBackTarget: boolean; };
 type Rule = { id: string; stepNo: number; minTicketCount: number; maxTicketCount: number | null; backUnitPrice: number; };
 type ImportHistory = { id: string; fileName: string; importedRowCount: number; status: string; importedAt: string; };
-type Sale = { id: string; handledCastName: string; ticketCount: number; salesAmount: number; visitedAt: string; };
+type Sale = { id: string; handledCastName: string; ticketCount: number; salesAmount: number; visitedAt: string; reservationNo: string | null; ticketType: string | null; paymentMethod: string | null; customerName: string | null; customerKana: string | null; note: string | null; };
 type ExpenseCategory = { id: string; name: string; };
 type Expense = { id: string; expenseDate: string; amount: number; itemName: string; memo: string | null; isSettled: boolean; createdBy: string; category: { name: string }; creator: { displayName: string }; };
 type Summary = { totalSales: number; totalTickets: number; totalExpenses: number; totalSponsorship: number; totalGoodsSales: number; totalGara: number; netBalance: number; castDetails: CastDetail[]; };
@@ -337,19 +337,26 @@ export default function PerformancePage() {
           ) : sales.length === 0 ? (
             <p className="subtitle">売上データがありません。CSVを取り込んでください。</p>
           ) : (
-            <table className="table">
-              <thead><tr><th>取扱窓口</th><th>枚数</th><th>金額</th><th>公演日</th></tr></thead>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table className="table" style={{ minWidth: 900 }}>
+              <thead><tr><th>予約NO</th><th>公演日時</th><th>チケット種別</th><th>枚数</th><th>金額</th><th>支払方法</th><th>名前</th><th>フリガナ</th><th>備考</th></tr></thead>
               <tbody>
                 {sales.map(s => (
                   <tr key={s.id}>
-                    <td>{s.handledCastName}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{s.reservationNo ?? ''}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{s.visitedAt?.slice(0, 10)}</td>
+                    <td>{s.ticketType ?? ''}</td>
                     <td>{s.ticketCount}枚</td>
                     <td>{yen(s.salesAmount)}</td>
-                    <td>{s.visitedAt?.slice(0, 10)}</td>
+                    <td>{s.paymentMethod ?? ''}</td>
+                    <td>{s.customerName ?? ''}</td>
+                    <td>{s.customerKana ?? ''}</td>
+                    <td className="subtitle">{s.note ?? ''}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}

@@ -98,6 +98,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           salesAmount: row.salesAmount,
           visitedAt: new Date(row.visitedAt),
           sourceRowNo: row.rowNo,
+          reservationNo: row.reservationNo,
+          ticketType: row.ticketType,
+          paymentMethod: row.paymentMethod,
+          customerName: row.customerName,
+          customerKana: row.customerKana,
+          note: row.note,
         })),
       });
 
