@@ -337,14 +337,14 @@ export default function PerformancePage() {
               return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
             };
             const filtered = sales?.filter(s => {
-              if (salesFilterDate && fmtDate(s.visitedAt) !== salesFilterDate) return false;
+              if (salesFilterDate && fmtDateTime(s.visitedAt) !== salesFilterDate) return false;
               if (salesFilterType && (s.ticketType ?? '') !== salesFilterType) return false;
               if (salesFilterPayment && (s.paymentMethod ?? '') !== salesFilterPayment) return false;
               if (salesFilterCast && s.handledCastName !== salesFilterCast) return false;
               return true;
             }) ?? [];
             const totalTickets = filtered.reduce((s, r) => s + r.ticketCount, 0);
-            const uniqueDates = [...new Set(sales?.map(s => fmtDate(s.visitedAt)).filter(Boolean) ?? [])].sort();
+            const uniqueDates = [...new Set(sales?.map(s => fmtDateTime(s.visitedAt)).filter(Boolean) ?? [])].sort();
             const uniqueTypes = [...new Set(sales?.map(s => s.ticketType).filter(Boolean) ?? [])];
             const uniquePayments = [...new Set(sales?.map(s => s.paymentMethod).filter(Boolean) ?? [])];
             const uniqueCasts = [...new Set(sales?.map(s => s.handledCastName).filter(Boolean) ?? [])].sort();
@@ -356,7 +356,7 @@ export default function PerformancePage() {
               </div>
               <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>公演日</label>
+                  <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>公演日時</label>
                   <select className="select" value={salesFilterDate} onChange={e => setSalesFilterDate(e.target.value)} style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10 }}>
                     <option value="">すべて</option>
                     {uniqueDates.map(d => <option key={d} value={d}>{d}</option>)}
