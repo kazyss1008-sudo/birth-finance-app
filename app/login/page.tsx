@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Shell } from '@/components/Shell';
@@ -11,6 +11,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Warm up serverless function + DB connection while user types
+  useEffect(() => { fetch('/api/auth/ping').catch(() => {}); }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
