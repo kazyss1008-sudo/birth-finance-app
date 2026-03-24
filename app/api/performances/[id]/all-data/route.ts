@@ -100,7 +100,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const normaDeduction = remainingNorma * cast.normaUnitPrice;
     const settlement = backTotal - normaDeduction;
     totalGala += settlement;
-    return { castId: cast.id.toString(), name: cast.name, soldTickets, backTotal, normaDeduction, settlement };
+    const salesAmount = castSales.reduce((s, r) => s + r.salesAmount, 0);
+    return { castId: cast.id.toString(), castName: cast.name, ticketCount: soldTickets, salesAmount, backTotal, normaDeduction, settlement, normaTicketCount: cast.normaTicketCount, normaUnitPrice: cast.normaUnitPrice };
   });
 
   const summary = {
