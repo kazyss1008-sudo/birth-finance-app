@@ -21,7 +21,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const performanceId = BigInt(id);
 
   // Run all queries in parallel
-  const [performance, sales, expenses, categories, users, goods, goodsSales, sponsorships] = await Promise.all([
+  const [performance, sales, expenses, categories, users, goods, sponsorships] = await Promise.all([
     prisma.performance.findUnique({
       where: { id: performanceId },
       include: {
@@ -48,10 +48,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     prisma.goods.findMany({
       where: { performanceId },
       orderBy: { sortOrder: 'asc' },
-    }),
-    prisma.goodsSale.findMany({
-      where: { goods: { performanceId } },
-      include: { goods: true, performanceStage: true },
+      include: { sales: { include: { performanceStage: true } } },
     }),
     prisma.sponsorship.findMany({
       where: { performanceId },
@@ -81,9 +78,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const totalSponsorships = sponsorships.reduce((s, r) => s + r.amount, 0);
 
   // Goods sales total
-  const goodsSalesTotal = goodsSales.reduce((s, gs) => {
-    const g = goods.find(g => g.id === gs.goodsId);
-    return s + (g ? g.unitPrice * gs.quantity : 0);
+  const goodsSalesTotal = goods.reduce((total, g) => {
+    const qty = g.sales.reduce((s: number, r: { quantity: number }) => s + r.quantity, 0);
+    return total + qty * g.unitPrice;
   }, 0);
 
   // Cast-level back calculation
@@ -124,7 +121,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     categories,
     users,
     goods,
-    goodsSales,
     sponsorships,
     summary,
   }));
