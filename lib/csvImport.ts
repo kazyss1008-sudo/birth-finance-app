@@ -56,7 +56,7 @@ export function parseCp932CsvText(csvText: string) {
       handledCastName: parsed['取扱窓口'].trim(),
       ticketCount: Number(parsed['枚数']),
       salesAmount: Number(String(parsed['合計額']).replace(/[,円\s]/g, '')),
-      visitedAt: String(parsed['公演日時']).slice(0, 10),
+      visitedAt: String(parsed['公演日時']).trim(),
       reservationNo: parsed['予約No']?.trim() || null,
       ticketType: extractTicketType(parsed['チケット名称']),
       paymentMethod: parsed['お支払い方法']?.trim() || null,

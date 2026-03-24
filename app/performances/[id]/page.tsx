@@ -46,6 +46,11 @@ export default function PerformancePage() {
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [users, setUsers] = useState<{ id: string; displayName: string }[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
+  // Sales filter state
+  const [salesFilterDate, setSalesFilterDate] = useState('');
+  const [salesFilterType, setSalesFilterType] = useState('');
+  const [salesFilterPayment, setSalesFilterPayment] = useState('');
+  const [salesFilterCast, setSalesFilterCast] = useState('');
   // CSV import state
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvUploading, setCsvUploading] = useState(false);
@@ -331,34 +336,97 @@ export default function PerformancePage() {
       {/* 売上 Tab */}
       {activeTab === '売上' && (
         <div className="card">
-          <h2 className="brand">売上一覧</h2>
-          {!sales ? (
-            <p className="subtitle">読み込み中...</p>
-          ) : sales.length === 0 ? (
-            <p className="subtitle">売上データがありません。CSVを取り込んでください。</p>
-          ) : (
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table className="table" style={{ minWidth: 900 }}>
-              <thead><tr><th>予約NO</th><th>公演日時</th><th>チケット種別</th><th>枚数</th><th>金額</th><th>支払方法</th><th>名前</th><th>フリガナ</th><th>取扱窓口</th><th>備考</th></tr></thead>
-              <tbody>
-                {sales.map(s => (
-                  <tr key={s.id}>
-                    <td style={{ whiteSpace: 'nowrap' }}>{s.reservationNo ?? ''}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{s.visitedAt?.slice(0, 10)}</td>
-                    <td>{s.ticketType ?? ''}</td>
-                    <td>{s.ticketCount}枚</td>
-                    <td>{yen(s.salesAmount)}</td>
-                    <td>{s.paymentMethod ?? ''}</td>
-                    <td>{s.customerName ?? ''}</td>
-                    <td>{s.customerKana ?? ''}</td>
-                    <td>{s.handledCastName}</td>
-                    <td className="subtitle">{s.note ?? ''}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
-          )}
+          {(() => {
+            const fmtDateTime = (iso: string) => {
+              if (!iso) return '';
+              const d = new Date(iso);
+              if (isNaN(d.getTime())) return iso.slice(0, 10);
+              return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            };
+            const fmtDate = (iso: string) => {
+              if (!iso) return '';
+              const d = new Date(iso);
+              if (isNaN(d.getTime())) return iso.slice(0, 10);
+              return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            };
+            const filtered = sales?.filter(s => {
+              if (salesFilterDate && fmtDate(s.visitedAt) !== salesFilterDate) return false;
+              if (salesFilterType && (s.ticketType ?? '') !== salesFilterType) return false;
+              if (salesFilterPayment && (s.paymentMethod ?? '') !== salesFilterPayment) return false;
+              if (salesFilterCast && s.handledCastName !== salesFilterCast) return false;
+              return true;
+            }) ?? [];
+            const totalTickets = filtered.reduce((s, r) => s + r.ticketCount, 0);
+            const uniqueDates = [...new Set(sales?.map(s => fmtDate(s.visitedAt)).filter(Boolean) ?? [])].sort();
+            const uniqueTypes = [...new Set(sales?.map(s => s.ticketType).filter(Boolean) ?? [])];
+            const uniquePayments = [...new Set(sales?.map(s => s.paymentMethod).filter(Boolean) ?? [])];
+            const uniqueCasts = [...new Set(sales?.map(s => s.handledCastName).filter(Boolean) ?? [])].sort();
+            const hasFilter = salesFilterDate || salesFilterType || salesFilterPayment || salesFilterCast;
+            return (<>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                <h2 className="brand" style={{ margin: 0 }}>売上一覧</h2>
+                <div style={{ fontSize: 20, fontWeight: 900, color: '#153b96' }}>合計: {totalTickets}枚</div>
+              </div>
+              <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>公演日</label>
+                  <select className="select" value={salesFilterDate} onChange={e => setSalesFilterDate(e.target.value)} style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10 }}>
+                    <option value="">すべて</option>
+                    {uniqueDates.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>種別</label>
+                  <select className="select" value={salesFilterType} onChange={e => setSalesFilterType(e.target.value)} style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10 }}>
+                    <option value="">すべて</option>
+                    {uniqueTypes.map(t => <option key={t} value={t!}>{t}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>支払方法</label>
+                  <select className="select" value={salesFilterPayment} onChange={e => setSalesFilterPayment(e.target.value)} style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10 }}>
+                    <option value="">すべて</option>
+                    {uniquePayments.map(p => <option key={p} value={p!}>{p}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>取扱窓口</label>
+                  <select className="select" value={salesFilterCast} onChange={e => setSalesFilterCast(e.target.value)} style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10 }}>
+                    <option value="">すべて</option>
+                    {uniqueCasts.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                {hasFilter && <button className="ghost" onClick={() => { setSalesFilterDate(''); setSalesFilterType(''); setSalesFilterPayment(''); setSalesFilterCast(''); }} style={{ fontSize: 12, padding: '4px 8px' }}>フィルタ解除</button>}
+              </div>
+              {!sales ? (
+                <p className="subtitle">読み込み中...</p>
+              ) : filtered.length === 0 ? (
+                <p className="subtitle" style={{ marginTop: 12 }}>{sales.length === 0 ? '売上データがありません。CSVを取り込んでください。' : '該当する売上がありません。'}</p>
+              ) : (
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginTop: 12 }}>
+                <table className="table" style={{ minWidth: 900 }}>
+                  <thead><tr><th>予約NO</th><th>公演日時</th><th>チケット種別</th><th>枚数</th><th>金額</th><th>支払方法</th><th>名前</th><th>フリガナ</th><th>取扱窓口</th><th>備考</th></tr></thead>
+                  <tbody>
+                    {filtered.map(s => (
+                      <tr key={s.id}>
+                        <td style={{ whiteSpace: 'nowrap' }}>{s.reservationNo ?? ''}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{fmtDateTime(s.visitedAt)}</td>
+                        <td>{s.ticketType ?? ''}</td>
+                        <td>{s.ticketCount}枚</td>
+                        <td>{yen(s.salesAmount)}</td>
+                        <td>{s.paymentMethod ?? ''}</td>
+                        <td>{s.customerName ?? ''}</td>
+                        <td>{s.customerKana ?? ''}</td>
+                        <td>{s.handledCastName}</td>
+                        <td className="subtitle">{s.note ?? ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                </div>
+              )}
+            </>);
+          })()}
         </div>
       )}
 

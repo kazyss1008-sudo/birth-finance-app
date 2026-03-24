@@ -133,7 +133,7 @@ model Sale {
   handledCastName String             @map("handled_cast_name") @db.VarChar(200)
   ticketCount     Int                @map("ticket_count")
   salesAmount     Int                @map("sales_amount")
-  visitedAt       DateTime           @map("visited_at") @db.Date
+  visitedAt       DateTime           @map("visited_at") @db.Timestamp()
   sourceRowNo     Int                @map("source_row_no")
   reservationNo   String?            @map("reservation_no") @db.VarChar(50)
   ticketType      String?            @map("ticket_type") @db.VarChar(100)
