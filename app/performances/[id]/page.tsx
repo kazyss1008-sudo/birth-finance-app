@@ -109,6 +109,12 @@ export default function PerformancePage() {
 
   useEffect(() => { loadAllData(); }, [loadAllData]);
 
+  // Refresh summary only (lightweight)
+  const refreshSummary = useCallback(async () => {
+    const res = await fetch(`/api/performances/${id}/summary`);
+    if (res.ok) setSummary(await res.json());
+  }, [id]);
+
   // CSV upload handler
   const handleCsvUpload = async () => {
     if (!csvFile) return;
@@ -121,12 +127,8 @@ export default function PerformancePage() {
       const data = await res.json();
       if (res.ok) {
         setCsvResult({ success: true, message: `${data.importedRowCount ?? 0}件のデータを取り込みました。` });
-        // Refresh performance data to update import histories
-        const updated = await fetch(`/api/performances/${id}`).then(r => r.json());
-        setPerf(updated);
-        // Reset cached data
-        setSales(null);
-        setSummary(null);
+        // Reload all data
+        await loadAllData();
       } else {
         const details: string[] = [];
         if (data.errors && data.errors.length > 0) {
@@ -155,7 +157,7 @@ export default function PerformancePage() {
         setExpForm({ expenseDate: '', amount: '', expenseCategoryId: '', itemName: '', memo: '' });
         const updated = await fetch(`/api/performances/${id}/expenses`).then(r => r.json());
         setExpenses(updated);
-        setSummary(null);
+        refreshSummary();
       }
     } finally {
       setExpSubmitting(false);
@@ -168,7 +170,7 @@ export default function PerformancePage() {
     await fetch(`/api/performances/${id}/expenses`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId }) });
     const updated = await fetch(`/api/performances/${id}/expenses`).then(r => r.json());
     setExpenses(updated);
-    setSummary(null);
+    refreshSummary();
   };
 
   // Toggle expense settled
@@ -198,7 +200,7 @@ export default function PerformancePage() {
         setSpForm({ sponsorName: '', amount: '', memo: '' });
         const updated = await fetch(`/api/performances/${id}/sponsorships`).then(r => r.json());
         setSponsorships(updated);
-        setSummary(null);
+        refreshSummary();
       }
     } finally { setSpSubmitting(false); }
   };
@@ -209,7 +211,7 @@ export default function PerformancePage() {
     await fetch(`/api/performances/${id}/sponsorships`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sponsorshipId }) });
     const updated = await fetch(`/api/performances/${id}/sponsorships`).then(r => r.json());
     setSponsorships(updated);
-    setSummary(null);
+    refreshSummary();
   };
 
   // Cast editing helpers
@@ -250,7 +252,7 @@ export default function PerformancePage() {
       setEditCasts(updated.map((c: EditCast) => ({ ...c, changed: false })));
       const perfData = await fetch(`/api/performances/${id}`).then(r => r.json());
       setPerf(perfData);
-      setSummary(null);
+      refreshSummary();
     } finally {
       setCastSaving(false);
     }
@@ -601,7 +603,7 @@ export default function PerformancePage() {
                   await fetch(`/api/performances/${id}/goods-sales`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ records }) });
                   setGoodsSaleEdits(new Map());
                   setGoodsList(null);
-                  setSummary(null);
+                  refreshSummary();
                   fetch(`/api/performances/${id}/goods`).then(r => r.json()).then(setGoodsList);
                   setGoodsSaving(false);
                 }}>{goodsSaving ? '保存中...' : '販売実績を保存'}</button>
