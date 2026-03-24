@@ -16,7 +16,7 @@ export function Shell({ title, subtitle, actions, children }: { title: string; s
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {actions}
-            <a href="/manual.html" target="_blank" rel="noopener noreferrer" className="ghost" style={{ fontSize: 13, padding: '6px 12px', textDecoration: 'none', whiteSpace: 'nowrap' }}>📖 マニュアル</a>
+            <a href="/manual.html" target="_blank" rel="noopener noreferrer" className="secondary" style={{ fontSize: 13, padding: '6px 12px', textDecoration: 'none', whiteSpace: 'nowrap' }}>📖 マニュアル</a>
           </div>
         </div>
       </div>
