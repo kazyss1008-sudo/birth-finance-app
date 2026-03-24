@@ -33,7 +33,7 @@ export default function LoginPage() {
   }
 
   return (
-    <Shell title="劇団Birth公演収支管理" subtitle="ログイン後に公演を選択して管理を開始します。">
+    <Shell title="劇団Birth公演収支管理" subtitle="ログイン後に公演を選択して管理を開始します。" hideManual>
       <div className="grid-2">
         <div className="card" style={{ background: 'linear-gradient(135deg, #153b96, #305fd6)', color: 'white' }}>
           <div style={{ fontSize: 12, letterSpacing: '0.25em', opacity: 0.85, fontWeight: 700 }}>BIRTH FINANCE SYSTEM</div>

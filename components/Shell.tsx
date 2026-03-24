@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import Image from 'next/image';
 
-export function Shell({ title, subtitle, actions, children }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode }) {
+export function Shell({ title, subtitle, actions, children, hideManual }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode; hideManual?: boolean }) {
   return (
     <div className="container">
       <div className="card" style={{ marginBottom: 16 }}>
@@ -16,7 +16,7 @@ export function Shell({ title, subtitle, actions, children }: { title: string; s
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {actions}
-            <a href="/manual.html" target="_blank" rel="noopener noreferrer" className="secondary" style={{ fontSize: 13, padding: '6px 12px', textDecoration: 'none', whiteSpace: 'nowrap' }}>📖 マニュアル</a>
+            {!hideManual && <a href="/manual.html" target="_blank" rel="noopener noreferrer" className="secondary" style={{ fontSize: 13, padding: '6px 12px', textDecoration: 'none', whiteSpace: 'nowrap' }}>📖 マニュアル</a>}
           </div>
         </div>
       </div>
