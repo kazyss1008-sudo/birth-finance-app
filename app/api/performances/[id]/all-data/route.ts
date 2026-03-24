@@ -107,11 +107,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     totalSales,
     totalTickets,
     totalExpenses,
-    totalSponsorships,
-    goodsSalesTotal,
-    totalGala,
-    finalBalance: totalSales + totalSponsorships + goodsSalesTotal - totalExpenses - totalGala,
-    castSummaries,
+    totalSponsorship: totalSponsorships,
+    totalGoodsSales: goodsSalesTotal,
+    totalGara: totalGala,
+    netBalance: totalSales + totalSponsorships + goodsSalesTotal - totalExpenses - totalGala,
+    castDetails: castSummaries,
   };
 
   return NextResponse.json(serializeBigInt({
