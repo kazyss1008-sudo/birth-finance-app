@@ -341,13 +341,13 @@ export default function PerformancePage() {
               if (!iso) return '';
               const d = new Date(iso);
               if (isNaN(d.getTime())) return iso.slice(0, 10);
-              return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+              return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')} ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
             };
             const fmtDate = (iso: string) => {
               if (!iso) return '';
               const d = new Date(iso);
               if (isNaN(d.getTime())) return iso.slice(0, 10);
-              return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+              return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
             };
             const filtered = sales?.filter(s => {
               if (salesFilterDate && fmtDate(s.visitedAt) !== salesFilterDate) return false;
