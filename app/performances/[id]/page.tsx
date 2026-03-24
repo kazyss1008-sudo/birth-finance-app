@@ -391,21 +391,21 @@ export default function PerformancePage() {
                 <p className="subtitle" style={{ marginTop: 12 }}>{sales.length === 0 ? '売上データがありません。CSVを取り込んでください。' : '該当する売上がありません。'}</p>
               ) : (
                 <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginTop: 12 }}>
-                <table className="table" style={{ minWidth: 900 }}>
-                  <thead><tr><th>予約NO</th><th>公演日時</th><th>チケット種別</th><th>枚数</th><th>金額</th><th>支払方法</th><th>名前</th><th>フリガナ</th><th>取扱窓口</th><th>備考</th></tr></thead>
+                <table className="table" style={{ minWidth: 1100, fontSize: 13 }}>
+                  <thead><tr><th style={{whiteSpace:'nowrap'}}>予約NO</th><th style={{whiteSpace:'nowrap'}}>公演日時</th><th style={{whiteSpace:'nowrap'}}>チケット種別</th><th style={{whiteSpace:'nowrap'}}>枚数</th><th style={{whiteSpace:'nowrap'}}>金額</th><th style={{whiteSpace:'nowrap'}}>支払方法</th><th style={{whiteSpace:'nowrap'}}>名前</th><th style={{whiteSpace:'nowrap'}}>フリガナ</th><th style={{whiteSpace:'nowrap'}}>取扱窓口</th><th style={{minWidth:120}}>備考</th></tr></thead>
                   <tbody>
                     {filtered.map(s => (
                       <tr key={s.id}>
                         <td style={{ whiteSpace: 'nowrap' }}>{s.reservationNo ?? ''}</td>
                         <td style={{ whiteSpace: 'nowrap' }}>{fmtDateTime(s.visitedAt)}</td>
-                        <td>{s.ticketType ?? ''}</td>
-                        <td>{s.ticketCount}枚</td>
-                        <td>{yen(s.salesAmount)}</td>
-                        <td>{s.paymentMethod ?? ''}</td>
-                        <td>{s.customerName ?? ''}</td>
-                        <td>{s.customerKana ?? ''}</td>
-                        <td>{s.handledCastName}</td>
-                        <td className="subtitle">{s.note ?? ''}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{s.ticketType ?? ''}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{s.ticketCount}枚</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{yen(s.salesAmount)}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{s.paymentMethod ?? ''}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{s.customerName ?? ''}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{s.customerKana ?? ''}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{s.handledCastName}</td>
+                        <td className="subtitle" style={{ fontSize: 12, maxWidth: 200, wordBreak: 'break-word' }}>{s.note ?? ''}</td>
                       </tr>
                     ))}
                   </tbody>
