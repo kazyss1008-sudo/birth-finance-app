@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: 'このログインIDは既に使用されています。' }, { status: 409 });
     }
 
-    const hash = await bcrypt.hash(body.password, 12);
+    const hash = await bcrypt.hash(body.password, 10);
     const user = await prisma.user.create({
       data: {
         loginId: body.loginId,
@@ -74,7 +74,7 @@ export async function PUT(request: Request) {
     const data: Record<string, unknown> = {};
     if (body.displayName !== undefined) data.displayName = body.displayName;
     if (body.isActive !== undefined) data.isActive = body.isActive;
-    if (body.password) data.passwordHash = await bcrypt.hash(body.password, 12);
+    if (body.password) data.passwordHash = await bcrypt.hash(body.password, 10);
 
     const user = await prisma.user.update({
       where: { id: BigInt(body.userId) },

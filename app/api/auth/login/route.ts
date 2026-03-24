@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createSession, verifyLogin } from '@/lib/auth';
+import bcrypt from 'bcryptjs';
+import { createSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
@@ -21,18 +22,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: 'ログインIDとパスワードを入力してください。' }, { status: 400 });
     }
 
-    // Check if user needs initial password setup
     const user = await prisma.user.findUnique({ where: { loginId } });
-    if (user && !user.passwordHash && user.mustChangePassword) {
-      return NextResponse.json({ ok: false, message: 'パスワードが未設定です。初回パスワード設定を行ってください。', needsSetup: true }, { status: 403 });
-    }
 
-    const verified = await verifyLogin(loginId, password);
-    if (!verified) {
+    if (!user) {
       return NextResponse.json({ ok: false, message: 'ログインIDまたはパスワードが正しくありません。' }, { status: 401 });
     }
 
-    await createSession(verified.loginId);
+    if (!user.passwordHash && user.mustChangePassword) {
+      return NextResponse.json({ ok: false, message: 'パスワードが未設定です。初回パスワード設定を行ってください。', needsSetup: true }, { status: 403 });
+    }
+
+    if (!user.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
+      return NextResponse.json({ ok: false, message: 'ログインIDまたはパスワードが正しくありません。' }, { status: 401 });
+    }
+
+    await createSession(user.loginId);
     return NextResponse.json({ ok: true, redirectTo: '/performances' });
   } catch {
     return NextResponse.json({ ok: false, message: 'サーバーエラーが発生しました。' }, { status: 500 });

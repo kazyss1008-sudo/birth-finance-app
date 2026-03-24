@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: '現在のパスワードが正しくありません。' }, { status: 401 });
     }
 
-    const hash = await bcrypt.hash(newPassword, 12);
+    const hash = await bcrypt.hash(newPassword, 10);
     await prisma.user.update({
       where: { loginId },
       data: { passwordHash: hash },

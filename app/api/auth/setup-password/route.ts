@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: 'パスワードは設定済みです。' }, { status: 400 });
     }
 
-    const hash = await bcrypt.hash(password, 12);
+    const hash = await bcrypt.hash(password, 10);
     await prisma.user.update({
       where: { loginId },
       data: { passwordHash: hash, mustChangePassword: false },

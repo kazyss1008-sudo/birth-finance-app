@@ -97,11 +97,14 @@ export default function PerformancePage() {
       case 'キャスト':
         if (!editCasts) fetch(`/api/performances/${id}/casts`).then(r => r.json()).then(data => setEditCasts(data.map((c: EditCast) => ({ ...c, changed: false }))));
         break;
-      case '経費':
-        if (!expenses) fetch(`/api/performances/${id}/expenses`).then(r => r.json()).then(setExpenses);
-        if (categories.length === 0) fetch(`/api/expense-categories`).then(r => r.json()).then(setCategories);
-        if (users.length === 0) fetch(`/api/users`).then(r => r.json()).then((data: { id: string; displayName: string; isActive: boolean }[]) => setUsers(data.filter(u => u.isActive)));
+      case '経費': {
+        const promises: Promise<void>[] = [];
+        if (!expenses) promises.push(fetch(`/api/performances/${id}/expenses`).then(r => r.json()).then(setExpenses));
+        if (categories.length === 0) promises.push(fetch(`/api/expense-categories`).then(r => r.json()).then(setCategories));
+        if (users.length === 0) promises.push(fetch(`/api/users`).then(r => r.json()).then((data: { id: string; displayName: string; isActive: boolean }[]) => setUsers(data.filter(u => u.isActive))));
+        Promise.all(promises);
         break;
+      }
       case 'グッズ':
         if (!goodsList) fetch(`/api/performances/${id}/goods`).then(r => r.json()).then(setGoodsList);
         break;
