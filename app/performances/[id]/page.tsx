@@ -85,44 +85,29 @@ export default function PerformancePage() {
   // Cast drag & drop
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
-  // Fetch performance data
-  useEffect(() => {
-    fetch(`/api/performances/${id}`)
-      .then(r => r.json())
-      .then(setPerf)
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  // Lazy load tab data
-  const loadTabData = useCallback((tab: TabName) => {
-    switch (tab) {
-      case '売上':
-        if (!sales) fetch(`/api/performances/${id}/sales`).then(r => r.json()).then(setSales);
-        break;
-      case 'キャスト':
-        if (!editCasts) fetch(`/api/performances/${id}/casts`).then(r => r.json()).then(data => setEditCasts(data.map((c: EditCast) => ({ ...c, changed: false }))));
-        break;
-      case '経費': {
-        const promises: Promise<void>[] = [];
-        if (!expenses) promises.push(fetch(`/api/performances/${id}/expenses`).then(r => r.json()).then(setExpenses));
-        if (categories.length === 0) promises.push(fetch(`/api/expense-categories`).then(r => r.json()).then(setCategories));
-        if (users.length === 0) promises.push(fetch(`/api/users`).then(r => r.json()).then((data: { id: string; displayName: string; isActive: boolean }[]) => setUsers(data.filter(u => u.isActive))));
-        Promise.all(promises);
-        break;
+  // Fetch all performance data in one call
+  const loadAllData = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/performances/${id}/all-data`);
+      const data = await res.json();
+      if (!res.ok) return;
+      setPerf(data.performance);
+      setSales(data.sales);
+      setExpenses(data.expenses);
+      setCategories(data.categories);
+      setUsers(data.users);
+      setGoodsList(data.goods);
+      setSponsorships(data.sponsorships);
+      setSummary(data.summary);
+      if (!editCasts) {
+        setEditCasts(data.performance.casts.map((c: EditCast) => ({ ...c, changed: false })));
       }
-      case 'グッズ':
-        if (!goodsList) fetch(`/api/performances/${id}/goods`).then(r => r.json()).then(setGoodsList);
-        break;
-      case '協賛金':
-        if (!sponsorships) fetch(`/api/performances/${id}/sponsorships`).then(r => r.json()).then(setSponsorships);
-        break;
-      case '収支':
-        if (!summary) fetch(`/api/performances/${id}/summary`).then(r => r.json()).then(setSummary);
-        break;
+    } finally {
+      setLoading(false);
     }
-  }, [id, sales, expenses, categories, users, summary, editCasts, sponsorships, goodsList]);
+  }, [id, editCasts]);
 
-  useEffect(() => { loadTabData(activeTab); }, [activeTab, loadTabData]);
+  useEffect(() => { loadAllData(); }, [loadAllData]);
 
   // CSV upload handler
   const handleCsvUpload = async () => {
