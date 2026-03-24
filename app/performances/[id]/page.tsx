@@ -49,6 +49,10 @@ export default function PerformancePage() {
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvResult, setCsvResult] = useState<{ success: boolean; message: string; details?: string[] } | null>(null);
 
+  // Expense filter state
+  const [expFilterCategory, setExpFilterCategory] = useState('');
+  const [expFilterUser, setExpFilterUser] = useState('');
+
   // Expense form state
   const [expForm, setExpForm] = useState({ expenseDate: '', amount: '', expenseCategoryId: '', itemName: '', memo: '' });
   const [expSubmitting, setExpSubmitting] = useState(false);
@@ -181,8 +185,8 @@ export default function PerformancePage() {
   // Change expense assignee
   const handleChangeAssignee = async (expenseId: string, createdBy: string) => {
     await fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId, createdBy }) });
-    const updated = await fetch(`/api/performances/${id}/expenses`).then(r => r.json());
-    setExpenses(updated);
+    const assignedUser = users.find(u => u.id === createdBy);
+    setExpenses(prev => prev?.map(e => e.id === expenseId ? { ...e, createdBy, creator: { displayName: assignedUser?.displayName ?? e.creator.displayName } } : e) ?? null);
   };
 
   // Add sponsorship
@@ -607,37 +611,69 @@ export default function PerformancePage() {
             );
           })()}
           <div className="card">
-            <h2 className="brand">経費一覧</h2>
-            {!expenses ? (
-              <p className="subtitle">読み込み中...</p>
-            ) : expenses.length === 0 ? (
-              <p className="subtitle">経費が登録されていません。</p>
-            ) : (
-              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <table className="table" style={{ minWidth: 700 }}>
-                <thead><tr><th style={{width:60,textAlign:'center'}}>精算</th><th>日付</th><th>担当者</th><th>カテゴリ</th><th>品名</th><th>金額</th><th>メモ</th><th></th></tr></thead>
-                <tbody>
-                  {expenses.map(exp => (
-                    <tr key={exp.id} style={exp.isSettled ? { opacity: 0.5 } : {}}>
-                      <td style={{textAlign:'center'}}><input type="checkbox" checked={exp.isSettled} onChange={e => handleToggleSettled(exp.id, e.target.checked)} style={{width:18,height:18,accentColor:'#153b96',cursor:'pointer'}} /></td>
-                      <td>{exp.expenseDate?.slice(0, 10)}</td>
-                      <td>
-                        <select className="select" value={exp.createdBy} onChange={e => handleChangeAssignee(exp.id, e.target.value)} style={{padding:'6px 8px',fontSize:13,borderRadius:10,minWidth:90}}>
-                          {users.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
-                          {!users.find(u => u.id === exp.createdBy) && <option value={exp.createdBy}>{exp.creator?.displayName}</option>}
-                        </select>
-                      </td>
-                      <td><span className="badge">{exp.category?.name}</span></td>
-                      <td>{exp.itemName}</td>
-                      <td>{yen(exp.amount)}</td>
-                      <td><input className="input" value={exp.memo ?? ''} placeholder="メモ" onChange={e => { const val = e.target.value; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, memo: val } : x) ?? null); }} onBlur={e => { fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId: exp.id, memo: e.target.value }) }); }} style={{ padding: '6px 8px', fontSize: 13, minWidth: 80 }} /></td>
-                      <td><button className="danger" onClick={() => handleDeleteExpense(exp.id)}>削除</button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-            )}
+            {(() => {
+              const filtered = expenses?.filter(e => {
+                if (expFilterCategory && e.category?.name !== expFilterCategory) return false;
+                if (expFilterUser && e.createdBy !== expFilterUser) return false;
+                return true;
+              }) ?? [];
+              const filteredSum = filtered.reduce((s, e) => s + e.amount, 0);
+              const uniqueCategories = [...new Set(expenses?.map(e => e.category?.name).filter(Boolean) ?? [])];
+              const uniqueUsers = [...new Map(expenses?.map(e => [e.createdBy, e.creator?.displayName]) ?? []).entries()];
+              return (<>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <h2 className="brand" style={{ margin: 0 }}>経費一覧</h2>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: '#153b96' }}>合計: {yen(filteredSum)}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>カテゴリ</label>
+                    <select className="select" value={expFilterCategory} onChange={e => setExpFilterCategory(e.target.value)} style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10 }}>
+                      <option value="">すべて</option>
+                      {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>担当者</label>
+                    <select className="select" value={expFilterUser} onChange={e => setExpFilterUser(e.target.value)} style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10 }}>
+                      <option value="">すべて</option>
+                      {uniqueUsers.map(([uid, name]) => <option key={uid} value={uid}>{name}</option>)}
+                    </select>
+                  </div>
+                  {(expFilterCategory || expFilterUser) && <button className="ghost" onClick={() => { setExpFilterCategory(''); setExpFilterUser(''); }} style={{ fontSize: 12, padding: '4px 8px' }}>フィルタ解除</button>}
+                </div>
+                {!expenses ? (
+                  <p className="subtitle">読み込み中...</p>
+                ) : filtered.length === 0 ? (
+                  <p className="subtitle" style={{ marginTop: 12 }}>{expenses.length === 0 ? '経費が登録されていません。' : '該当する経費がありません。'}</p>
+                ) : (
+                  <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginTop: 12 }}>
+                  <table className="table" style={{ minWidth: 700 }}>
+                    <thead><tr><th style={{width:60,textAlign:'center'}}>精算</th><th>日付</th><th>担当者</th><th>カテゴリ</th><th>品名</th><th>金額</th><th>メモ</th><th></th></tr></thead>
+                    <tbody>
+                      {filtered.map(exp => (
+                        <tr key={exp.id} style={exp.isSettled ? { opacity: 0.5 } : {}}>
+                          <td style={{textAlign:'center'}}><input type="checkbox" checked={exp.isSettled} onChange={e => handleToggleSettled(exp.id, e.target.checked)} style={{width:18,height:18,accentColor:'#153b96',cursor:'pointer'}} /></td>
+                          <td>{exp.expenseDate?.slice(0, 10)}</td>
+                          <td>
+                            <select className="select" value={exp.createdBy} onChange={e => handleChangeAssignee(exp.id, e.target.value)} style={{padding:'6px 8px',fontSize:13,borderRadius:10,minWidth:90}}>
+                              {users.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+                              {!users.find(u => u.id === exp.createdBy) && <option value={exp.createdBy}>{exp.creator?.displayName}</option>}
+                            </select>
+                          </td>
+                          <td><span className="badge">{exp.category?.name}</span></td>
+                          <td>{exp.itemName}</td>
+                          <td>{yen(exp.amount)}</td>
+                          <td><input className="input" value={exp.memo ?? ''} placeholder="メモ" onChange={e => { const val = e.target.value; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, memo: val } : x) ?? null); }} onBlur={e => { fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId: exp.id, memo: e.target.value }) }); }} style={{ padding: '6px 8px', fontSize: 13, minWidth: 80 }} /></td>
+                          <td><button className="danger" onClick={() => handleDeleteExpense(exp.id)}>削除</button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  </div>
+                )}
+              </>);
+            })()}
           </div>
         </div>
       )}
