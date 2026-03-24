@@ -17,8 +17,8 @@ type Rule = { id: string; stepNo: number; minTicketCount: number; maxTicketCount
 type ImportHistory = { id: string; fileName: string; importedRowCount: number; status: string; importedAt: string; };
 type Sale = { id: string; handledCastName: string; ticketCount: number; salesAmount: number; visitedAt: string; reservationNo: string | null; ticketType: string | null; paymentMethod: string | null; customerName: string | null; customerKana: string | null; note: string | null; };
 type ExpenseCategory = { id: string; name: string; };
-type Expense = { id: string; expenseDate: string; amount: number; itemName: string; memo: string | null; isSettled: boolean; createdBy: string; category: { name: string }; creator: { displayName: string }; };
-type Summary = { totalSales: number; totalTickets: number; totalExpenses: number; totalSponsorship: number; totalGoodsSales: number; totalGara: number; netBalance: number; castDetails: CastDetail[]; };
+type Expense = { id: string; expenseDate: string; amount: number; itemName: string; memo: string | null; isSettled: boolean; isProvisional: boolean; createdBy: string; category: { name: string }; creator: { displayName: string }; };
+type Summary = { totalSales: number; totalTickets: number; totalExpenses: number; confirmedExpenses: number; provisionalExpenses: number; totalSponsorship: number; totalGoodsSales: number; totalGara: number; netBalance: number; castDetails: CastDetail[]; };
 type CastDetail = { castId: string; castName: string; ticketCount: number; salesAmount: number; backTotal: number; normaDeduction: number; settlement: number; normaTicketCount: number; normaUnitPrice: number; };
 type EditCast = { id: string; name: string; normaTicketCount: number; normaUnitPrice: number; isTicketBackTarget: boolean; sortOrder: number; changed?: boolean; };
 type GoodsItem = { id: string; name: string; unitPrice: number; sortOrder: number; sales: { id: string; performanceStageId: string; quantity: number; performanceStage: { id: string; stageName: string } }[] };
@@ -61,7 +61,7 @@ export default function PerformancePage() {
   const [expFilterUser, setExpFilterUser] = useState('');
 
   // Expense form state
-  const [expForm, setExpForm] = useState({ expenseDate: '', amount: '', expenseCategoryId: '', itemName: '', memo: '' });
+  const [expForm, setExpForm] = useState({ expenseDate: '', amount: '', expenseCategoryId: '', itemName: '', memo: '', isProvisional: false });
   const [expSubmitting, setExpSubmitting] = useState(false);
 
   // Sponsorship state
@@ -154,7 +154,7 @@ export default function PerformancePage() {
         body: JSON.stringify({ ...expForm, amount: Number(expForm.amount) }),
       });
       if (res.ok) {
-        setExpForm({ expenseDate: '', amount: '', expenseCategoryId: '', itemName: '', memo: '' });
+        setExpForm({ expenseDate: '', amount: '', expenseCategoryId: '', itemName: '', memo: '', isProvisional: false });
         const updated = await fetch(`/api/performances/${id}/expenses`).then(r => r.json());
         setExpenses(updated);
         refreshSummary();
@@ -643,7 +643,13 @@ export default function PerformancePage() {
                 <label className="subtitle">金額</label>
                 <input className="input" type="number" value={expForm.amount} onChange={e => setExpForm(f => ({ ...f, amount: e.target.value }))} required />
               </div>
-              <button className="primary" type="submit" disabled={expSubmitting}>{expSubmitting ? '登録中...' : '追加'}</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: 13 }}>
+                  <input type="checkbox" checked={expForm.isProvisional} onChange={e => setExpForm(f => ({ ...f, isProvisional: e.target.checked }))} style={{ width: 16, height: 16, accentColor: '#f59e0b' }} />
+                  暫定経費
+                </label>
+                <button className="primary" type="submit" disabled={expSubmitting}>{expSubmitting ? '登録中...' : '追加'}</button>
+              </div>
             </form>
             {expForm.memo !== undefined && (
               <div style={{ marginTop: 8 }}>
@@ -717,11 +723,12 @@ export default function PerformancePage() {
                 ) : (
                   <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginTop: 12 }}>
                   <table className="table" style={{ minWidth: 700 }}>
-                    <thead><tr><th style={{width:60,textAlign:'center'}}>精算</th><th>日付</th><th>担当者</th><th>カテゴリ</th><th>品名</th><th>金額</th><th>メモ</th><th></th></tr></thead>
+                    <thead><tr><th style={{width:60,textAlign:'center'}}>精算</th><th style={{width:60,textAlign:'center'}}>区分</th><th>日付</th><th>担当者</th><th>カテゴリ</th><th>品名</th><th>金額</th><th>メモ</th><th></th></tr></thead>
                     <tbody>
                       {filtered.map(exp => (
-                        <tr key={exp.id} style={exp.isSettled ? { opacity: 0.5 } : {}}>
+                        <tr key={exp.id} style={{ ...(exp.isSettled ? { opacity: 0.5 } : {}), ...(exp.isProvisional ? { background: '#fffbeb' } : {}) }}>
                           <td style={{textAlign:'center'}}><input type="checkbox" checked={exp.isSettled} onChange={e => handleToggleSettled(exp.id, e.target.checked)} style={{width:18,height:18,accentColor:'#153b96',cursor:'pointer'}} /></td>
+                          <td style={{textAlign:'center'}}><button onClick={async () => { const newVal = !exp.isProvisional; await fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId: exp.id, isProvisional: newVal }) }); setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, isProvisional: newVal } : x) ?? null); refreshSummary(); }} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 10, border: '1px solid', cursor: 'pointer', fontWeight: 700, background: exp.isProvisional ? '#fef3c7' : '#e0f2fe', color: exp.isProvisional ? '#b45309' : '#0369a1', borderColor: exp.isProvisional ? '#fbbf24' : '#7dd3fc' }}>{exp.isProvisional ? '暫定' : '確定'}</button></td>
                           <td>{exp.expenseDate?.slice(0, 10)}</td>
                           <td>
                             <select className="select" value={exp.createdBy} onChange={e => handleChangeAssignee(exp.id, e.target.value)} style={{padding:'6px 8px',fontSize:13,borderRadius:10,minWidth:90}}>
@@ -731,7 +738,7 @@ export default function PerformancePage() {
                           </td>
                           <td><span className="badge">{exp.category?.name}</span></td>
                           <td>{exp.itemName}</td>
-                          <td>{yen(exp.amount)}</td>
+                          <td>{exp.isProvisional ? <input className="input" type="number" value={exp.amount} onChange={e => { const val = Number(e.target.value) || 0; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, amount: val } : x) ?? null); }} onBlur={e => { fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId: exp.id, amount: Number(e.target.value) || 0 }) }); refreshSummary(); }} style={{ padding: '6px 8px', fontSize: 13, width: 100, background: '#fffbeb' }} /> : yen(exp.amount)}</td>
                           <td><input className="input" value={exp.memo ?? ''} placeholder="メモ" onChange={e => { const val = e.target.value; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, memo: val } : x) ?? null); }} onBlur={e => { fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId: exp.id, memo: e.target.value }) }); }} style={{ padding: '6px 8px', fontSize: 13, minWidth: 80 }} /></td>
                           <td><button className="danger" onClick={() => handleDeleteExpense(exp.id)}>削除</button></td>
                         </tr>
@@ -776,6 +783,11 @@ export default function PerformancePage() {
                 <div className="card" style={{ padding: 16, background: '#fef2f2' }}>
                   <div className="subtitle" style={{ fontSize: 12 }}>総経費</div>
                   <div style={{ fontSize: 22, fontWeight: 900, color: '#e74c3c' }}>{yen(summary.totalExpenses)}</div>
+                  {summary.provisionalExpenses > 0 && (
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                      確定 {yen(summary.confirmedExpenses)} ／ <span style={{ color: '#b45309' }}>暫定 {yen(summary.provisionalExpenses)}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="card" style={{ padding: 16, background: -summary.totalGara >= 0 ? '#f0fdf4' : '#fef2f2' }}>
                   <div className="subtitle" style={{ fontSize: 12 }}>ギャラ収支</div>

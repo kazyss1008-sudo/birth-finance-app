@@ -75,6 +75,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const totalSales = sales.reduce((s, r) => s + r.salesAmount, 0);
   const totalTickets = sales.reduce((s, r) => s + r.ticketCount, 0);
   const totalExpenses = expenses.reduce((s, r) => s + r.amount, 0);
+  const confirmedExpenses = expenses.filter(e => !e.isProvisional).reduce((s, r) => s + r.amount, 0);
+  const provisionalExpenses = expenses.filter(e => e.isProvisional).reduce((s, r) => s + r.amount, 0);
   const totalSponsorships = sponsorships.reduce((s, r) => s + r.amount, 0);
 
   // Goods sales total
@@ -108,6 +110,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     totalSales,
     totalTickets,
     totalExpenses,
+    confirmedExpenses,
+    provisionalExpenses,
     totalSponsorship: totalSponsorships,
     totalGoodsSales: goodsSalesTotal,
     totalGara: totalGala,

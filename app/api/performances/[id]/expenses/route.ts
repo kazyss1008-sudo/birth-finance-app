@@ -25,6 +25,7 @@ const expenseSchema = z.object({
   itemName: z.string().min(1),
   payee: z.string().optional().default('-'),
   memo: z.string().optional(),
+  isProvisional: z.boolean().optional().default(false),
 });
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -55,6 +56,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         itemName: body.itemName,
         payee: body.payee,
         memo: body.memo || null,
+        isProvisional: body.isProvisional,
         createdBy: user.id,
       },
       include: { category: true, creator: { select: { displayName: true } } },
@@ -77,11 +79,13 @@ export async function PUT(request: Request) {
     }
 
     // Partial update (isSettled, createdBy, memo)
-    if (typeof isSettled === 'boolean' || body.createdBy || body.memo !== undefined) {
+    if (typeof isSettled === 'boolean' || body.createdBy || body.memo !== undefined || typeof body.isProvisional === 'boolean' || body.amount !== undefined) {
       const data: Record<string, unknown> = {};
       if (typeof isSettled === 'boolean') data.isSettled = isSettled;
       if (body.createdBy) data.createdBy = BigInt(body.createdBy);
       if (body.memo !== undefined) data.memo = body.memo || null;
+      if (typeof body.isProvisional === 'boolean') data.isProvisional = body.isProvisional;
+      if (typeof body.amount === 'number') data.amount = body.amount;
       const expense = await prisma.expense.update({
         where: { id: BigInt(expenseId) },
         data,

@@ -170,6 +170,7 @@ model Expense {
   memo              String?         @db.Text
   createdBy         BigInt          @map("created_by")
   isSettled         Boolean         @default(false) @map("is_settled")
+  isProvisional     Boolean         @default(false) @map("is_provisional")
   createdAt         DateTime        @default(now()) @map("created_at")
   updatedAt         DateTime        @updatedAt @map("updated_at")
   performance       Performance     @relation(fields: [performanceId], references: [id], onDelete: Cascade)
