@@ -59,7 +59,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   // Sales by stage date
   const salesByDate = new Map<string, { ticketCount: number; salesAmount: number }>();
   for (const sale of sales) {
-    const dateKey = sale.visitedAt.toISOString().slice(0, 10);
+    const d = sale.visitedAt;
+    const dateKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')} ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
     const existing = salesByDate.get(dateKey) ?? { ticketCount: 0, salesAmount: 0 };
     existing.ticketCount += sale.ticketCount;
     existing.salesAmount += sale.salesAmount;
