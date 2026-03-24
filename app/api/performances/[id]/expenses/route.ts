@@ -33,7 +33,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const expenses = await prisma.expense.findMany({
     where: { performanceId: BigInt(id) },
     include: { category: true, creator: { select: { displayName: true } } },
-    orderBy: { expenseDate: 'desc' },
+    orderBy: [{ expenseDate: 'desc' }, { id: 'asc' }],
   });
   return NextResponse.json(serializeBigInt(expenses));
 }

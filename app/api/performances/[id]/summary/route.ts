@@ -55,6 +55,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const totalSponsorship = sponsorAgg._sum.amount ?? 0;
   const expenseCount = expenseAgg._count;
 
+  // Confirmed vs provisional expenses
+  const [confirmedAgg, provisionalAgg] = await Promise.all([
+    prisma.expense.aggregate({ where: { performanceId, isProvisional: false }, _sum: { amount: true } }),
+    prisma.expense.aggregate({ where: { performanceId, isProvisional: true }, _sum: { amount: true } }),
+  ]);
+  const confirmedExpenses = confirmedAgg._sum.amount ?? 0;
+  const provisionalExpenses = provisionalAgg._sum.amount ?? 0;
+
   // Calculate total goods sales
   const totalGoodsSales = goodsWithSales.reduce((sum, goods) => {
     const goodsTotal = goods.sales.reduce((s, sale) => s + sale.quantity * goods.unitPrice, 0);
@@ -94,6 +102,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     totalSales,
     totalTickets,
     totalExpenses,
+    confirmedExpenses,
+    provisionalExpenses,
     totalSponsorship,
     totalGoodsSales,
     expenseCount,
