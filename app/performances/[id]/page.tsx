@@ -624,7 +624,7 @@ export default function PerformancePage() {
           <div className="card">
             <h2 className="brand">経費登録</h2>
             <form onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
+              <div className="expense-form-grid">
                 <div>
                   <label className="subtitle">日付</label>
                   <input className="input" type="date" value={expForm.expenseDate} onChange={e => setExpForm(f => ({ ...f, expenseDate: e.target.value }))} required style={{ width: '100%' }} />
@@ -729,7 +729,7 @@ export default function PerformancePage() {
                         <tr key={exp.id} style={{ ...(exp.isSettled ? { opacity: 0.5 } : {}), ...(exp.isProvisional ? { background: '#fffbeb' } : {}) }}>
                           <td style={{textAlign:'center'}}><input type="checkbox" checked={exp.isSettled} onChange={e => handleToggleSettled(exp.id, e.target.checked)} style={{width:18,height:18,accentColor:'#153b96',cursor:'pointer'}} /></td>
                           <td style={{textAlign:'center', whiteSpace:'nowrap'}}><button onClick={async () => { const newVal = !exp.isProvisional; await fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId: exp.id, isProvisional: newVal }) }); setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, isProvisional: newVal } : x) ?? null); refreshSummary(); }} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 10, border: '1px solid', cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap', background: exp.isProvisional ? '#fef3c7' : '#e0f2fe', color: exp.isProvisional ? '#b45309' : '#0369a1', borderColor: exp.isProvisional ? '#fbbf24' : '#7dd3fc' }}>{exp.isProvisional ? '暫定' : '確定'}</button></td>
-                          <td>{exp.expenseDate?.slice(0, 10)}</td>
+                          <td>{exp.isProvisional ? <input className="input" type="date" value={exp.expenseDate?.slice(0, 10)} onChange={e => { const val = e.target.value; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, expenseDate: val } : x) ?? null); }} onBlur={e => { fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId: exp.id, expenseDate: e.target.value }) }); }} style={{ padding: '4px 6px', fontSize: 13, background: '#fffbeb' }} /> : exp.expenseDate?.slice(0, 10)}</td>
                           <td>
                             <select className="select" value={exp.createdBy} onChange={e => handleChangeAssignee(exp.id, e.target.value)} style={{padding:'6px 8px',fontSize:13,borderRadius:10,minWidth:90}}>
                               {users.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}

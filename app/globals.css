@@ -17,6 +17,7 @@ button, input, select { font: inherit; }
 .select { appearance: auto; -webkit-appearance: menulist; cursor: pointer; }
 .table { width: 100%; border-collapse: collapse; display: table; }
 .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.expense-form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
 .table th, .table td { padding: 12px 14px; border-top: 1px solid #eef2f7; text-align: left; }
 .table thead th { background: #f4f7ff; color: #153b96; border-top: 0; }
 @media (max-width: 900px) {
@@ -46,7 +47,9 @@ button, input, select { font: inherit; }
   .tab { padding: 8px 10px; font-size: 12px; }
   .hide-mobile { display: none !important; }
   .show-mobile { display: block !important; }
-  .table { font-size: 12px; }
-  .table th, .table td { padding: 6px 4px; }
-  .table .select, .table .input { font-size: 11px; min-width: 70px !important; padding: 4px 6px !important; }
+  .expense-form-grid { grid-template-columns: 1fr !important; }
+  .table { font-size: 12px; white-space: nowrap; }
+  .table th, .table td { padding: 6px 4px; white-space: nowrap; }
+  .table .select, .table .input { font-size: 11px; min-width: 60px !important; padding: 4px 4px !important; }
+  .table .badge { white-space: nowrap; }
 }

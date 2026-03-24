@@ -79,13 +79,14 @@ export async function PUT(request: Request) {
     }
 
     // Partial update (isSettled, createdBy, memo)
-    if (typeof isSettled === 'boolean' || body.createdBy || body.memo !== undefined || typeof body.isProvisional === 'boolean' || body.amount !== undefined) {
+    if (typeof isSettled === 'boolean' || body.createdBy || body.memo !== undefined || typeof body.isProvisional === 'boolean' || body.amount !== undefined || body.expenseDate) {
       const data: Record<string, unknown> = {};
       if (typeof isSettled === 'boolean') data.isSettled = isSettled;
       if (body.createdBy) data.createdBy = BigInt(body.createdBy);
       if (body.memo !== undefined) data.memo = body.memo || null;
       if (typeof body.isProvisional === 'boolean') data.isProvisional = body.isProvisional;
       if (typeof body.amount === 'number') data.amount = body.amount;
+      if (body.expenseDate) data.expenseDate = new Date(body.expenseDate);
       const expense = await prisma.expense.update({
         where: { id: BigInt(expenseId) },
         data,
