@@ -52,8 +52,7 @@ export default function LoginPage() {
             </label>
             {error && <div style={{ color: '#e74c3c', fontWeight: 700, fontSize: 14 }}>{error}</div>}
             <button className="primary" type="submit" disabled={loading}>{loading ? 'ログイン中...' : 'ログイン'}</button>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div className="subtitle">初回ログイン時はパスワード設定画面に遷移します。</div>
+            <div style={{ textAlign: 'right' }}>
               <Link href="/change-password" style={{ fontSize: 13, color: '#153b96', fontWeight: 600 }}>パスワード変更</Link>
             </div>
           </div>
