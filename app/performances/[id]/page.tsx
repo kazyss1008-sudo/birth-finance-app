@@ -339,7 +339,7 @@ export default function PerformancePage() {
           ) : (
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table className="table" style={{ minWidth: 900 }}>
-              <thead><tr><th>予約NO</th><th>公演日時</th><th>チケット種別</th><th>枚数</th><th>金額</th><th>支払方法</th><th>名前</th><th>フリガナ</th><th>備考</th></tr></thead>
+              <thead><tr><th>予約NO</th><th>公演日時</th><th>チケット種別</th><th>枚数</th><th>金額</th><th>支払方法</th><th>名前</th><th>フリガナ</th><th>取扱窓口</th><th>備考</th></tr></thead>
               <tbody>
                 {sales.map(s => (
                   <tr key={s.id}>
@@ -351,6 +351,7 @@ export default function PerformancePage() {
                     <td>{s.paymentMethod ?? ''}</td>
                     <td>{s.customerName ?? ''}</td>
                     <td>{s.customerKana ?? ''}</td>
+                    <td>{s.handledCastName}</td>
                     <td className="subtitle">{s.note ?? ''}</td>
                   </tr>
                 ))}
