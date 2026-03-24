@@ -16,7 +16,7 @@ export function Shell({ title, subtitle, actions, children, hideManual }: { titl
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {actions}
-            {!hideManual && <a href="/manual.html" target="_blank" rel="noopener noreferrer" className="secondary" style={{ fontSize: 13, padding: '6px 12px', textDecoration: 'none', whiteSpace: 'nowrap' }}>📖 マニュアル</a>}
+            {!hideManual && <a href="/manual.html" target="_blank" rel="noopener noreferrer" className="secondary" style={{ textDecoration: 'none', whiteSpace: 'nowrap' }}>📖 マニュアル</a>}
           </div>
         </div>
       </div>
