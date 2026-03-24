@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>劇団Birth公演収支管理 - 操作マニュアル</title>
+<style>
+  :root {
+    --blue: #153b96;
+    --blue-light: #305fd6;
+    --blue-bg: #f0f4ff;
+    --red: #e74c3c;
+    --green: #059669;
+    --gray: #64748b;
+    --gray-light: #94a3b8;
+    --border: #e2e8f0;
+    --bg: #f8fafc;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    color: #1e293b;
+    background: var(--bg);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 20px 80px;
+  }
+
+  /* Header */
+  .cover {
+    background: linear-gradient(135deg, var(--blue), var(--blue-light));
+    color: white;
+    padding: 48px 32px;
+    border-radius: 16px;
+    margin-bottom: 32px;
+    text-align: center;
+  }
+  .cover h1 { font-size: 28px; font-weight: 900; margin-bottom: 8px; }
+  .cover .sub { opacity: 0.85; font-size: 14px; letter-spacing: 0.15em; }
+  .cover .version { margin-top: 12px; opacity: 0.7; font-size: 13px; }
+
+  /* TOC */
+  .toc {
+    background: white;
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-bottom: 32px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .toc h2 { font-size: 18px; color: var(--blue); margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin-bottom: 4px; }
+  .toc a { color: var(--blue); text-decoration: none; font-weight: 600; font-size: 14px; }
+  .toc a:hover { text-decoration: underline; }
+  .toc ol ol { margin-top: 4px; padding-left: 18px; }
+  .toc ol ol li { font-size: 13px; }
+
+  /* Section */
+  .section {
+    background: white;
+    border-radius: 14px;
+    padding: 28px 28px 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .section h2 {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--blue);
+    border-left: 4px solid var(--blue);
+    padding-left: 12px;
+    margin-bottom: 16px;
+  }
+  .section h3 {
+    font-size: 16px;
+    font-weight: 800;
+    color: #334155;
+    margin: 20px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--blue-bg);
+  }
+  .section p { margin-bottom: 10px; }
+  .section ul, .section ol { padding-left: 22px; margin-bottom: 12px; }
+  .section li { margin-bottom: 4px; }
+
+  /* Tip / Note */
+  .tip, .note, .warn {
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .tip {
+    background: #f0fdf4;
+    border-left: 4px solid var(--green);
+    color: #065f46;
+  }
+  .note {
+    background: var(--blue-bg);
+    border-left: 4px solid var(--blue);
+    color: var(--blue);
+  }
+  .warn {
+    background: #fef2f2;
+    border-left: 4px solid var(--red);
+    color: #991b1b;
+  }
+  .tip strong, .note strong, .warn strong { display: block; margin-bottom: 2px; }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    background: var(--blue-bg);
+    color: var(--blue);
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  /* Badge */
+  .badge {
+    display: inline-block;
+    background: var(--blue-bg);
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 9999px;
+  }
+  .badge-red {
+    background: #fef2f2;
+    color: var(--red);
+  }
+
+  /* Step indicator */
+  .steps {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 12px 0;
+  }
+  .step-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 700;
+    background: var(--blue-bg);
+    color: var(--blue);
+  }
+  .step-item.active { background: var(--blue); color: white; }
+
+  /* Code-like */
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: "Consolas", "Monaco", monospace;
+  }
+
+  /* Formula */
+  .formula {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-family: "Consolas", monospace;
+    font-size: 14px;
+    margin: 12px 0;
+    color: #334155;
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .container { padding: 12px 10px 60px; }
+    .cover { padding: 32px 16px; }
+    .cover h1 { font-size: 22px; }
+    .section { padding: 18px 16px 16px; }
+    .steps { gap: 4px; }
+    .step-item { font-size: 11px; padding: 4px 10px; }
+    table { font-size: 12px; }
+    th, td { padding: 6px 8px; }
+  }
+
+  /* Print */
+  @media print {
+    body { background: white; font-size: 12px; }
+    .container { max-width: 100%; padding: 0; }
+    .cover { background: white; color: var(--blue); border: 2px solid var(--blue); break-after: page; }
+    .cover .sub, .cover .version { color: var(--gray); }
+    .section { box-shadow: none; border: 1px solid var(--border); break-inside: avoid; }
+    .toc { box-shadow: none; border: 1px solid var(--border); break-after: page; }
+    a { color: var(--blue); text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- Cover -->
+<div class="cover">
+  <div class="sub">OPERATION MANUAL</div>
+  <h1>劇団Birth公演収支管理</h1>
+  <p>売上・経費・キャスト精算・CSV取込を一元管理するための運用マニュアル</p>
+  <div class="version">2026年3月版</div>
+</div>
+
+<!-- TOC -->
+<div class="toc" id="toc">
+  <h2>目次</h2>
+  <ol>
+    <li><a href="#sec-login">ログイン・パスワード変更</a></li>
+    <li><a href="#sec-select">公演選択画面</a></li>
+    <li><a href="#sec-new">公演新規作成（4ステップウィザード）</a>
+      <ol>
+        <li><a href="#sec-new-basic">基本情報</a></li>
+        <li><a href="#sec-new-stage">ステージ登録</a></li>
+        <li><a href="#sec-new-cast">キャスト登録</a></li>
+        <li><a href="#sec-new-rule">チケットバックルール</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec-mgmt">公演管理画面</a>
+      <ol>
+        <li><a href="#sec-csv">CSV取込</a></li>
+        <li><a href="#sec-sales">売上一覧</a></li>
+        <li><a href="#sec-cast">キャスト</a></li>
+        <li><a href="#sec-back">バック</a></li>
+        <li><a href="#sec-goods">グッズ</a></li>
+        <li><a href="#sec-expense">経費</a></li>
+        <li><a href="#sec-sponsor">協賛金</a></li>
+        <li><a href="#sec-balance">収支</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec-settlement">キャスト精算画面</a></li>
+    <li><a href="#sec-users">ユーザー管理</a></li>
+  </ol>
+</div>
+
+<!-- 1. Login -->
+<div class="section" id="sec-login">
+  <h2>1. ログイン・パスワード変更</h2>
+
+  <h3>ログイン</h3>
+  <p>アプリにアクセスすると、ログイン画面が表示されます。</p>
+  <ol>
+    <li><strong>ログインID</strong> と <strong>パスワード</strong> を入力</li>
+    <li>「ログイン」ボタンをクリック</li>
+    <li>認証成功で公演選択画面に遷移</li>
+  </ol>
+
+  <div class="note">
+    <strong>初回ログイン時</strong>
+    初期パスワードでログインすると、パスワード設定画面に自動遷移します。新しいパスワードを設定してください。
+  </div>
+
+  <h3>パスワード変更</h3>
+  <p>ログイン画面下部の「パスワード変更」リンクから、現在のパスワードを変更できます。</p>
+</div>
+
+<!-- 2. Performance Select -->
+<div class="section" id="sec-select">
+  <h2>2. 公演選択画面</h2>
+  <p>ログイン後に表示されるトップ画面です。登録済みの公演がカード形式で一覧表示されます。</p>
+  <ul>
+    <li>各カードには <strong>公演名</strong>、<strong>ステータス</strong>（準備中/進行中/終了）、<strong>開催期間</strong> が表示されます</li>
+    <li>カードをクリックすると、その公演の管理画面に遷移します</li>
+    <li>右上の「<strong>新規公演作成</strong>」ボタンから新しい公演を登録できます</li>
+    <li>右上の「<strong>ユーザー管理</strong>」ボタンからユーザー管理画面に遷移できます</li>
+  </ul>
+</div>
+
+<!-- 3. New Performance -->
+<div class="section" id="sec-new">
+  <h2>3. 公演新規作成（4ステップウィザード）</h2>
+  <p>ウィザード形式で公演を段階的に登録します。画面上部のステップインジケータで進行状況を確認できます。</p>
+  <div class="steps">
+    <span class="step-item active">1 公演基本情報</span>
+    <span class="step-item">2 ステージ登録</span>
+    <span class="step-item">3 キャスト登録</span>
+    <span class="step-item">4 チケットバックルール</span>
+  </div>
+
+  <h3 id="sec-new-basic">Step 1: 基本情報</h3>
+  <table>
+    <tr><th>項目</th><th>必須</th><th>説明</th></tr>
+    <tr><td>公演名</td><td><span class="badge badge-red">必須</span></td><td>例: 春の本公演 2026</td></tr>
+    <tr><td>ステージ数</td><td></td><td>次のステップでステージ行が自動生成されます</td></tr>
+    <tr><td>開始日 / 終了日</td><td></td><td>公演の開催期間</td></tr>
+    <tr><td>デフォルトノルマ単価</td><td></td><td>キャスト登録時にノルマ単価の初期値として使われます</td></tr>
+  </table>
+
+  <h3 id="sec-new-stage">Step 2: ステージ登録</h3>
+  <p>Step 1 で入力したステージ数に応じて行が自動生成されます。「+ 行追加」で追加、「x」で削除が可能です。</p>
+  <table>
+    <tr><th>項目</th><th>必須</th><th>説明</th></tr>
+    <tr><td>ステージ名</td><td><span class="badge badge-red">必須</span></td><td>例: 7/5 昼公演</td></tr>
+    <tr><td>公演日</td><td></td><td>ステージの日付</td></tr>
+  </table>
+  <div class="tip">
+    <strong>キーボード操作</strong>
+    上下矢印キーで同じ列の前後の行にフォーカスを移動できます。
+  </div>
+
+  <h3 id="sec-new-cast">Step 3: キャスト登録</h3>
+  <p>出演するキャストを登録します。「+ 行追加」で行を追加できます。</p>
+  <table>
+    <tr><th>項目</th><th>必須</th><th>説明</th></tr>
+    <tr><td>キャスト名</td><td><span class="badge badge-red">必須</span></td><td>CSVインポート時の「取扱窓口」と一致させてください</td></tr>
+    <tr><td>ノルマ枚数</td><td></td><td>キャストに課せられたチケット販売ノルマ</td></tr>
+    <tr><td>ノルマ単価</td><td></td><td>デフォルトノルマ単価が自動入力されます</td></tr>
+    <tr><td>バック対象</td><td></td><td>チェックONのキャストがチケットバック計算の対象になります</td></tr>
+  </table>
+
+  <h3 id="sec-new-rule">Step 4: チケットバックルール</h3>
+  <p>キャストのチケット販売枚数に応じたバック単価を段階的に設定します。</p>
+  <table>
+    <tr><th>項目</th><th>説明</th></tr>
+    <tr><td>最小枚数</td><td>この段階が適用される最小のチケット枚数</td></tr>
+    <tr><td>最大枚数</td><td>この段階の上限枚数。空欄にすると「上限なし」</td></tr>
+    <tr><td>バック単価</td><td>この範囲の1枚あたりのバック金額</td></tr>
+  </table>
+
+  <div class="note">
+    <strong>段階式計算の例</strong>
+    ルール: 1〜10枚=500円、11枚〜=800円のとき、15枚販売した場合:
+  </div>
+  <div class="formula">
+    10枚 x 500円 = 5,000円<br>
+    5枚 x 800円 = 4,000円<br>
+    バック合計 = 9,000円
+  </div>
+  <p>すべて入力したら「<strong>保存</strong>」ボタンで公演が作成され、公演選択画面に戻ります。</p>
+</div>
+
+<!-- 4. Management Tabs -->
+<div class="section" id="sec-mgmt">
+  <h2>4. 公演管理画面</h2>
+  <p>公演選択画面でカードをクリックすると、タブ式の公演管理画面が表示されます。タブは以下の8つです。</p>
+  <div class="steps">
+    <span class="step-item">CSV取込</span>
+    <span class="step-item">売上</span>
+    <span class="step-item">キャスト</span>
+    <span class="step-item">バック</span>
+    <span class="step-item">グッズ</span>
+    <span class="step-item">経費</span>
+    <span class="step-item">協賛金</span>
+    <span class="step-item">収支</span>
+  </div>
+</div>
+
+<!-- 4.1 CSV -->
+<div class="section" id="sec-csv">
+  <h2>4-1. CSV取込</h2>
+  <p>チケット販売データをCSVファイルから一括取り込みます。</p>
+
+  <h3>取込手順</h3>
+  <ol>
+    <li>「ファイルを選択」から CSVファイル を選択</li>
+    <li>「CSVをアップロード」ボタンをクリック</li>
+    <li>結果メッセージで取り込み件数を確認</li>
+  </ol>
+
+  <h3>CSVファイルの仕様</h3>
+  <ul>
+    <li>文字コード: <strong>Shift-JIS</strong></li>
+    <li>CSVの「取扱窓口」列の値が、登録済みキャスト名と照合されます</li>
+    <li>一致しないキャスト名がある場合はエラーとなり、該当行が表示されます</li>
+  </ul>
+
+  <div class="warn">
+    <strong>再取込は全削除→再登録方式です</strong>
+    CSVを再アップロードすると、その公演の既存売上データはすべて削除され、新しいCSVの内容で置き換わります。追加取込ではありませんのでご注意ください。
+  </div>
+
+  <h3>取込履歴</h3>
+  <p>右側に過去の取込履歴（ファイル名、取込件数、状態、日時）が表示されます。</p>
+</div>
+
+<!-- 4.2 Sales -->
+<div class="section" id="sec-sales">
+  <h2>4-2. 売上一覧</h2>
+  <p>CSV取込で登録された売上データを一覧表示します。</p>
+
+  <h3>表示項目</h3>
+  <p>予約NO、公演日時、チケット種別、枚数、金額、支払方法、名前、フリガナ、取扱窓口、備考</p>
+
+  <h3>フィルタリング</h3>
+  <p>以下のフィルタで絞り込みが可能です。</p>
+  <ul>
+    <li><strong>公演日</strong> - 特定の日付のみ表示</li>
+    <li><strong>種別</strong> - チケットの種類で絞り込み</li>
+    <li><strong>支払方法</strong> - 支払方法で絞り込み</li>
+    <li><strong>取扱窓口</strong> - キャスト名で絞り込み</li>
+  </ul>
+  <p>フィルタ適用時は画面右上に <strong>合計枚数</strong> がリアルタイムで表示されます。「フィルタ解除」ですべてのフィルタをクリアできます。</p>
+</div>
+
+<!-- 4.3 Cast -->
+<div class="section" id="sec-cast">
+  <h2>4-3. キャスト</h2>
+  <p>登録済みキャストの情報を編集できます。</p>
+
+  <h3>編集可能な項目</h3>
+  <ul>
+    <li>キャスト名</li>
+    <li>ノルマ枚数</li>
+    <li>ノルマ単価</li>
+    <li>バック対象（チェックボックス）</li>
+  </ul>
+
+  <h3>並べ替え</h3>
+  <p>各行の左端にあるハンドル（ ☰ ）を<strong>ドラッグ&ドロップ</strong>してキャストの表示順を変更できます。</p>
+
+  <h3>保存</h3>
+  <p>変更がある行には <span class="badge" style="background:#fef3c7;color:#92400e;">変更あり</span> バッジが表示されます。右上の「<strong>変更を保存</strong>」ボタンで一括保存してください。</p>
+</div>
+
+<!-- 4.4 Back -->
+<div class="section" id="sec-back">
+  <h2>4-4. バック</h2>
+  <p>公演作成時に設定したチケットバックルールを一覧で確認できます。</p>
+  <table>
+    <tr><th>表示項目</th><th>内容</th></tr>
+    <tr><td>ステップ</td><td>段階番号</td></tr>
+    <tr><td>最小枚数</td><td>この段階が適用される最小チケット枚数</td></tr>
+    <tr><td>最大枚数</td><td>この段階の上限（「上限なし」= 無制限）</td></tr>
+    <tr><td>バック単価</td><td>1枚あたりのバック金額</td></tr>
+  </table>
+
+  <div class="note">
+    <strong>段階式計算ロジック</strong>
+    キャストの販売枚数がルールの範囲に入る分だけ、その段階のバック単価で計算されます。各段階の小計の合計がバック総額になります。計算例は「<a href="#sec-new-rule">公演新規作成 Step 4</a>」を参照してください。
+  </div>
+</div>
+
+<!-- 4.5 Goods -->
+<div class="section" id="sec-goods">
+  <h2>4-5. グッズ</h2>
+  <p>公演で販売するグッズの登録と、ステージ別の販売実績を管理します。</p>
+
+  <h3>グッズ登録</h3>
+  <ol>
+    <li><strong>グッズ名</strong> と <strong>単価</strong> を入力</li>
+    <li>「追加」ボタンで登録</li>
+  </ol>
+  <p>登録済みグッズは一覧で確認でき、「編集」で名前・単価の変更、「削除」で削除が可能です。販売合計数と売上合計金額も表示されます。</p>
+
+  <h3>ステージ別販売実績入力</h3>
+  <p>グッズとステージのマトリクス表で、各セルに販売個数を入力します。</p>
+  <ol>
+    <li>各セルに販売個数を入力</li>
+    <li>「<strong>販売実績を保存</strong>」ボタンで一括保存</li>
+  </ol>
+  <p>行の右端に合計個数と合計金額が表示されます。</p>
+</div>
+
+<!-- 4.6 Expense -->
+<div class="section" id="sec-expense">
+  <h2>4-6. 経費</h2>
+  <p>公演に関する経費を登録・管理します。</p>
+
+  <h3>経費登録</h3>
+  <table>
+    <tr><th>項目</th><th>必須</th><th>説明</th></tr>
+    <tr><td>日付</td><td><span class="badge badge-red">必須</span></td><td>経費発生日</td></tr>
+    <tr><td>カテゴリ</td><td><span class="badge badge-red">必須</span></td><td>経費カテゴリを選択</td></tr>
+    <tr><td>品名</td><td><span class="badge badge-red">必須</span></td><td>経費の内容</td></tr>
+    <tr><td>金額</td><td><span class="badge badge-red">必須</span></td><td>金額</td></tr>
+    <tr><td>メモ</td><td></td><td>任意のメモ</td></tr>
+  </table>
+
+  <h3>ユーザー別未精算サマリ</h3>
+  <p>経費が登録されると、担当者ごとの <strong>立替合計</strong>、<strong>精算済</strong>、<strong>未精算額</strong> がカード形式で表示されます。</p>
+
+  <h3>経費一覧の操作</h3>
+  <ul>
+    <li><strong>精算チェック</strong> - 各行の左端にあるチェックボックスをONにすると精算済みになります（行が薄く表示されます）</li>
+    <li><strong>担当者変更</strong> - ドロップダウンで担当者を別のユーザーに変更できます</li>
+    <li><strong>メモ編集</strong> - メモ欄は直接編集可能です。フォーカスが外れると自動保存されます</li>
+    <li><strong>削除</strong> - 「削除」ボタンで確認後に削除</li>
+  </ul>
+
+  <h3>フィルタリング</h3>
+  <ul>
+    <li><strong>カテゴリ</strong> で絞り込み</li>
+    <li><strong>担当者</strong> で絞り込み</li>
+  </ul>
+  <p>フィルタ適用時は合計金額がフィルタ結果の合計に更新されます。</p>
+</div>
+
+<!-- 4.7 Sponsorship -->
+<div class="section" id="sec-sponsor">
+  <h2>4-7. 協賛金</h2>
+  <p>公演に対する協賛金を登録・管理します。</p>
+
+  <h3>協賛金登録</h3>
+  <table>
+    <tr><th>項目</th><th>必須</th><th>説明</th></tr>
+    <tr><td>協賛者名</td><td><span class="badge badge-red">必須</span></td><td>例: 株式会社○○</td></tr>
+    <tr><td>金額</td><td><span class="badge badge-red">必須</span></td><td>協賛金額</td></tr>
+    <tr><td>メモ</td><td></td><td>任意のメモ</td></tr>
+  </table>
+
+  <h3>協賛金一覧</h3>
+  <ul>
+    <li>合計金額が上部に表示されます</li>
+    <li><strong>メモ編集</strong> - メモ欄は直接編集可能で、フォーカスが外れると自動保存されます</li>
+    <li>「削除」ボタンで確認後に削除</li>
+  </ul>
+</div>
+
+<!-- 4.8 Balance -->
+<div class="section" id="sec-balance">
+  <h2>4-8. 収支</h2>
+  <p>公演全体の収支をまとめて表示します。</p>
+
+  <h3>最終収支</h3>
+  <div class="formula">最終収支 = チケット売上 + グッズ売上 + 協賛金 - 総経費 - ギャラ</div>
+  <p>プラスの場合は緑色、マイナスの場合は赤色で大きく表示されます。</p>
+
+  <h3>内訳カード</h3>
+  <table>
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>チケット売上</td><td>CSV取込の売上合計額と総枚数</td></tr>
+    <tr><td>グッズ売上</td><td>グッズ販売実績の合計金額</td></tr>
+    <tr><td>協賛金</td><td>協賛金の合計額</td></tr>
+    <tr><td>総経費</td><td>経費の合計額</td></tr>
+    <tr><td>ギャラ収支</td><td>全キャストの精算額合計（ノルマ控除後）</td></tr>
+  </table>
+
+  <h3>キャスト毎精算管理</h3>
+  <p>各キャストの販売枚数、売上金額、バック総額、ノルマ控除、精算額が一覧で表示されます。「<strong>内訳</strong>」リンクからキャスト精算画面に遷移できます。</p>
+
+  <div class="note">
+    <strong>都度計算について</strong>
+    チケットバックの計算結果はDBに保存されず、画面表示のたびに段階式ルールで再計算されます。キャスト情報やルールを変更すると、即座に反映されます。
+  </div>
+</div>
+
+<!-- 5. Cast Settlement -->
+<div class="section" id="sec-settlement">
+  <h2>5. キャスト精算画面</h2>
+  <p>収支タブの「内訳」リンクから遷移するキャスト個別の精算内訳画面です。キャスト本人に見せることを想定したレイアウトです。</p>
+
+  <h3>表示内容</h3>
+  <ul>
+    <li><strong>キャスト名</strong> - 画面上部に大きく表示</li>
+    <li><strong>販売枚数</strong> - チケットの総販売枚数</li>
+    <li><strong>ノルマ控除</strong> - ノルマ未達分の控除額</li>
+    <li><strong>最終精算額</strong> - バック総額からノルマ控除を引いた最終金額</li>
+  </ul>
+
+  <h3>バック内訳テーブル</h3>
+  <p>段階式ルールの各ステップについて、対象範囲、該当枚数、単価、小計が表示されます。</p>
+
+  <h3>計算式</h3>
+  <div class="formula">
+    ノルマ残 = max(ノルマ枚数 - 販売枚数, 0) x ノルマ単価<br>
+    精算額 = バック総額 - ノルマ残
+  </div>
+
+  <h3>ステージ別販売実績</h3>
+  <p>各公演日ごとの販売枚数が表示されます。</p>
+</div>
+
+<!-- 6. User Management -->
+<div class="section" id="sec-users">
+  <h2>6. ユーザー管理</h2>
+  <p>公演選択画面の「ユーザー管理」ボタンから遷移します。管理者（admin）のみが操作できます。</p>
+
+  <h3>ユーザー追加</h3>
+  <table>
+    <tr><th>項目</th><th>必須</th><th>説明</th></tr>
+    <tr><td>ログインID</td><td><span class="badge badge-red">必須</span></td><td>例: tanaka</td></tr>
+    <tr><td>表示名</td><td><span class="badge badge-red">必須</span></td><td>例: 田中太郎</td></tr>
+    <tr><td>パスワード</td><td><span class="badge badge-red">必須</span></td><td>8文字以上の初期パスワード</td></tr>
+  </table>
+
+  <h3>ユーザー一覧</h3>
+  <ul>
+    <li><strong>編集</strong> - 表示名の変更、パスワードの再設定（パスワード欄は変更時のみ入力）</li>
+    <li><strong>無効化/有効化</strong> - ユーザーのログイン可否を切り替え</li>
+  </ul>
+
+  <div class="warn">
+    <strong>管理者（admin）は無効化できません。</strong>
+    最低1名の管理者が常にアクティブである必要があります。
+  </div>
+</div>
+
+</div>
+</body>
+</html>
