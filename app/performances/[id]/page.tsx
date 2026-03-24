@@ -623,27 +623,33 @@ export default function PerformancePage() {
         <div className="grid">
           <div className="card">
             <h2 className="brand">経費登録</h2>
-            <form onSubmit={handleAddExpense} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8, alignItems: 'end', marginTop: 8 }}>
-              <div>
-                <label className="subtitle">日付</label>
-                <input className="input" type="date" value={expForm.expenseDate} onChange={e => setExpForm(f => ({ ...f, expenseDate: e.target.value }))} required />
+            <form onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
+                <div>
+                  <label className="subtitle">日付</label>
+                  <input className="input" type="date" value={expForm.expenseDate} onChange={e => setExpForm(f => ({ ...f, expenseDate: e.target.value }))} required style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <label className="subtitle">カテゴリ</label>
+                  <select className="select" value={expForm.expenseCategoryId} onChange={e => setExpForm(f => ({ ...f, expenseCategoryId: e.target.value }))} required style={{ width: '100%' }}>
+                    <option value="">選択</option>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="subtitle">品名</label>
+                  <input className="input" value={expForm.itemName} onChange={e => setExpForm(f => ({ ...f, itemName: e.target.value }))} required style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <label className="subtitle">金額</label>
+                  <input className="input" type="number" value={expForm.amount} onChange={e => setExpForm(f => ({ ...f, amount: e.target.value }))} required style={{ width: '100%' }} />
+                </div>
               </div>
               <div>
-                <label className="subtitle">カテゴリ</label>
-                <select className="select" value={expForm.expenseCategoryId} onChange={e => setExpForm(f => ({ ...f, expenseCategoryId: e.target.value }))} required>
-                  <option value="">選択</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <label className="subtitle">メモ</label>
+                <input className="input" value={expForm.memo} onChange={e => setExpForm(f => ({ ...f, memo: e.target.value }))} placeholder="メモ（任意）" style={{ width: '100%' }} />
               </div>
-              <div>
-                <label className="subtitle">品名</label>
-                <input className="input" value={expForm.itemName} onChange={e => setExpForm(f => ({ ...f, itemName: e.target.value }))} required />
-              </div>
-              <div>
-                <label className="subtitle">金額</label>
-                <input className="input" type="number" value={expForm.amount} onChange={e => setExpForm(f => ({ ...f, amount: e.target.value }))} required />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: 13 }}>
                   <input type="checkbox" checked={expForm.isProvisional} onChange={e => setExpForm(f => ({ ...f, isProvisional: e.target.checked }))} style={{ width: 16, height: 16, accentColor: '#f59e0b' }} />
                   暫定経費
@@ -651,12 +657,6 @@ export default function PerformancePage() {
                 <button className="primary" type="submit" disabled={expSubmitting}>{expSubmitting ? '登録中...' : '追加'}</button>
               </div>
             </form>
-            {expForm.memo !== undefined && (
-              <div style={{ marginTop: 8 }}>
-                <label className="subtitle">メモ</label>
-                <input className="input" value={expForm.memo} onChange={e => setExpForm(f => ({ ...f, memo: e.target.value }))} placeholder="メモ（任意）" />
-              </div>
-            )}
           </div>
           {/* ユーザー別未精算サマリ */}
           {expenses && expenses.length > 0 && (() => {
@@ -722,8 +722,8 @@ export default function PerformancePage() {
                   <p className="subtitle" style={{ marginTop: 12 }}>{expenses.length === 0 ? '経費が登録されていません。' : '該当する経費がありません。'}</p>
                 ) : (
                   <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginTop: 12 }}>
-                  <table className="table" style={{ minWidth: 700 }}>
-                    <thead><tr><th style={{width:60,textAlign:'center'}}>精算</th><th style={{width:60,textAlign:'center'}}>区分</th><th>日付</th><th>担当者</th><th>カテゴリ</th><th>品名</th><th>金額</th><th>メモ</th><th></th></tr></thead>
+                  <table className="table" style={{ minWidth: 650 }}>
+                    <thead><tr><th style={{width:50,textAlign:'center'}}>精算</th><th style={{width:50,textAlign:'center'}}>区分</th><th style={{whiteSpace:'nowrap'}}>日付</th><th style={{whiteSpace:'nowrap'}}>担当者</th><th style={{whiteSpace:'nowrap'}}>カテゴリ</th><th>品名</th><th style={{whiteSpace:'nowrap'}}>金額</th><th>メモ</th><th></th></tr></thead>
                     <tbody>
                       {filtered.map(exp => (
                         <tr key={exp.id} style={{ ...(exp.isSettled ? { opacity: 0.5 } : {}), ...(exp.isProvisional ? { background: '#fffbeb' } : {}) }}>
@@ -798,22 +798,47 @@ export default function PerformancePage() {
                 <h2 className="brand">キャスト毎精算管理</h2>
                 <p className="subtitle">段階式ルールで都度再計算。計算結果はDB保存なし。</p>
                 {summary.castDetails && summary.castDetails.length > 0 ? (
-                  <table className="table">
-                    <thead><tr><th>キャスト</th><th>販売枚数</th><th>売上金額</th><th>バック総額</th><th>ノルマ控除</th><th>精算額</th><th></th></tr></thead>
-                    <tbody>
+                  <>
+                    {/* PC: テーブル表示 */}
+                    <div className="hide-mobile">
+                      <table className="table">
+                        <thead><tr><th>キャスト</th><th>販売枚数</th><th>売上金額</th><th>バック総額</th><th>ノルマ控除</th><th>精算額</th><th></th></tr></thead>
+                        <tbody>
+                          {summary.castDetails.map(c => (
+                            <tr key={c.castId}>
+                              <td>{c.castName}</td>
+                              <td>{c.ticketCount}枚</td>
+                              <td>{yen(c.salesAmount)}</td>
+                              <td>{yen(c.backTotal)}</td>
+                              <td>{yen(c.normaDeduction)}</td>
+                              <td style={{ color: c.settlement >= 0 ? '#059669' : '#e74c3c', fontWeight: 700 }}>{yen(c.settlement)}</td>
+                              <td><Link className="secondary" href={`/performances/${id}/casts/${c.castId}/settlement`}>内訳</Link></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* スマホ: カード表示 */}
+                    <div className="show-mobile" style={{ display: 'none' }}>
                       {summary.castDetails.map(c => (
-                        <tr key={c.castId}>
-                          <td>{c.castName}</td>
-                          <td>{c.ticketCount}枚</td>
-                          <td>{yen(c.salesAmount)}</td>
-                          <td>{yen(c.backTotal)}</td>
-                          <td>{yen(c.normaDeduction)}</td>
-                          <td style={{ color: c.settlement >= 0 ? '#059669' : '#e74c3c', fontWeight: 700 }}>{yen(c.settlement)}</td>
-                          <td><Link className="secondary" href={`/performances/${id}/casts/${c.castId}/settlement`}>内訳</Link></td>
-                        </tr>
+                        <div key={c.castId} className="card" style={{ padding: 14, marginBottom: 8, border: '1px solid #e5e7eb' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <span style={{ fontWeight: 700, fontSize: 15 }}>{c.castName}</span>
+                            <Link className="secondary" href={`/performances/${id}/casts/${c.castId}/settlement`} style={{ fontSize: 12 }}>内訳→</Link>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: 13 }}>
+                            <span className="subtitle">販売枚数</span><span style={{ textAlign: 'right' }}>{c.ticketCount}枚</span>
+                            <span className="subtitle">売上金額</span><span style={{ textAlign: 'right' }}>{yen(c.salesAmount)}</span>
+                            <span className="subtitle">バック総額</span><span style={{ textAlign: 'right' }}>{yen(c.backTotal)}</span>
+                            <span className="subtitle">ノルマ控除</span><span style={{ textAlign: 'right' }}>{yen(c.normaDeduction)}</span>
+                          </div>
+                          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e5e7eb', fontWeight: 900, fontSize: 16, textAlign: 'right', color: c.settlement >= 0 ? '#059669' : '#e74c3c' }}>
+                            精算額 {yen(c.settlement)}
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </>
                 ) : (
                   <p className="subtitle">キャストデータがありません。</p>
                 )}
