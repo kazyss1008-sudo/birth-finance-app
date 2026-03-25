@@ -99,11 +99,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     };
   });
 
-  // 劇団Birth（Web売上）を末尾に追加
+  // 劇団Birthを末尾に追加
   if (webTickets > 0 || webAmount > 0) {
     castDetails.push({
       castId: BigInt(0),
-      castName: '劇団Birth（Web売上）',
+      castName: '劇団Birth',
       ticketCount: webTickets,
       salesAmount: webAmount,
       backTotal: 0,

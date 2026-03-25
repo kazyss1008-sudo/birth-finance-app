@@ -106,12 +106,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return { castId: cast.id.toString(), castName: cast.name, ticketCount: soldTickets, salesAmount, backTotal, normaDeduction, settlement, normaTicketCount: cast.normaTicketCount, normaUnitPrice: cast.normaUnitPrice };
   });
 
-  // 劇団Birth（Web売上）を末尾に追加
+  // 劇団Birthを末尾に追加
   const webSales = sales.filter(s => s.castId === null);
   if (webSales.length > 0) {
     const webTickets = webSales.reduce((s, r) => s + r.ticketCount, 0);
     const webAmount = webSales.reduce((s, r) => s + r.salesAmount, 0);
-    castSummaries.push({ castId: '0', castName: '劇団Birth（Web売上）', ticketCount: webTickets, salesAmount: webAmount, backTotal: 0, normaDeduction: 0, settlement: 0, normaTicketCount: 0, normaUnitPrice: 0 });
+    castSummaries.push({ castId: '0', castName: '劇団Birth', ticketCount: webTickets, salesAmount: webAmount, backTotal: 0, normaDeduction: 0, settlement: 0, normaTicketCount: 0, normaUnitPrice: 0 });
   }
 
   const summary = {
