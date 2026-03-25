@@ -623,7 +623,7 @@ export default function PerformancePage() {
         <div className="grid">
           <div className="card">
             <h2 className="brand">経費登録</h2>
-            <form onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            <form className="expense-form" onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
               <div className="expense-form-grid">
                 <div>
                   <label className="subtitle">日付</label>

@@ -49,10 +49,13 @@ button, input, select { font: inherit; }
   .show-mobile { display: block !important; }
   .container { padding: 12px !important; }
   .card { padding: 14px !important; border-radius: 16px !important; }
-  .expense-form-grid { grid-template-columns: 1fr !important; gap: 6px !important; }
-  .expense-form-grid .subtitle, .expense-form-memo .subtitle { font-size: 11px !important; margin-bottom: 2px; }
+  .expense-form-grid { grid-template-columns: 1fr !important; gap: 2px !important; }
+  .expense-form-grid > div { margin-bottom: 0; }
+  .expense-form-grid .subtitle, .expense-form-memo .subtitle { font-size: 11px !important; margin-bottom: 0; line-height: 1.2; }
   .expense-form-grid .input, .expense-form-grid .select,
-  .expense-form-memo .input { font-size: 13px !important; padding: 8px 10px !important; border-radius: 10px !important; }
+  .expense-form-memo .input { font-size: 13px !important; padding: 6px 10px !important; border-radius: 10px !important; }
+  .expense-form-memo { margin-top: 0; }
+  .expense-form { gap: 2px !important; margin-top: 4px !important; }
   .card h2.brand { font-size: 15px !important; }
   .table { font-size: 12px; white-space: nowrap; }
   .table th, .table td { padding: 6px 4px; white-space: nowrap; }
