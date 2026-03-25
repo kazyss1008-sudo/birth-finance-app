@@ -47,7 +47,10 @@ button, input, select { font: inherit; }
   .tab { padding: 8px 10px; font-size: 12px; }
   .hide-mobile { display: none !important; }
   .show-mobile { display: block !important; }
-  .expense-form-grid { grid-template-columns: 1fr !important; }
+  .expense-form-grid { grid-template-columns: 1fr !important; gap: 4px !important; }
+  .expense-form-grid .subtitle { font-size: 11px !important; margin-bottom: 1px; }
+  .expense-form-grid .input, .expense-form-grid .select { font-size: 13px !important; padding: 6px 8px !important; }
+  .card h2.brand { font-size: 15px !important; }
   .table { font-size: 12px; white-space: nowrap; }
   .table th, .table td { padding: 6px 4px; white-space: nowrap; }
   .table .select, .table .input { font-size: 11px; min-width: 60px !important; padding: 4px 4px !important; }
