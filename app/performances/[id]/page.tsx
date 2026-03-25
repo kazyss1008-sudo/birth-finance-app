@@ -645,7 +645,7 @@ export default function PerformancePage() {
                   <input className="input" type="number" value={expForm.amount} onChange={e => setExpForm(f => ({ ...f, amount: e.target.value }))} required style={{ width: '100%' }} />
                 </div>
               </div>
-              <div>
+              <div className="expense-form-memo">
                 <label className="subtitle">メモ</label>
                 <input className="input" value={expForm.memo} onChange={e => setExpForm(f => ({ ...f, memo: e.target.value }))} placeholder="メモ（任意）" style={{ width: '100%' }} />
               </div>

@@ -47,10 +47,13 @@ button, input, select { font: inherit; }
   .tab { padding: 8px 10px; font-size: 12px; }
   .hide-mobile { display: none !important; }
   .show-mobile { display: block !important; }
-  .expense-form-grid { grid-template-columns: 1fr 1fr !important; gap: 4px 8px !important; }
+  .expense-form-grid { grid-template-columns: 1fr !important; gap: 4px !important; }
   .expense-form-grid > div { display: flex; align-items: center; gap: 4px; }
-  .expense-form-grid .subtitle { font-size: 11px !important; margin-bottom: 0; white-space: nowrap; min-width: 40px; }
+  .expense-form-grid .subtitle { font-size: 11px !important; margin-bottom: 0; white-space: nowrap; min-width: 50px; }
   .expense-form-grid .input, .expense-form-grid .select { font-size: 13px !important; padding: 5px 6px !important; flex: 1; min-width: 0; }
+  .expense-form-memo { display: flex; align-items: center; gap: 4px; }
+  .expense-form-memo .subtitle { font-size: 11px !important; margin-bottom: 0; white-space: nowrap; min-width: 50px; }
+  .expense-form-memo .input { font-size: 13px !important; padding: 5px 6px !important; flex: 1; min-width: 0; }
   .card h2.brand { font-size: 15px !important; }
   .table { font-size: 12px; white-space: nowrap; }
   .table th, .table td { padding: 6px 4px; white-space: nowrap; }
