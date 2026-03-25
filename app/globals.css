@@ -13,11 +13,13 @@ button, input, select { font: inherit; }
 .brand { color: #153b96; }
 .primary { background: #153b96; color: white; border: none; border-radius: 16px; padding: 12px 16px; font-weight: 700; cursor: pointer; }
 .secondary { background: #edf2ff; color: #153b96; border: none; border-radius: 16px; padding: 12px 16px; font-weight: 700; cursor: pointer; }
-.input, .select { width: 100%; border: 1px solid #dbe2ea; border-radius: 16px; padding: 12px 14px; background: white; color: #1f2937; }
+.input, .select { width: 100%; max-width: 100%; border: 1px solid #dbe2ea; border-radius: 16px; padding: 12px 14px; background: white; color: #1f2937; }
+.card { overflow: hidden; }
 .select { appearance: auto; -webkit-appearance: menulist; cursor: pointer; }
 .table { width: 100%; border-collapse: collapse; display: table; }
 .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.expense-form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+.expense-form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; overflow: hidden; }
+.expense-form { overflow: hidden; }
 .table th, .table td { padding: 12px 14px; border-top: 1px solid #eef2f7; text-align: left; }
 .table thead th { background: #f4f7ff; color: #153b96; border-top: 0; }
 .tabs { display: flex; gap: 4px; border-bottom: 2px solid #edf2ff; margin-bottom: 16px; overflow-x: auto; }
