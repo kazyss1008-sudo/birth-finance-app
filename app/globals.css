@@ -20,16 +20,6 @@ button, input, select { font: inherit; }
 .expense-form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
 .table th, .table td { padding: 12px 14px; border-top: 1px solid #eef2f7; text-align: left; }
 .table thead th { background: #f4f7ff; color: #153b96; border-top: 0; }
-@media (max-width: 900px) {
-  .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .title { font-size: 20px; white-space: normal; }
-  .container { padding: 12px; }
-  .card { padding: 16px; border-radius: 16px; }
-  .tab { padding: 8px 12px; font-size: 13px; }
-  .table th, .table td { padding: 8px 6px; font-size: 13px; }
-  .primary, .secondary { padding: 10px 14px; font-size: 14px; }
-  .input, .select { padding: 10px 12px; border-radius: 12px; }
-}
 .tabs { display: flex; gap: 4px; border-bottom: 2px solid #edf2ff; margin-bottom: 16px; overflow-x: auto; }
 .tab { padding: 10px 18px; border: none; background: none; cursor: pointer; font-weight: 700; color: #64748b; border-bottom: 3px solid transparent; white-space: nowrap; font-size: 14px; }
 .tab.active { color: #153b96; border-bottom-color: #153b96; background: #edf2ff; border-radius: 8px 8px 0 0; }
@@ -39,26 +29,33 @@ button, input, select { font: inherit; }
 .error-msg { background: #fee2e2; color: #dc2626; padding: 12px 16px; border-radius: 12px; font-weight: 700; }
 .balance-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .responsive-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-@media (max-width: 600px) {
-  .balance-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .balance-grid .card { padding: 12px !important; }
-  .balance-grid .card div[style*="font-size: 22"] { font-size: 18px !important; }
-  .tabs { gap: 2px; }
+
+@media (max-width: 900px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .title { font-size: 20px; white-space: normal; }
+  .container { padding: 10px; }
+  .card { padding: 14px; border-radius: 16px; }
   .tab { padding: 8px 10px; font-size: 12px; }
-  .hide-mobile { display: none !important; }
-  .show-mobile { display: block !important; }
-  .container { padding: 12px !important; }
-  .card { padding: 14px !important; border-radius: 16px !important; }
-  .expense-form-grid { grid-template-columns: 1fr !important; gap: 2px !important; }
-  .expense-form-grid > div { margin-bottom: 0; }
-  .expense-form-grid .subtitle, .expense-form-memo .subtitle { font-size: 11px !important; margin-bottom: 0; line-height: 1.2; }
-  .expense-form-grid .input, .expense-form-grid .select,
-  .expense-form-memo .input { font-size: 13px !important; padding: 6px 10px !important; border-radius: 10px !important; }
-  .expense-form-memo { margin-top: 0; }
-  .expense-form { gap: 2px !important; margin-top: 4px !important; }
-  .card h2.brand { font-size: 15px !important; }
-  .table { font-size: 12px; white-space: nowrap; }
-  .table th, .table td { padding: 6px 4px; white-space: nowrap; }
+  .tabs { gap: 2px; }
+  .table th, .table td { padding: 6px 4px; font-size: 12px; white-space: nowrap; }
   .table .select, .table .input { font-size: 11px; min-width: 60px !important; padding: 4px 4px !important; }
   .table .badge { white-space: nowrap; }
+  .primary, .secondary { padding: 8px 12px; font-size: 13px; }
+  .input, .select { padding: 8px 10px; border-radius: 10px; font-size: 13px; }
+  .subtitle { font-size: 12px; }
+  .card h2.brand { font-size: 15px; }
+  .hide-mobile { display: none !important; }
+  .show-mobile { display: block !important; }
+
+  /* 経費フォーム */
+  .expense-form { gap: 2px !important; margin-top: 4px !important; }
+  .expense-form-grid { grid-template-columns: 1fr !important; gap: 2px !important; }
+  .expense-form-grid .subtitle, .expense-form-memo .subtitle { font-size: 11px !important; margin-bottom: 0; }
+  .expense-form-grid .input, .expense-form-grid .select,
+  .expense-form-memo .input { font-size: 13px !important; padding: 8px 10px !important; }
+  .expense-form-memo { margin-top: 0; }
+
+  /* 収支カード */
+  .balance-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .balance-grid .card { padding: 12px !important; }
 }
