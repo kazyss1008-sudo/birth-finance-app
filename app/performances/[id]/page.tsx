@@ -813,14 +813,14 @@ export default function PerformancePage() {
                         <thead><tr><th>キャスト</th><th>販売枚数</th><th>売上金額</th><th>バック総額</th><th>ノルマ控除</th><th>精算額</th><th></th></tr></thead>
                         <tbody>
                           {summary.castDetails.map(c => (
-                            <tr key={c.castId}>
+                            <tr key={c.castId} style={c.castId === '0' ? { background: '#f0fdf4', fontStyle: 'italic' } : {}}>
                               <td>{c.castName}</td>
                               <td>{c.ticketCount}枚</td>
                               <td>{yen(c.salesAmount)}</td>
-                              <td>{yen(c.backTotal)}</td>
-                              <td>{yen(c.normaDeduction)}</td>
-                              <td style={{ color: c.settlement >= 0 ? '#059669' : '#e74c3c', fontWeight: 700 }}>{yen(c.settlement)}</td>
-                              <td><Link className="secondary" href={`/performances/${id}/casts/${c.castId}/settlement`}>内訳</Link></td>
+                              <td>{c.castId === '0' ? '-' : yen(c.backTotal)}</td>
+                              <td>{c.castId === '0' ? '-' : yen(c.normaDeduction)}</td>
+                              <td style={{ color: c.castId === '0' ? '#153b96' : (c.settlement >= 0 ? '#059669' : '#e74c3c'), fontWeight: 700 }}>{c.castId === '0' ? yen(c.salesAmount) : yen(c.settlement)}</td>
+                              <td>{c.castId !== '0' && <Link className="secondary" href={`/performances/${id}/casts/${c.castId}/settlement`}>内訳</Link>}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -829,19 +829,19 @@ export default function PerformancePage() {
                     {/* スマホ: カード表示 */}
                     <div className="show-mobile" style={{ display: 'none' }}>
                       {summary.castDetails.map(c => (
-                        <div key={c.castId} className="card" style={{ padding: 14, marginBottom: 8, border: '1px solid #e5e7eb' }}>
+                        <div key={c.castId} className="card" style={{ padding: 14, marginBottom: 8, border: '1px solid #e5e7eb', ...(c.castId === '0' ? { background: '#f0fdf4' } : {}) }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                             <span style={{ fontWeight: 700, fontSize: 15 }}>{c.castName}</span>
-                            <Link className="secondary" href={`/performances/${id}/casts/${c.castId}/settlement`} style={{ fontSize: 12 }}>内訳→</Link>
+                            {c.castId !== '0' && <Link className="secondary" href={`/performances/${id}/casts/${c.castId}/settlement`} style={{ fontSize: 12 }}>内訳→</Link>}
                           </div>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: 13 }}>
                             <span className="subtitle">販売枚数</span><span style={{ textAlign: 'right' }}>{c.ticketCount}枚</span>
                             <span className="subtitle">売上金額</span><span style={{ textAlign: 'right' }}>{yen(c.salesAmount)}</span>
-                            <span className="subtitle">バック総額</span><span style={{ textAlign: 'right' }}>{yen(c.backTotal)}</span>
-                            <span className="subtitle">ノルマ控除</span><span style={{ textAlign: 'right' }}>{yen(c.normaDeduction)}</span>
+                            {c.castId !== '0' && <><span className="subtitle">バック総額</span><span style={{ textAlign: 'right' }}>{yen(c.backTotal)}</span></>}
+                            {c.castId !== '0' && <><span className="subtitle">ノルマ控除</span><span style={{ textAlign: 'right' }}>{yen(c.normaDeduction)}</span></>}
                           </div>
-                          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e5e7eb', fontWeight: 900, fontSize: 16, textAlign: 'right', color: c.settlement >= 0 ? '#059669' : '#e74c3c' }}>
-                            精算額 {yen(c.settlement)}
+                          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e5e7eb', fontWeight: 900, fontSize: 16, textAlign: 'right', color: c.castId === '0' ? '#153b96' : (c.settlement >= 0 ? '#059669' : '#e74c3c') }}>
+                            {c.castId === '0' ? `売上 ${yen(c.salesAmount)}` : `精算額 ${yen(c.settlement)}`}
                           </div>
                         </div>
                       ))}

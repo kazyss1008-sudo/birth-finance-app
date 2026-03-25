@@ -130,7 +130,7 @@ model Sale {
   id              BigInt             @id @default(autoincrement())
   performanceId   BigInt             @map("performance_id")
   importHistoryId BigInt             @map("import_history_id")
-  castId          BigInt             @map("cast_id")
+  castId          BigInt?            @map("cast_id")
   handledCastName String             @map("handled_cast_name") @db.VarChar(200)
   ticketCount     Int                @map("ticket_count")
   salesAmount     Int                @map("sales_amount")
@@ -144,7 +144,7 @@ model Sale {
   note            String?            @db.Text
   performance     Performance        @relation(fields: [performanceId], references: [id], onDelete: Cascade)
   importHistory   SalesImportHistory @relation(fields: [importHistoryId], references: [id], onDelete: Cascade)
-  cast            Cast               @relation(fields: [castId], references: [id])
+  cast            Cast?              @relation(fields: [castId], references: [id])
 
   @@map("sales")
 }

@@ -48,14 +48,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ ok: false, message: 'CSVにデータ行がありません。' }, { status: 400 });
     }
 
+    const WEB_CAST_NAME = 'Web';
     const casts = await prisma.cast.findMany({ where: { performanceId } });
     const castMap = new Map(casts.map((cast) => [cast.name.trim(), cast]));
-    const unmatched = rows.filter((row) => !castMap.has(row.handledCastName));
+    const unmatched = rows.filter((row) => row.handledCastName !== WEB_CAST_NAME && !castMap.has(row.handledCastName));
 
     if (unmatched.length > 0) {
       return NextResponse.json({
         ok: false,
-        message: `キャスト不一致: ${unmatched.length}件。全件ロールバックしました。`,
+        message: `キャスト不一致: ${unmatched.length}件。全件ロールバックしました。（※「Web」は劇団売上として自動処理されます）`,
         unmatchedCount: unmatched.length,
         errors: unmatched.map((row) => ({ rowNo: row.rowNo, castName: row.handledCastName })),
       }, { status: 422 });
@@ -92,7 +93,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         data: rows.map((row) => ({
           performanceId,
           importHistoryId: history.id,
-          castId: castMap.get(row.handledCastName)!.id,
+          castId: row.handledCastName === WEB_CAST_NAME ? null : castMap.get(row.handledCastName)!.id,
           handledCastName: row.handledCastName,
           ticketCount: row.ticketCount,
           salesAmount: row.salesAmount,

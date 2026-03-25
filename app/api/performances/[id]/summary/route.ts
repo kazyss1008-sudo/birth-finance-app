@@ -70,7 +70,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }, 0);
 
   // Calculate cast settlements (back - norma for each cast)
-  const castSalesMap = new Map(salesByCast.map(s => [s.castId.toString(), { tickets: s._sum.ticketCount ?? 0, sales: s._sum.salesAmount ?? 0 }]));
+  const castSalesMap = new Map(salesByCast.filter(s => s.castId !== null).map(s => [s.castId!.toString(), { tickets: s._sum.ticketCount ?? 0, sales: s._sum.salesAmount ?? 0 }]));
+  const webSales = salesByCast.find(s => s.castId === null);
+  const webTickets = webSales?._sum.ticketCount ?? 0;
+  const webAmount = webSales?._sum.salesAmount ?? 0;
 
   let totalGara = 0;
   const castDetails = casts.map(cast => {
@@ -95,6 +98,22 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       isTicketBackTarget: cast.isTicketBackTarget,
     };
   });
+
+  // 劇団Birth（Web売上）を末尾に追加
+  if (webTickets > 0 || webAmount > 0) {
+    castDetails.push({
+      castId: BigInt(0),
+      castName: '劇団Birth（Web売上）',
+      ticketCount: webTickets,
+      salesAmount: webAmount,
+      backTotal: 0,
+      normaDeduction: 0,
+      settlement: 0,
+      normaTicketCount: 0,
+      normaUnitPrice: 0,
+      isTicketBackTarget: false,
+    });
+  }
 
   const netBalance = totalSales + totalSponsorship + totalGoodsSales - totalExpenses - totalGara;
 
