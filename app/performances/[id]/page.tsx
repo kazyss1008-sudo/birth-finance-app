@@ -300,6 +300,7 @@ export default function PerformancePage() {
           <div className="card">
             <h2 className="brand">取込履歴</h2>
             {perf.importHistories && perf.importHistories.length > 0 ? (
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <table className="table">
                 <thead><tr><th>ファイル名</th><th>件数</th><th>状態</th><th>日時</th></tr></thead>
                 <tbody>
@@ -313,6 +314,7 @@ export default function PerformancePage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             ) : (
               <p className="subtitle">取込履歴はありません。</p>
             )}
@@ -457,6 +459,7 @@ export default function PerformancePage() {
         <div className="card">
           <h2 className="brand">チケットバックルール</h2>
           {perf.ticketBackRules && perf.ticketBackRules.length > 0 ? (
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table className="table">
               <thead><tr><th>ステップ</th><th>最小枚数</th><th>最大枚数</th><th>バック単価</th></tr></thead>
               <tbody>
@@ -464,12 +467,13 @@ export default function PerformancePage() {
                   <tr key={r.id}>
                     <td>{r.stepNo}</td>
                     <td>{r.minTicketCount}枚</td>
-                    <td>{r.maxTicketCount != null ? `${r.maxTicketCount}枚` : '上限なし'}</td>
+                    <td>{r.maxTicketCount != null ? `${r.maxTicketCount}枚` : ''}</td>
                     <td>{yen(r.backUnitPrice)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           ) : (
             <p className="subtitle">バックルールが登録されていません。</p>
           )}
@@ -490,9 +494,11 @@ export default function PerformancePage() {
               });
               if (res.ok) { setGoodsForm({ name: '', unitPrice: '' }); setGoodsList(null); fetch(`/api/performances/${id}/goods`).then(r => r.json()).then(setGoodsList); }
               else { const d = await res.json(); alert(d.message || 'エラー'); }
-            }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8, alignItems: 'end', marginTop: 8 }}>
-              <div><label className="subtitle">グッズ名</label><input className="input" value={goodsForm.name} onChange={e => setGoodsForm(f => ({ ...f, name: e.target.value }))} required /></div>
-              <div><label className="subtitle">単価</label><input className="input" type="number" value={goodsForm.unitPrice} onChange={e => setGoodsForm(f => ({ ...f, unitPrice: e.target.value }))} required /></div>
+            }} className="expense-form" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+              <div className="expense-form-grid">
+                <div><label className="subtitle">グッズ名</label><input className="input" value={goodsForm.name} onChange={e => setGoodsForm(f => ({ ...f, name: e.target.value }))} required style={{ width: '100%' }} /></div>
+                <div><label className="subtitle">単価</label><input className="input" type="number" value={goodsForm.unitPrice} onChange={e => setGoodsForm(f => ({ ...f, unitPrice: e.target.value }))} required style={{ width: '100%' }} /></div>
+              </div>
               <button className="primary" type="submit">追加</button>
             </form>
           </div>
@@ -501,6 +507,7 @@ export default function PerformancePage() {
           {goodsList && goodsList.length > 0 && (
             <div className="card">
               <h2 className="brand">登録済みグッズ</h2>
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <table className="table">
                 <thead><tr><th>グッズ名</th><th>単価</th><th>販売合計</th><th>売上合計</th><th></th></tr></thead>
                 <tbody>
@@ -543,6 +550,7 @@ export default function PerformancePage() {
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 
@@ -670,7 +678,7 @@ export default function PerformancePage() {
             }
             const users = Array.from(byUser.values());
             return (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
                 {users.map(u => (
                   <div key={u.name} className="card" style={{ padding: 16 }}>
                     <div className="subtitle">{u.name}</div>
@@ -761,7 +769,7 @@ export default function PerformancePage() {
           ) : (
             <>
               {/* 最終収支 */}
-              <div className="card" style={{ border: '3px solid', borderColor: summary.netBalance >= 0 ? '#059669' : '#e74c3c', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '24px 32px', marginBottom: 16 }}>
+              <div className="card" style={{ border: '3px solid', borderColor: summary.netBalance >= 0 ? '#059669' : '#e74c3c', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '16px 20px', marginBottom: 16 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#64748b', marginBottom: 8 }}>最終収支</div>
                 <div style={{ fontSize: 42, lineHeight: 1.1, fontWeight: 900, color: summary.netBalance >= 0 ? '#059669' : '#e74c3c' }}>{yen(summary.netBalance)}</div>
                 <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>売上 + グッズ + 協賛 - 経費 - ギャラ</div>
@@ -800,7 +808,7 @@ export default function PerformancePage() {
                 {summary.castDetails && summary.castDetails.length > 0 ? (
                   <>
                     {/* PC: テーブル表示 */}
-                    <div className="hide-mobile">
+                    <div className="hide-mobile" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                       <table className="table">
                         <thead><tr><th>キャスト</th><th>販売枚数</th><th>売上金額</th><th>バック総額</th><th>ノルマ控除</th><th>精算額</th><th></th></tr></thead>
                         <tbody>
@@ -853,18 +861,20 @@ export default function PerformancePage() {
         <div className="grid">
           <div className="card">
             <h2 className="brand">協賛金登録</h2>
-            <form onSubmit={handleAddSponsorship} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8, alignItems: 'end', marginTop: 8 }}>
-              <div>
-                <label className="subtitle">協賛者名</label>
-                <input className="input" value={spForm.sponsorName} onChange={e => setSpForm(f => ({ ...f, sponsorName: e.target.value }))} placeholder="例: 株式会社○○" required />
+            <form className="expense-form" onSubmit={handleAddSponsorship} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+              <div className="expense-form-grid">
+                <div>
+                  <label className="subtitle">協賛者名</label>
+                  <input className="input" value={spForm.sponsorName} onChange={e => setSpForm(f => ({ ...f, sponsorName: e.target.value }))} placeholder="例: 株式会社○○" required style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <label className="subtitle">金額</label>
+                  <input className="input" type="number" value={spForm.amount} onChange={e => setSpForm(f => ({ ...f, amount: e.target.value }))} required style={{ width: '100%' }} />
+                </div>
               </div>
-              <div>
-                <label className="subtitle">金額</label>
-                <input className="input" type="number" value={spForm.amount} onChange={e => setSpForm(f => ({ ...f, amount: e.target.value }))} required />
-              </div>
-              <div>
+              <div className="expense-form-memo">
                 <label className="subtitle">メモ</label>
-                <input className="input" value={spForm.memo} onChange={e => setSpForm(f => ({ ...f, memo: e.target.value }))} placeholder="任意" />
+                <input className="input" value={spForm.memo} onChange={e => setSpForm(f => ({ ...f, memo: e.target.value }))} placeholder="任意" style={{ width: '100%' }} />
               </div>
               <button className="primary" type="submit" disabled={spSubmitting}>{spSubmitting ? '登録中...' : '追加'}</button>
             </form>
@@ -880,6 +890,7 @@ export default function PerformancePage() {
                 <div style={{ marginBottom: 12, fontSize: 18, fontWeight: 900, color: '#153b96' }}>
                   合計: {yen(sponsorships.reduce((s, sp) => s + sp.amount, 0))}
                 </div>
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table className="table">
                   <thead><tr><th>協賛者名</th><th>金額</th><th>メモ</th><th></th></tr></thead>
                   <tbody>
@@ -893,6 +904,7 @@ export default function PerformancePage() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </>
             )}
           </div>
