@@ -180,6 +180,7 @@ export default function PerformancePage() {
     if (exp) { body.amount = exp.amount; body.memo = exp.memo; body.expenseDate = exp.expenseDate?.slice(0, 10); body.createdBy = exp.createdBy; }
     await fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     setExpenses(prev => prev?.map(e => e.id === expenseId ? { ...e, isSettled } : e) ?? null);
+    refreshSummary();
   };
 
   // Change expense assignee
