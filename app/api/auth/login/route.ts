@@ -3,6 +3,12 @@ import bcrypt from 'bcryptjs';
 import { createSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+// GET = warmup (same function as POST so cold start is shared)
+export async function GET() {
+  await prisma.$queryRawUnsafe('SELECT 1');
+  return NextResponse.json({ ok: true });
+}
+
 export async function POST(request: Request) {
   try {
     const contentType = request.headers.get('content-type') ?? '';

@@ -12,8 +12,8 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Warm up serverless function + DB connection while user types
-  useEffect(() => { fetch('/api/auth/ping').catch(() => {}); }, []);
+  // Warm up login function + DB connection while user types (same function = shared cold start)
+  useEffect(() => { fetch('/api/auth/login').catch(() => {}); }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
