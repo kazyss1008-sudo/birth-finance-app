@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Shell } from '@/components/Shell';
 import { prisma } from '@/lib/prisma';
+import { PerformanceCardPrefetcher } from './PerformanceCardPrefetcher';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,12 +30,12 @@ export default async function PerformanceSelectPage() {
         </div>
       ) : (
         <div className="grid-3">
-          {performances.map((p) => (
-            <Link key={p.id.toString()} href={`/performances/${p.id.toString()}`} className="card" style={{ transition: 'box-shadow 0.2s', cursor: 'pointer' }}>
+          {performances.map((p, i) => (
+            <PerformanceCardPrefetcher key={p.id.toString()} id={p.id.toString()} first={i === 0}>
               <span className="badge">{statusLabel(p.status)}</span>
               <h2 style={{ fontSize: 22, marginBottom: 8 }} className="brand">{p.name}</h2>
               <div className="subtitle">{formatDate(p.startDate)} - {formatDate(p.endDate)}</div>
-            </Link>
+            </PerformanceCardPrefetcher>
           ))}
         </div>
       )}
