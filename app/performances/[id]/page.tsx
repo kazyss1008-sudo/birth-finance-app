@@ -185,19 +185,39 @@ export default function PerformancePage() {
     refreshSummary();
   };
 
-  // Toggle expense settled
-  const handleToggleSettled = async (expenseId: string, isSettled: boolean) => {
+  // Unified expense save handler - saves all fields at once
+  const saveExpense = async (expenseId: string, updates: Partial<Expense>) => {
     const exp = expenses?.find(e => e.id === expenseId);
-    const body: Record<string, unknown> = { expenseId, isSettled };
-    if (exp) { body.amount = exp.amount; body.memo = exp.memo; body.expenseDate = exp.expenseDate?.slice(0, 10); body.createdBy = exp.createdBy; }
-    await fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    setExpenses(prev => prev?.map(e => e.id === expenseId ? { ...e, isSettled } : e) ?? null);
-    refreshSummary();
+    if (!exp) return;
+    const merged = { ...exp, ...updates };
+    const body = {
+      expenseId,
+      isSettled: merged.isSettled,
+      isProvisional: merged.isProvisional,
+      amount: merged.amount,
+      memo: merged.memo,
+      expenseDate: merged.expenseDate?.slice(0, 10),
+      createdBy: merged.createdBy,
+    };
+    try {
+      const res = await fetch(`/api/performances/${id}/expenses`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        console.error('経費保存エラー:', await res.text());
+        return;
+      }
+      setExpenses(prev => prev?.map(e => e.id === expenseId ? { ...e, ...updates } : e) ?? null);
+    } catch (err) {
+      console.error('経費保存エラー:', err);
+    }
   };
 
   // Change expense assignee
   const handleChangeAssignee = async (expenseId: string, createdBy: string) => {
-    await fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId, createdBy }) });
+    await saveExpense(expenseId, { createdBy });
     const assignedUser = users.find(u => u.id === createdBy);
     setExpenses(prev => prev?.map(e => e.id === expenseId ? { ...e, createdBy, creator: { displayName: assignedUser?.displayName ?? e.creator.displayName } } : e) ?? null);
   };
@@ -751,9 +771,9 @@ export default function PerformancePage() {
                     <tbody>
                       {filtered.map(exp => (
                         <tr key={exp.id} style={{ ...(exp.isSettled ? { opacity: 0.5 } : {}), ...(exp.isProvisional ? { background: '#fffbeb' } : {}) }}>
-                          <td style={{textAlign:'center'}}><input type="checkbox" checked={exp.isSettled} onChange={e => handleToggleSettled(exp.id, e.target.checked)} style={{width:18,height:18,accentColor:'#153b96',cursor:'pointer'}} /></td>
-                          <td style={{textAlign:'center', whiteSpace:'nowrap'}}><button onClick={async () => { const newVal = !exp.isProvisional; await fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId: exp.id, isProvisional: newVal, amount: exp.amount, memo: exp.memo, expenseDate: exp.expenseDate?.slice(0, 10), createdBy: exp.createdBy }) }); setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, isProvisional: newVal } : x) ?? null); refreshSummary(); }} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 10, border: '1px solid', cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap', background: exp.isProvisional ? '#fef3c7' : '#e0f2fe', color: exp.isProvisional ? '#b45309' : '#0369a1', borderColor: exp.isProvisional ? '#fbbf24' : '#7dd3fc' }}>{exp.isProvisional ? '暫定' : '確定'}</button></td>
-                          <td>{exp.isProvisional ? <input className="input" type="date" value={exp.expenseDate?.slice(0, 10)} onChange={e => { const val = e.target.value; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, expenseDate: val } : x) ?? null); }} onBlur={e => { fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId: exp.id, expenseDate: e.target.value }) }); }} style={{ padding: '4px 6px', fontSize: 13, background: '#fffbeb' }} /> : exp.expenseDate?.slice(0, 10)}</td>
+                          <td style={{textAlign:'center'}}><input type="checkbox" checked={exp.isSettled} onChange={e => saveExpense(exp.id, { isSettled: e.target.checked })} style={{width:18,height:18,accentColor:'#153b96',cursor:'pointer'}} /></td>
+                          <td style={{textAlign:'center', whiteSpace:'nowrap'}}><button onClick={() => saveExpense(exp.id, { isProvisional: !exp.isProvisional })} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 10, border: '1px solid', cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap', background: exp.isProvisional ? '#fef3c7' : '#e0f2fe', color: exp.isProvisional ? '#b45309' : '#0369a1', borderColor: exp.isProvisional ? '#fbbf24' : '#7dd3fc' }}>{exp.isProvisional ? '暫定' : '確定'}</button></td>
+                          <td>{exp.isProvisional ? <input className="input" type="date" value={exp.expenseDate?.slice(0, 10)} onChange={e => { const val = e.target.value; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, expenseDate: val } : x) ?? null); }} onBlur={e => saveExpense(exp.id, { expenseDate: e.target.value })} style={{ padding: '4px 6px', fontSize: 13, background: '#fffbeb' }} /> : exp.expenseDate?.slice(0, 10)}</td>
                           <td>
                             <select className="select" value={exp.createdBy} onChange={e => handleChangeAssignee(exp.id, e.target.value)} style={{padding:'6px 8px',fontSize:13,borderRadius:10,minWidth:90}}>
                               {users.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
@@ -762,8 +782,8 @@ export default function PerformancePage() {
                           </td>
                           <td><span className="badge">{exp.category?.name}</span></td>
                           <td>{exp.itemName}</td>
-                          <td>{exp.isProvisional ? <input className="input" type="number" value={exp.amount} onChange={e => { const val = Number(e.target.value) || 0; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, amount: val } : x) ?? null); }} onBlur={e => { fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId: exp.id, amount: Number(e.target.value) || 0 }) }); refreshSummary(); }} style={{ padding: '6px 8px', fontSize: 13, width: 100, background: '#fffbeb' }} /> : yen(exp.amount)}</td>
-                          <td><input className="input" value={exp.memo ?? ''} placeholder="メモ" onChange={e => { const val = e.target.value; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, memo: val } : x) ?? null); }} onBlur={e => { fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId: exp.id, memo: e.target.value }) }); }} style={{ padding: '6px 8px', fontSize: 13, minWidth: 80 }} /></td>
+                          <td>{exp.isProvisional ? <input className="input" type="number" value={exp.amount} onChange={e => { const val = Number(e.target.value) || 0; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, amount: val } : x) ?? null); }} onBlur={e => saveExpense(exp.id, { amount: Number(e.target.value) || 0 })} style={{ padding: '6px 8px', fontSize: 13, width: 100, background: '#fffbeb' }} /> : yen(exp.amount)}</td>
+                          <td><input className="input" value={exp.memo ?? ''} placeholder="メモ" onChange={e => { const val = e.target.value; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, memo: val } : x) ?? null); }} onBlur={e => saveExpense(exp.id, { memo: e.target.value })} style={{ padding: '6px 8px', fontSize: 13, minWidth: 80 }} /></td>
                           <td><button className="danger" onClick={() => handleDeleteExpense(exp.id)}>削除</button></td>
                         </tr>
                       ))}
