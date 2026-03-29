@@ -38,7 +38,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     prisma.expense.findMany({
       where: { performanceId },
       include: { category: true, creator: { select: { displayName: true } } },
-      orderBy: [{ expenseDate: 'desc' }, { id: 'asc' }],
+      orderBy: [{ expenseDate: 'asc' }, { id: 'asc' }],
     }),
     prisma.expenseCategory.findMany({ orderBy: { name: 'asc' } }),
     prisma.user.findMany({
