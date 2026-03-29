@@ -175,7 +175,10 @@ export default function PerformancePage() {
 
   // Toggle expense settled
   const handleToggleSettled = async (expenseId: string, isSettled: boolean) => {
-    await fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId, isSettled }) });
+    const exp = expenses?.find(e => e.id === expenseId);
+    const body: Record<string, unknown> = { expenseId, isSettled };
+    if (exp) { body.amount = exp.amount; body.memo = exp.memo; body.expenseDate = exp.expenseDate?.slice(0, 10); body.createdBy = exp.createdBy; }
+    await fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     setExpenses(prev => prev?.map(e => e.id === expenseId ? { ...e, isSettled } : e) ?? null);
   };
 
@@ -736,7 +739,7 @@ export default function PerformancePage() {
                       {filtered.map(exp => (
                         <tr key={exp.id} style={{ ...(exp.isSettled ? { opacity: 0.5 } : {}), ...(exp.isProvisional ? { background: '#fffbeb' } : {}) }}>
                           <td style={{textAlign:'center'}}><input type="checkbox" checked={exp.isSettled} onChange={e => handleToggleSettled(exp.id, e.target.checked)} style={{width:18,height:18,accentColor:'#153b96',cursor:'pointer'}} /></td>
-                          <td style={{textAlign:'center', whiteSpace:'nowrap'}}><button onClick={async () => { const newVal = !exp.isProvisional; await fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId: exp.id, isProvisional: newVal }) }); setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, isProvisional: newVal } : x) ?? null); refreshSummary(); }} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 10, border: '1px solid', cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap', background: exp.isProvisional ? '#fef3c7' : '#e0f2fe', color: exp.isProvisional ? '#b45309' : '#0369a1', borderColor: exp.isProvisional ? '#fbbf24' : '#7dd3fc' }}>{exp.isProvisional ? '暫定' : '確定'}</button></td>
+                          <td style={{textAlign:'center', whiteSpace:'nowrap'}}><button onClick={async () => { const newVal = !exp.isProvisional; await fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId: exp.id, isProvisional: newVal, amount: exp.amount, memo: exp.memo, expenseDate: exp.expenseDate?.slice(0, 10), createdBy: exp.createdBy }) }); setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, isProvisional: newVal } : x) ?? null); refreshSummary(); }} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 10, border: '1px solid', cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap', background: exp.isProvisional ? '#fef3c7' : '#e0f2fe', color: exp.isProvisional ? '#b45309' : '#0369a1', borderColor: exp.isProvisional ? '#fbbf24' : '#7dd3fc' }}>{exp.isProvisional ? '暫定' : '確定'}</button></td>
                           <td>{exp.isProvisional ? <input className="input" type="date" value={exp.expenseDate?.slice(0, 10)} onChange={e => { const val = e.target.value; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, expenseDate: val } : x) ?? null); }} onBlur={e => { fetch(`/api/performances/${id}/expenses`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId: exp.id, expenseDate: e.target.value }) }); }} style={{ padding: '4px 6px', fontSize: 13, background: '#fffbeb' }} /> : exp.expenseDate?.slice(0, 10)}</td>
                           <td>
                             <select className="select" value={exp.createdBy} onChange={e => handleChangeAssignee(exp.id, e.target.value)} style={{padding:'6px 8px',fontSize:13,borderRadius:10,minWidth:90}}>
