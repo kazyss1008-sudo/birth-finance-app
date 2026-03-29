@@ -111,9 +111,21 @@ export default function PerformancePage() {
 
   // Refresh summary only (lightweight)
   const refreshSummary = useCallback(async () => {
+    // Delay slightly to allow DB replication to catch up, then fetch
+    await new Promise(r => setTimeout(r, 300));
     const res = await fetch(`/api/performances/${id}/summary`);
     if (res.ok) setSummary(await res.json());
   }, [id]);
+
+  // Also recalculate expense totals locally for instant UI feedback
+  useEffect(() => {
+    if (!summary || !expenses) return;
+    const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+    const confirmedExpenses = expenses.filter(e => !e.isProvisional).reduce((s, e) => s + e.amount, 0);
+    const provisionalExpenses = expenses.filter(e => e.isProvisional).reduce((s, e) => s + e.amount, 0);
+    const netBalance = summary.totalSales + (summary.totalSponsorship ?? 0) + (summary.totalGoodsSales ?? 0) - totalExpenses - summary.totalGara;
+    setSummary(prev => prev ? { ...prev, totalExpenses, confirmedExpenses, provisionalExpenses, netBalance } : prev);
+  }, [expenses]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // CSV upload handler
   const handleCsvUpload = async () => {
