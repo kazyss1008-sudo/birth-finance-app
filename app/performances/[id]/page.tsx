@@ -51,6 +51,7 @@ export default function PerformancePage() {
   const [salesFilterType, setSalesFilterType] = useState('');
   const [salesFilterPayment, setSalesFilterPayment] = useState('');
   const [salesFilterCast, setSalesFilterCast] = useState('');
+  const [salesFilterText, setSalesFilterText] = useState('');
   // CSV import state
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvUploading, setCsvUploading] = useState(false);
@@ -379,6 +380,11 @@ export default function PerformancePage() {
               if (salesFilterType && (s.ticketType ?? '') !== salesFilterType) return false;
               if (salesFilterPayment && (s.paymentMethod ?? '') !== salesFilterPayment) return false;
               if (salesFilterCast && s.handledCastName !== salesFilterCast) return false;
+              if (salesFilterText) {
+                const q = salesFilterText.toLowerCase();
+                const searchable = [s.reservationNo, s.customerName, s.customerKana, s.note, s.handledCastName, s.ticketType, s.paymentMethod].filter(Boolean).join(' ').toLowerCase();
+                if (!searchable.includes(q)) return false;
+              }
               return true;
             }) ?? [];
             const totalTickets = filtered.reduce((s, r) => s + r.ticketCount, 0);
@@ -386,7 +392,7 @@ export default function PerformancePage() {
             const uniqueTypes = [...new Set(sales?.map(s => s.ticketType).filter(Boolean) ?? [])];
             const uniquePayments = [...new Set(sales?.map(s => s.paymentMethod).filter(Boolean) ?? [])];
             const uniqueCasts = [...new Set(sales?.map(s => s.handledCastName).filter(Boolean) ?? [])].sort();
-            const hasFilter = salesFilterDate || salesFilterType || salesFilterPayment || salesFilterCast;
+            const hasFilter = salesFilterDate || salesFilterType || salesFilterPayment || salesFilterCast || salesFilterText;
             return (<>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                 <h2 className="brand" style={{ margin: 0 }}>売上一覧</h2>
@@ -421,7 +427,11 @@ export default function PerformancePage() {
                     {uniqueCasts.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
-                {hasFilter && <button className="ghost" onClick={() => { setSalesFilterDate(''); setSalesFilterType(''); setSalesFilterPayment(''); setSalesFilterCast(''); }} style={{ fontSize: 12, padding: '4px 8px' }}>フィルタ解除</button>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>検索</label>
+                  <input className="input" value={salesFilterText} onChange={e => setSalesFilterText(e.target.value)} placeholder="名前・予約No・備考..." style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10, minWidth: 140 }} />
+                </div>
+                {hasFilter && <button className="ghost" onClick={() => { setSalesFilterDate(''); setSalesFilterType(''); setSalesFilterPayment(''); setSalesFilterCast(''); setSalesFilterText(''); }} style={{ fontSize: 12, padding: '4px 8px' }}>フィルタ解除</button>}
               </div>
               {!sales ? (
                 <p className="subtitle">読み込み中...</p>
