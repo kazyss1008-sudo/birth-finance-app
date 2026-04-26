@@ -23,7 +23,7 @@ export default async function PerformanceSelectPage() {
   const performances = await prisma.performance.findMany({ orderBy: { startDate: 'desc' } });
 
   return (
-    <Shell title="公演選択" subtitle="管理する公演を選択してください。" actions={<div style={{ display: 'flex', gap: 8 }}><Link href="/users" className="secondary">ユーザー管理</Link><Link href="/performances/new" className="primary">新規公演作成</Link></div>}>
+    <Shell title="公演選択" subtitle="管理する公演を選択してください。" actions={<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Link href="/expense-categories" className="secondary">経費カテゴリ管理</Link><Link href="/users" className="secondary">ユーザー管理</Link><Link href="/performances/new" className="primary">新規公演作成</Link></div>}>
       {performances.length === 0 ? (
         <div className="card">
           <p className="subtitle">公演がまだ登録されていません。「新規公演作成」から始めてください。</p>
