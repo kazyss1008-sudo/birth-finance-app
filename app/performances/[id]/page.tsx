@@ -676,7 +676,16 @@ export default function PerformancePage() {
       {activeTab === '経費' && (
         <div className="grid">
           <div className="card">
-            <h2 className="brand">経費登録</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <h2 className="brand" style={{ margin: 0 }}>経費登録</h2>
+              <button type="button" className="ghost" onClick={() => {
+                const url = `${window.location.origin}/quick-expense/${id}`;
+                navigator.clipboard?.writeText(url).then(
+                  () => alert('簡易登録URLをコピーしました：\n' + url),
+                  () => prompt('簡易登録URL（コピーしてください）：', url)
+                );
+              }} style={{ fontSize: 12, padding: '4px 10px' }}>📱 簡易登録URL</button>
+            </div>
             <form className="expense-form" onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
               <div className="expense-form-grid">
                 <div>

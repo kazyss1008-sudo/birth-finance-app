@@ -9,6 +9,8 @@ export function middleware(request: NextRequest) {
     pathname === '/setup-password' ||
     pathname === '/change-password' ||
     pathname.startsWith('/api/auth/') ||
+    pathname.startsWith('/quick-expense') ||
+    pathname.startsWith('/api/quick-expense') ||
     pathname.startsWith('/_next/') ||
     pathname === '/favicon.ico' ||
     pathname === '/logo.png' ||
