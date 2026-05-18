@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { calculateTicketBack } from '@/lib/ticketBack';
 
 function serializeBigInt(obj: unknown): unknown {
   if (obj === null || obj === undefined) return obj;
@@ -85,19 +86,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return total + qty * g.unitPrice;
   }, 0);
 
-  // Cast-level back calculation
+  // Cast-level back calculation (uses lib/ticketBack.ts for parity with summary endpoint)
   const casts = performance.casts;
   const rules = performance.ticketBackRules;
+  const rulesInput = rules.map(r => ({ minTicketCount: r.minTicketCount, maxTicketCount: r.maxTicketCount, backUnitPrice: r.backUnitPrice }));
   let totalGala = 0;
-  const castSummaries = casts.filter(c => c.isTicketBackTarget).map(cast => {
+  const castSummaries = casts.map(cast => {
     const castSales = sales.filter(s => s.castId === cast.id);
     const soldTickets = castSales.reduce((s, r) => s + r.ticketCount, 0);
-    let backTotal = 0;
-    for (const rule of rules) {
-      const max = rule.maxTicketCount ?? Infinity;
-      const applicable = Math.max(Math.min(soldTickets, max) - rule.minTicketCount + 1, 0);
-      backTotal += applicable * rule.backUnitPrice;
-    }
+    const backTotal = cast.isTicketBackTarget ? calculateTicketBack(soldTickets, rulesInput) : 0;
     const remainingNorma = Math.max(cast.normaTicketCount - soldTickets, 0);
     const normaDeduction = remainingNorma * cast.normaUnitPrice;
     const settlement = backTotal - normaDeduction;

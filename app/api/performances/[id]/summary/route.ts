@@ -22,12 +22,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const performanceId = BigInt(id);
 
   // Fetch all needed data
-  const [salesAgg, expenseAgg, sponsorAgg, casts, rules, salesByCast, goodsWithSales] = await Promise.all([
+  const [salesAgg, expensesByProvisional, sponsorAgg, casts, rules, salesByCast, goodsWithSales] = await Promise.all([
     prisma.sale.aggregate({
       where: { performanceId },
       _sum: { salesAmount: true, ticketCount: true },
     }),
-    prisma.expense.aggregate({
+    prisma.expense.groupBy({
+      by: ['isProvisional'],
       where: { performanceId },
       _sum: { amount: true },
       _count: true,
@@ -51,17 +52,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const totalSales = salesAgg._sum.salesAmount ?? 0;
   const totalTickets = salesAgg._sum.ticketCount ?? 0;
-  const totalExpenses = expenseAgg._sum.amount ?? 0;
   const totalSponsorship = sponsorAgg._sum.amount ?? 0;
-  const expenseCount = expenseAgg._count;
 
-  // Confirmed vs provisional expenses
-  const [confirmedAgg, provisionalAgg] = await Promise.all([
-    prisma.expense.aggregate({ where: { performanceId, isProvisional: false }, _sum: { amount: true } }),
-    prisma.expense.aggregate({ where: { performanceId, isProvisional: true }, _sum: { amount: true } }),
-  ]);
-  const confirmedExpenses = confirmedAgg._sum.amount ?? 0;
-  const provisionalExpenses = provisionalAgg._sum.amount ?? 0;
+  // Confirmed vs provisional expenses (split from a single groupBy)
+  const confirmedExpenses = expensesByProvisional.find(e => !e.isProvisional)?._sum.amount ?? 0;
+  const provisionalExpenses = expensesByProvisional.find(e => e.isProvisional)?._sum.amount ?? 0;
+  const totalExpenses = confirmedExpenses + provisionalExpenses;
+  const expenseCount = expensesByProvisional.reduce((sum, e) => sum + e._count, 0);
 
   // Calculate total goods sales
   const totalGoodsSales = goodsWithSales.reduce((sum, goods) => {
