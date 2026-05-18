@@ -64,6 +64,7 @@ export default function PerformancePage() {
   // Expense form state
   const [expForm, setExpForm] = useState({ expenseDate: '', amount: '', expenseCategoryId: '', itemName: '', memo: '', isProvisional: false });
   const [expSubmitting, setExpSubmitting] = useState(false);
+  const [showCategorySummary, setShowCategorySummary] = useState(false);
 
   // Sponsorship state
   type Sponsorship = { id: string; sponsorName: string; amount: number; memo: string | null; createdAt: string; };
@@ -914,7 +915,10 @@ export default function PerformancePage() {
               const uniqueUsers = [...new Map(expenses?.map(e => [e.createdBy, e.creator?.displayName]) ?? []).entries()];
               return (<>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                  <h2 className="brand" style={{ margin: 0 }}>経費一覧</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <h2 className="brand" style={{ margin: 0 }}>経費一覧</h2>
+                    <button type="button" onClick={() => setShowCategorySummary(true)} disabled={!expenses || expenses.length === 0} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 10, border: 'none', fontWeight: 700, cursor: 'pointer', background: '#edf2ff', color: '#153b96', opacity: (!expenses || expenses.length === 0) ? 0.4 : 1 }}>📊 カテゴリ別集計</button>
+                  </div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: '#153b96' }}>合計: {yen(filteredSum)}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -968,6 +972,80 @@ export default function PerformancePage() {
               </>);
             })()}
           </div>
+
+          {/* カテゴリ別集計 ポップアップ */}
+          {showCategorySummary && (
+            <div
+              onClick={() => setShowCategorySummary(false)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}
+            >
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{ background: 'white', borderRadius: 20, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(15, 23, 42, 0.3)', position: 'relative' }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowCategorySummary(false)}
+                  aria-label="閉じる"
+                  style={{ position: 'absolute', top: 12, right: 14, background: 'none', border: 'none', fontSize: 26, lineHeight: 1, cursor: 'pointer', color: '#94a3b8', padding: 4 }}
+                >×</button>
+                <h2 className="brand" style={{ margin: '0 32px 4px 0' }}>カテゴリ別集計</h2>
+                <p className="subtitle" style={{ fontSize: 12, marginBottom: 16 }}>この公演の全経費をカテゴリ別に確定／暫定／合計で集計しています。</p>
+                {(() => {
+                  const map = new Map<string, { confirmed: number; provisional: number }>();
+                  for (const e of expenses ?? []) {
+                    const key = e.category?.name ?? '未分類';
+                    const cur = map.get(key) ?? { confirmed: 0, provisional: 0 };
+                    if (e.isProvisional) cur.provisional += e.amount;
+                    else cur.confirmed += e.amount;
+                    map.set(key, cur);
+                  }
+                  const rows = Array.from(map.entries())
+                    .map(([name, v]) => ({ name, ...v, total: v.confirmed + v.provisional }))
+                    .sort((a, b) => b.total - a.total);
+                  const sumConfirmed = rows.reduce((s, r) => s + r.confirmed, 0);
+                  const sumProvisional = rows.reduce((s, r) => s + r.provisional, 0);
+                  const sumTotal = sumConfirmed + sumProvisional;
+                  if (rows.length === 0) {
+                    return <p className="subtitle" style={{ textAlign: 'center', padding: '24px 0' }}>経費が登録されていません。</p>;
+                  }
+                  return (
+                    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                      <table className="table" style={{ fontSize: 13, minWidth: 460 }}>
+                        <thead>
+                          <tr>
+                            <th>カテゴリ</th>
+                            <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>確定</th>
+                            <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>暫定</th>
+                            <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>合計</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rows.map(r => (
+                            <tr key={r.name}>
+                              <td><span className="badge">{r.name}</span></td>
+                              <td style={{ textAlign: 'right', whiteSpace: 'nowrap', color: '#1f2937' }}>{r.confirmed ? yen(r.confirmed) : '-'}</td>
+                              <td style={{ textAlign: 'right', whiteSpace: 'nowrap', color: r.provisional ? '#b45309' : '#94a3b8' }}>{r.provisional ? yen(r.provisional) : '-'}</td>
+                              <td style={{ textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 700, color: '#153b96' }}>{yen(r.total)}</td>
+                            </tr>
+                          ))}
+                          <tr style={{ background: '#f4f7ff', fontWeight: 900 }}>
+                            <td>合計</td>
+                            <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>{yen(sumConfirmed)}</td>
+                            <td style={{ textAlign: 'right', whiteSpace: 'nowrap', color: sumProvisional ? '#b45309' : '#94a3b8' }}>{sumProvisional ? yen(sumProvisional) : '-'}</td>
+                            <td style={{ textAlign: 'right', whiteSpace: 'nowrap', color: '#153b96' }}>{yen(sumTotal)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+                <div style={{ marginTop: 16, textAlign: 'right' }}>
+                  <button type="button" className="secondary" onClick={() => setShowCategorySummary(false)}>閉じる</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
