@@ -79,6 +79,14 @@ export default function PerformancePage() {
   const [goodsSaleEdits, setGoodsSaleEdits] = useState<Map<string, number>>(new Map());
   const [goodsSaving, setGoodsSaving] = useState(false);
 
+  // Bulk expense entry state
+  type BulkRow = { expenseDate: string; expenseCategoryId: string; userId: string; itemName: string; amount: string; memo: string; isProvisional: boolean };
+  const emptyBulkRow = (): BulkRow => ({ expenseDate: '', expenseCategoryId: '', userId: '', itemName: '', amount: '', memo: '', isProvisional: false });
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkRows, setBulkRows] = useState<BulkRow[]>([emptyBulkRow()]);
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ success: boolean; message: string; details?: string[] } | null>(null);
+
   // Cast edit state
   const [editCasts, setEditCasts] = useState<EditCast[] | null>(null);
   const [castSaving, setCastSaving] = useState(false);
@@ -186,6 +194,79 @@ export default function PerformancePage() {
     refreshSummary();
   };
 
+  // Bulk expense handlers
+  const updateBulkRow = (idx: number, field: keyof BulkRow, value: string | boolean) => {
+    setBulkRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
+  };
+  const addBulkRow = () => {
+    setBulkRows(prev => {
+      const prevRow = prev[prev.length - 1];
+      // Sticky: copy date and userId from last row for faster entry
+      return [...prev, { ...emptyBulkRow(), expenseDate: prevRow?.expenseDate ?? '', userId: prevRow?.userId ?? '' }];
+    });
+  };
+  const removeBulkRow = (idx: number) => {
+    setBulkRows(prev => prev.length === 1 ? [emptyBulkRow()] : prev.filter((_, i) => i !== idx));
+  };
+  const resetBulkRows = () => {
+    setBulkRows([emptyBulkRow()]);
+    setBulkResult(null);
+  };
+  const handleBulkSave = async () => {
+    setBulkResult(null);
+    // Client-side validation (matches API)
+    const clientErrors: string[] = [];
+    bulkRows.forEach((r, i) => {
+      const n = i + 1;
+      if (!r.expenseDate) clientErrors.push(`行${n}: 日付未入力`);
+      if (!r.expenseCategoryId) clientErrors.push(`行${n}: カテゴリ未選択`);
+      if (!r.userId) clientErrors.push(`行${n}: 担当者未選択`);
+      if (!r.itemName.trim()) clientErrors.push(`行${n}: 品名未入力`);
+      const amt = Number(r.amount);
+      if (!r.amount || isNaN(amt) || amt < 0) clientErrors.push(`行${n}: 金額が不正`);
+    });
+    if (clientErrors.length > 0) {
+      setBulkResult({ success: false, message: `${clientErrors.length}件のエラーがあります`, details: clientErrors });
+      return;
+    }
+    setBulkSubmitting(true);
+    try {
+      const res = await fetch(`/api/performances/${id}/expenses/bulk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rows: bulkRows.map(r => ({
+            expenseDate: r.expenseDate,
+            amount: Number(r.amount),
+            expenseCategoryId: r.expenseCategoryId,
+            userId: r.userId,
+            itemName: r.itemName.trim(),
+            memo: r.memo,
+            isProvisional: r.isProvisional,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBulkResult({ success: true, message: data.message ?? '登録しました。' });
+        setBulkRows([emptyBulkRow()]);
+        const updated = await fetch(`/api/performances/${id}/expenses`).then(r => r.json());
+        setExpenses(updated);
+        refreshSummary();
+      } else {
+        const details: string[] = Array.isArray(data.errors)
+          ? data.errors.map((e: { row?: number; reason?: string; path?: string; message?: string }) =>
+              e.row !== undefined ? `行${e.row}: ${e.reason}` : `${e.path ?? ''} ${e.message ?? ''}`.trim())
+          : [];
+        setBulkResult({ success: false, message: data.message ?? 'エラーが発生しました。', details });
+      }
+    } catch (err) {
+      setBulkResult({ success: false, message: '通信エラー: ' + String(err) });
+    } finally {
+      setBulkSubmitting(false);
+    }
+  };
+
   // Unified expense save handler - saves all fields at once
   const saveExpense = async (expenseId: string, updates: Partial<Expense>) => {
     const exp = expenses?.find(e => e.id === expenseId);
@@ -273,13 +354,16 @@ export default function PerformancePage() {
     if (!editCasts) return;
     setCastSaving(true);
     try {
-      for (const c of editCasts.filter(c => c.changed)) {
-        await fetch(`/api/performances/${id}/casts`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ castId: c.id, name: c.name, normaTicketCount: c.normaTicketCount, normaUnitPrice: c.normaUnitPrice, isTicketBackTarget: c.isTicketBackTarget }),
-        });
-      }
+      const changedCasts = editCasts.filter(c => c.changed);
+      await Promise.all(
+        changedCasts.map(c =>
+          fetch(`/api/performances/${id}/casts`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ castId: c.id, name: c.name, normaTicketCount: c.normaTicketCount, normaUnitPrice: c.normaUnitPrice, isTicketBackTarget: c.isTicketBackTarget }),
+          })
+        )
+      );
       await fetch(`/api/performances/${id}/casts`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -678,48 +762,119 @@ export default function PerformancePage() {
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
               <h2 className="brand" style={{ margin: 0 }}>経費登録</h2>
-              <button type="button" className="ghost" onClick={() => {
-                const url = `${window.location.origin}/quick-expense/${id}`;
-                navigator.clipboard?.writeText(url).then(
-                  () => alert('簡易登録URLをコピーしました：\n' + url),
-                  () => prompt('簡易登録URL（コピーしてください）：', url)
-                );
-              }} style={{ fontSize: 12, padding: '4px 10px' }}>📱 簡易登録URL</button>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => { setBulkMode(m => !m); setBulkResult(null); }} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 10, border: 'none', fontWeight: 700, cursor: 'pointer', background: bulkMode ? '#153b96' : '#edf2ff', color: bulkMode ? '#fff' : '#153b96' }}>{bulkMode ? '📝 単一行入力に戻す' : '📋 複数行入力'}</button>
+                <button type="button" className="ghost" onClick={() => {
+                  const url = `${window.location.origin}/quick-expense/${id}`;
+                  navigator.clipboard?.writeText(url).then(
+                    () => alert('簡易登録URLをコピーしました：\n' + url),
+                    () => prompt('簡易登録URL（コピーしてください）：', url)
+                  );
+                }} style={{ fontSize: 12, padding: '4px 10px' }}>📱 簡易登録URL</button>
+              </div>
             </div>
-            <form className="expense-form" onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-              <div className="expense-form-grid">
-                <div>
-                  <label className="subtitle">日付</label>
-                  <input className="input" type="date" value={expForm.expenseDate} onChange={e => setExpForm(f => ({ ...f, expenseDate: e.target.value }))} required style={{ width: '100%' }} />
+            {!bulkMode ? (
+              <form className="expense-form" onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                <div className="expense-form-grid">
+                  <div>
+                    <label className="subtitle">日付</label>
+                    <input className="input" type="date" value={expForm.expenseDate} onChange={e => setExpForm(f => ({ ...f, expenseDate: e.target.value }))} required style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label className="subtitle">カテゴリ</label>
+                    <select className="select" value={expForm.expenseCategoryId} onChange={e => setExpForm(f => ({ ...f, expenseCategoryId: e.target.value }))} required style={{ width: '100%' }}>
+                      <option value="">選択</option>
+                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="subtitle">品名</label>
+                    <input className="input" value={expForm.itemName} onChange={e => setExpForm(f => ({ ...f, itemName: e.target.value }))} required style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label className="subtitle">金額</label>
+                    <input className="input" type="number" value={expForm.amount} onChange={e => setExpForm(f => ({ ...f, amount: e.target.value }))} required style={{ width: '100%' }} />
+                  </div>
                 </div>
-                <div>
-                  <label className="subtitle">カテゴリ</label>
-                  <select className="select" value={expForm.expenseCategoryId} onChange={e => setExpForm(f => ({ ...f, expenseCategoryId: e.target.value }))} required style={{ width: '100%' }}>
-                    <option value="">選択</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                <div className="expense-form-memo">
+                  <label className="subtitle">メモ</label>
+                  <input className="input" value={expForm.memo} onChange={e => setExpForm(f => ({ ...f, memo: e.target.value }))} placeholder="メモ（任意）" style={{ width: '100%' }} />
                 </div>
-                <div>
-                  <label className="subtitle">品名</label>
-                  <input className="input" value={expForm.itemName} onChange={e => setExpForm(f => ({ ...f, itemName: e.target.value }))} required style={{ width: '100%' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: 13 }}>
+                    <input type="checkbox" checked={expForm.isProvisional} onChange={e => setExpForm(f => ({ ...f, isProvisional: e.target.checked }))} style={{ width: 16, height: 16, accentColor: '#f59e0b' }} />
+                    暫定経費
+                  </label>
+                  <button className="primary" type="submit" disabled={expSubmitting}>{expSubmitting ? '登録中...' : '追加'}</button>
                 </div>
-                <div>
-                  <label className="subtitle">金額</label>
-                  <input className="input" type="number" value={expForm.amount} onChange={e => setExpForm(f => ({ ...f, amount: e.target.value }))} required style={{ width: '100%' }} />
+              </form>
+            ) : (
+              <div style={{ marginTop: 8 }}>
+                <p className="subtitle" style={{ marginBottom: 8 }}>複数行を一括登録します。1件でも不備があれば全件ロールバックされます。</p>
+                {bulkResult && (
+                  <div className={bulkResult.success ? 'success-msg' : 'error-msg'} style={{ marginBottom: 8 }}>
+                    <p style={{ margin: 0, fontWeight: 700 }}>{bulkResult.message}</p>
+                    {bulkResult.details && bulkResult.details.length > 0 && (
+                      <ul style={{ margin: '6px 0 0 18px', fontSize: 13 }}>
+                        {bulkResult.details.map((d, i) => <li key={i}>{d}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                )}
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table className="table" style={{ minWidth: 920, fontSize: 13 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ width: 32, textAlign: 'center' }}>#</th>
+                        <th style={{ whiteSpace: 'nowrap', minWidth: 130 }}>日付 <span style={{ color: '#dc2626' }}>*</span></th>
+                        <th style={{ whiteSpace: 'nowrap', minWidth: 130 }}>カテゴリ <span style={{ color: '#dc2626' }}>*</span></th>
+                        <th style={{ whiteSpace: 'nowrap', minWidth: 110 }}>担当者 <span style={{ color: '#dc2626' }}>*</span></th>
+                        <th style={{ minWidth: 140 }}>品名 <span style={{ color: '#dc2626' }}>*</span></th>
+                        <th style={{ whiteSpace: 'nowrap', minWidth: 100 }}>金額 <span style={{ color: '#dc2626' }}>*</span></th>
+                        <th style={{ minWidth: 140 }}>メモ</th>
+                        <th style={{ width: 60, textAlign: 'center' }}>暫定</th>
+                        <th style={{ width: 36 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bulkRows.map((r, i) => (
+                        <tr key={i} style={r.isProvisional ? { background: '#fffbeb' } : {}}>
+                          <td style={{ textAlign: 'center', fontWeight: 700, color: '#94a3b8' }}>{i + 1}</td>
+                          <td><input className="input" type="date" value={r.expenseDate} onChange={e => updateBulkRow(i, 'expenseDate', e.target.value)} style={{ padding: '6px 8px', fontSize: 13 }} /></td>
+                          <td>
+                            <select className="select" value={r.expenseCategoryId} onChange={e => updateBulkRow(i, 'expenseCategoryId', e.target.value)} style={{ padding: '6px 8px', fontSize: 13 }}>
+                              <option value="">選択</option>
+                              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                          </td>
+                          <td>
+                            <select className="select" value={r.userId} onChange={e => updateBulkRow(i, 'userId', e.target.value)} style={{ padding: '6px 8px', fontSize: 13 }}>
+                              <option value="">選択</option>
+                              {users.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+                            </select>
+                          </td>
+                          <td><input className="input" value={r.itemName} onChange={e => updateBulkRow(i, 'itemName', e.target.value)} placeholder="例：印刷代" style={{ padding: '6px 8px', fontSize: 13 }} /></td>
+                          <td><input className="input" type="number" inputMode="numeric" value={r.amount} onChange={e => updateBulkRow(i, 'amount', e.target.value)} placeholder="0" style={{ padding: '6px 8px', fontSize: 13, textAlign: 'right' }} /></td>
+                          <td><input className="input" value={r.memo} onChange={e => updateBulkRow(i, 'memo', e.target.value)} placeholder="任意" style={{ padding: '6px 8px', fontSize: 13 }} /></td>
+                          <td style={{ textAlign: 'center' }}><input type="checkbox" checked={r.isProvisional} onChange={e => updateBulkRow(i, 'isProvisional', e.target.checked)} style={{ width: 18, height: 18, accentColor: '#f59e0b', cursor: 'pointer' }} /></td>
+                          <td style={{ textAlign: 'center' }}><button type="button" onClick={() => removeBulkRow(i)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontWeight: 700, fontSize: 18 }} title="行を削除">×</button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" className="secondary" onClick={addBulkRow}>＋ 行追加</button>
+                    <button type="button" className="ghost" onClick={resetBulkRows} style={{ fontSize: 13, padding: '8px 12px' }}>クリア</button>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span className="subtitle" style={{ fontSize: 13 }}>合計: {yen(bulkRows.reduce((s, r) => s + (Number(r.amount) || 0), 0))} ／ {bulkRows.length}件</span>
+                    <button type="button" className="primary" onClick={handleBulkSave} disabled={bulkSubmitting}>{bulkSubmitting ? '保存中...' : 'まとめて保存'}</button>
+                  </div>
                 </div>
               </div>
-              <div className="expense-form-memo">
-                <label className="subtitle">メモ</label>
-                <input className="input" value={expForm.memo} onChange={e => setExpForm(f => ({ ...f, memo: e.target.value }))} placeholder="メモ（任意）" style={{ width: '100%' }} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: 13 }}>
-                  <input type="checkbox" checked={expForm.isProvisional} onChange={e => setExpForm(f => ({ ...f, isProvisional: e.target.checked }))} style={{ width: 16, height: 16, accentColor: '#f59e0b' }} />
-                  暫定経費
-                </label>
-                <button className="primary" type="submit" disabled={expSubmitting}>{expSubmitting ? '登録中...' : '追加'}</button>
-              </div>
-            </form>
+            )}
           </div>
           {/* ユーザー別未精算サマリ */}
           {expenses && expenses.length > 0 && (() => {
