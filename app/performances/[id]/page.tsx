@@ -917,7 +917,7 @@ export default function PerformancePage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <h2 className="brand" style={{ margin: 0 }}>経費一覧</h2>
-                    <button type="button" onClick={() => setShowCategorySummary(true)} disabled={!expenses || expenses.length === 0} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 10, border: 'none', fontWeight: 700, cursor: 'pointer', background: '#edf2ff', color: '#153b96', opacity: (!expenses || expenses.length === 0) ? 0.4 : 1 }}>📊 カテゴリ別集計</button>
+                    <button type="button" onClick={() => setShowCategorySummary(true)} disabled={!expenses} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 10, border: 'none', fontWeight: 700, cursor: 'pointer', background: '#edf2ff', color: '#153b96', opacity: !expenses ? 0.4 : 1 }}>📊 カテゴリ別集計</button>
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: '#153b96' }}>合計: {yen(filteredSum)}</div>
                 </div>
@@ -993,6 +993,10 @@ export default function PerformancePage() {
                 <p className="subtitle" style={{ fontSize: 12, marginBottom: 16 }}>この公演の全経費をカテゴリ別に確定／暫定／合計で集計しています。</p>
                 {(() => {
                   const map = new Map<string, { confirmed: number; provisional: number }>();
+                  // 0円カテゴリも表示するため、まずアクティブな全カテゴリを0で初期化
+                  for (const c of categories) {
+                    map.set(c.name, { confirmed: 0, provisional: 0 });
+                  }
                   for (const e of expenses ?? []) {
                     const key = e.category?.name ?? '未分類';
                     const cur = map.get(key) ?? { confirmed: 0, provisional: 0 };
@@ -1002,12 +1006,15 @@ export default function PerformancePage() {
                   }
                   const rows = Array.from(map.entries())
                     .map(([name, v]) => ({ name, ...v, total: v.confirmed + v.provisional }))
-                    .sort((a, b) => b.total - a.total);
+                    .sort((a, b) => {
+                      if (b.total !== a.total) return b.total - a.total;
+                      return a.name.localeCompare(b.name, 'ja');
+                    });
                   const sumConfirmed = rows.reduce((s, r) => s + r.confirmed, 0);
                   const sumProvisional = rows.reduce((s, r) => s + r.provisional, 0);
                   const sumTotal = sumConfirmed + sumProvisional;
                   if (rows.length === 0) {
-                    return <p className="subtitle" style={{ textAlign: 'center', padding: '24px 0' }}>経費が登録されていません。</p>;
+                    return <p className="subtitle" style={{ textAlign: 'center', padding: '24px 0' }}>カテゴリが登録されていません。</p>;
                   }
                   return (
                     <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
