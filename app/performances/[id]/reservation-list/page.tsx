@@ -31,13 +31,12 @@ function formatJpDateTime(d: Date): string {
   return `${d.getUTCMonth() + 1}月${d.getUTCDate()}日(${DOW[d.getUTCDay()]}) ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
 }
 
-// JST 換算 (サーバ時計が UTC でも JST 表記に)
 function formatJpDateTimeJST(d: Date): string {
   const jst = new Date(d.getTime() + 9 * 3600 * 1000);
   return formatJpDateTime(jst);
 }
 
-const ROWS_PER_PAGE = 18;
+const ROWS_PER_PAGE = 22;
 
 export default async function ReservationListPage({
   params,
@@ -48,7 +47,6 @@ export default async function ReservationListPage({
 }) {
   const { id } = await params;
   const { visitedAt } = await searchParams;
-
   if (!visitedAt) return notFound();
   const performanceId = BigInt(id);
   const visitedAtDate = new Date(visitedAt);
@@ -61,10 +59,8 @@ export default async function ReservationListPage({
       orderBy: { id: 'asc' },
     }),
   ]);
-
   if (!performance) return notFound();
 
-  // ソートキー: customer_kana 優先、なければ customer_name
   const collator = new Intl.Collator('ja', { sensitivity: 'base' });
   const sortKey = (s: typeof sales[number]) => toHiragana(s.customerKana ?? s.customerName ?? '');
   const sortedSales = [...sales].sort((a, b) => {
@@ -76,7 +72,6 @@ export default async function ReservationListPage({
     return collator.compare(aKey, bKey);
   });
 
-  // 行マーカー + 特典/招待/代済 判定
   type EnrichedRow = (typeof sales)[number] & {
     gyou: string;
     isNewGyou: boolean;
@@ -99,7 +94,6 @@ export default async function ReservationListPage({
     };
   });
 
-  // ページ分割
   const pages: EnrichedRow[][] = [];
   for (let i = 0; i < enriched.length; i += ROWS_PER_PAGE) {
     pages.push(enriched.slice(i, i + ROWS_PER_PAGE));
@@ -109,11 +103,10 @@ export default async function ReservationListPage({
   const nowStr = formatJpDateTimeJST(new Date());
   const showStr = formatJpDateTime(visitedAtDate);
 
-  // CSS文字列（@page のみ動的、その他は固定）
   const css = `
     @page {
       size: A4 landscape;
-      margin: 14mm 10mm 14mm 10mm;
+      margin: 9mm 7mm 9mm 7mm;
       @top-right {
         content: "出力日時：${nowStr}";
         font-size: 8.5pt;
@@ -174,10 +167,11 @@ export default async function ReservationListPage({
       font-size: 9pt;
       table-layout: fixed;
     }
-    table.resv col.col-gyou { width: 22pt; }
+    table.resv col.col-badge { width: 42pt; }
+    table.resv col.col-gyou { width: 18pt; }
     table.resv col.col-name { width: 13%; }
     table.resv col.col-kana { width: 13%; }
-    table.resv col.col-type { width: 18%; }
+    table.resv col.col-type { width: 19%; }
     table.resv col.col-pay { width: 10%; }
     table.resv col.col-cnt { width: 5%; }
     table.resv col.col-amt { width: 8%; }
@@ -185,7 +179,7 @@ export default async function ReservationListPage({
     table.resv col.col-memo { width: auto; }
     table.resv th, table.resv td {
       border-bottom: 0.4pt solid #777;
-      padding: 4pt 5pt;
+      padding: 3pt 5pt;
       vertical-align: top;
       color: #000;
       word-break: break-all;
@@ -195,32 +189,53 @@ export default async function ReservationListPage({
       font-weight: 700;
       border-top: 0.6pt solid #000;
       border-bottom: 0.6pt solid #000;
-      text-align: left;
+      text-align: center;
+    }
+    /* バッジ列: 表の左外に見せるため枠線・背景なし */
+    table.resv th.badge-header,
+    table.resv td.badge-cell {
+      border: none !important;
+      background: transparent !important;
+      padding: 2pt 6pt 2pt 0 !important;
+      text-align: right;
+      vertical-align: middle;
+      white-space: nowrap;
     }
     .gyou-cell {
       font-weight: 900;
       font-size: 11pt;
       text-align: center;
-      background: #f0f0f0;
     }
     .right { text-align: right; }
     .row-tokuten { background: #ebebeb; }
-    .row-tokuten .gyou-cell { background: #d8d8d8; }
-    .row-grayed { color: #777 !important; }
-    .row-grayed .gyou-cell { color: #555 !important; background: #ededed; }
+    /* 代済/招待: 濃いグレー背景 + 名前と金額に強い取消線 */
+    .row-grayed {
+      background: #c8c8c8;
+      color: #444 !important;
+    }
+    .row-grayed .customer-name {
+      text-decoration: line-through;
+      text-decoration-color: #000;
+      text-decoration-thickness: 1pt;
+    }
+    .row-grayed .amount {
+      text-decoration: line-through;
+      text-decoration-color: #000;
+      text-decoration-thickness: 1pt;
+    }
     .badge {
       display: inline-block;
       font-weight: 700;
       font-size: 7.5pt;
-      padding: 1pt 4pt;
+      padding: 1.5pt 4pt;
       border-radius: 2pt;
-      margin-right: 3pt;
       color: white;
+      margin: 0 0 1.5pt 1pt;
+      white-space: nowrap;
     }
     .badge-tokuten { background: #333; }
-    .badge-invited { background: #888; }
-    .badge-prepaid { background: #999; }
-    .strike { text-decoration: line-through; text-decoration-color: #777; }
+    .badge-invited { background: #555; }
+    .badge-prepaid { background: #666; }
     .empty {
       text-align: center;
       padding: 40pt 0;
@@ -231,10 +246,10 @@ export default async function ReservationListPage({
       .sheet {
         background: white;
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
-        padding: 14mm;
+        padding: 9mm 7mm;
         margin: 0 auto 18px;
-        max-width: 1080px;
-        min-height: calc(210mm - 28mm);
+        max-width: 1120px;
+        min-height: calc(210mm - 18mm);
       }
     }
     @media print {
@@ -247,7 +262,7 @@ export default async function ReservationListPage({
     <>
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <div className="toolbar">
-        <button type="button" onClick={undefined /* hydrated below */} id="print-btn">🖨 印刷 / PDF保存</button>
+        <button type="button" id="print-btn">🖨 印刷 / PDF保存</button>
         <span className="info">劇団Birth『{performance.name}』 / 公演日時：{showStr}〜 / {enriched.length}件 / {pages.length}ページ</span>
       </div>
       {pages.map((page, pageIdx) => (
@@ -257,6 +272,7 @@ export default async function ReservationListPage({
           </div>
           <table className="resv">
             <colgroup>
+              <col className="col-badge" />
               <col className="col-gyou" />
               <col className="col-name" />
               <col className="col-kana" />
@@ -269,13 +285,14 @@ export default async function ReservationListPage({
             </colgroup>
             <thead>
               <tr>
+                <th className="badge-header"></th>
                 <th>行</th>
                 <th>名前</th>
                 <th>フリガナ</th>
                 <th>チケット種別</th>
                 <th>支払方法</th>
-                <th className="right">枚数</th>
-                <th className="right">金額</th>
+                <th>枚数</th>
+                <th>金額</th>
                 <th>取扱窓口</th>
                 <th>備考</th>
               </tr>
@@ -283,30 +300,30 @@ export default async function ReservationListPage({
             <tbody>
               {page.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="empty">この公演日時の予約データはありません。</td>
+                  <td colSpan={10} className="empty">この公演日時の予約データはありません。</td>
                 </tr>
               )}
               {page.map((row, idx) => {
                 const showGyou = idx === 0 || row.isNewGyou;
                 const isReceptionFree = row.isInvited || row.isPrepaid;
                 const rowClass = [
-                  row.isTokuten ? 'row-tokuten' : '',
+                  row.isTokuten && !isReceptionFree ? 'row-tokuten' : '',
                   isReceptionFree ? 'row-grayed' : '',
                 ].filter(Boolean).join(' ');
                 return (
                   <tr key={row.id.toString()} className={rowClass}>
-                    <td className="gyou-cell">{showGyou ? row.gyou : ''}</td>
-                    <td>{row.customerName ?? ''}</td>
-                    <td>{row.customerKana ?? ''}</td>
-                    <td>
+                    <td className="badge-cell">
                       {row.isTokuten && <span className="badge badge-tokuten">★特典</span>}
                       {row.isInvited && <span className="badge badge-invited">招待</span>}
                       {row.isPrepaid && <span className="badge badge-prepaid">代済</span>}
-                      {row.ticketType ?? ''}
                     </td>
+                    <td className="gyou-cell">{showGyou ? row.gyou : ''}</td>
+                    <td className="customer-name">{row.customerName ?? ''}</td>
+                    <td>{row.customerKana ?? ''}</td>
+                    <td>{row.ticketType ?? ''}</td>
                     <td>{row.paymentMethod ?? ''}</td>
                     <td className="right">{row.ticketCount}枚</td>
-                    <td className={'right ' + (isReceptionFree ? 'strike' : '')}>¥{row.salesAmount.toLocaleString()}</td>
+                    <td className="right amount">¥{row.salesAmount.toLocaleString()}</td>
                     <td>{row.handledCastName}</td>
                     <td>{row.note ?? ''}</td>
                   </tr>
