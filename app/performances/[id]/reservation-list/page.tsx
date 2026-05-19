@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
+import { ShareButton } from './ShareButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -125,6 +126,7 @@ export default async function ReservationListPage({
 
   const nowStr = formatJpDateTimeJST(new Date());
   const showStr = formatJpDateTime(visitedAtDate);
+  const pdfFilename = `予約票_${visitedAtDate.getUTCFullYear()}${String(visitedAtDate.getUTCMonth() + 1).padStart(2, '0')}${String(visitedAtDate.getUTCDate()).padStart(2, '0')}${String(visitedAtDate.getUTCHours()).padStart(2, '0')}${String(visitedAtDate.getUTCMinutes()).padStart(2, '0')}`;
 
   const css = `
     @page {
@@ -298,8 +300,10 @@ export default async function ReservationListPage({
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <div className="toolbar">
         <button type="button" id="print-btn">🖨 印刷 / PDF保存</button>
+        <ShareButton filename={pdfFilename} />
         <span className="info">劇団Birth『{performance.name}』 / 公演日時：{showStr}〜 / {enriched.length}件 / {pages.length}ページ</span>
       </div>
+      <div id="pdf-content">
       {pages.map((page, pageIdx) => (
         <div key={pageIdx} className="sheet">
           <div className="sheet-header">
@@ -362,6 +366,7 @@ export default async function ReservationListPage({
           </table>
         </div>
       ))}
+      </div>
       <script
         dangerouslySetInnerHTML={{
           __html: `
