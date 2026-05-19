@@ -587,7 +587,7 @@ export default function PerformancePage() {
                           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f4f7ff', border: '1px solid #dbe2ea', borderRadius: 12, textDecoration: 'none', color: '#153b96', fontWeight: 700, cursor: 'pointer' }}
                         >
                           <span style={{ fontSize: 16 }}>📅 {it.display}</span>
-                          <span className="subtitle" style={{ fontSize: 12, color: '#64748b' }}>{it.count}件 / {it.tickets}枚</span>
+                          <span className="subtitle" style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>合計 {it.tickets}枚</span>
                         </a>
                       ))}
                     </div>

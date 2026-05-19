@@ -171,7 +171,7 @@ export default async function ReservationListPage({
     table.resv col.col-gyou { width: 18pt; }
     table.resv col.col-name { width: 13%; }
     table.resv col.col-kana { width: 13%; }
-    table.resv col.col-type { width: 19%; }
+    table.resv col.col-type { width: 12%; }
     table.resv col.col-pay { width: 10%; }
     table.resv col.col-cnt { width: 5%; }
     table.resv col.col-amt { width: 8%; }
