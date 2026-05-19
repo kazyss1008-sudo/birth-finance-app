@@ -9,7 +9,7 @@ interface ShareButtonProps {
 export function ShareButton({ filename }: ShareButtonProps) {
   const [generating, setGenerating] = useState(false);
 
-  const handleShare = async () => {
+  const handleClick = async () => {
     setGenerating(true);
     try {
       // html2pdf.js を遅延ロード (約600KB)
@@ -32,39 +32,25 @@ export function ShareButton({ filename }: ShareButtonProps) {
       };
 
       const pdfBlob: Blob = await html2pdf().set(opt).from(printArea).outputPdf('blob');
+      const url = URL.createObjectURL(pdfBlob);
 
-      const file = new File([pdfBlob], `${filename}.pdf`, { type: 'application/pdf' });
+      // 別タブで PDF を開く。
+      // iOS Safari: ネイティブPDFビューアで開く → 右上の共有ボタンから netprint 等にダイレクトで送れる
+      // Android Chrome: PDFが新しいタブで開く (またはダウンロード)
+      // Desktop: PDFが新しいタブで開く (またはダウンロード)
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.download = `${filename}.pdf`;
+      a.click();
 
-      // navigator.share に files 対応があるか確認 (主にモバイル)
-      const canShareFiles =
-        typeof navigator !== 'undefined' &&
-        typeof navigator.canShare === 'function' &&
-        navigator.canShare({ files: [file] });
-
-      if (canShareFiles) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: filename,
-          });
-        } catch (err) {
-          // ユーザーが共有シートをキャンセルした場合は無視
-          if (err instanceof Error && err.name === 'AbortError') return;
-          throw err;
-        }
-      } else {
-        // 共有非対応 (デスクトップなど) はそのままダウンロード
-        const url = URL.createObjectURL(pdfBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${filename}.pdf`;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 0);
-      }
+      // PDFビューアが読み込み終わるまで URL を保持
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (err) {
-      console.error('PDF share error:', err);
+      console.error('PDF generation error:', err);
       const msg = err instanceof Error ? err.message : String(err);
-      alert('PDF生成または共有でエラーが発生しました: ' + msg);
+      alert('PDF生成でエラーが発生しました: ' + msg);
     } finally {
       setGenerating(false);
     }
@@ -73,7 +59,7 @@ export function ShareButton({ filename }: ShareButtonProps) {
   return (
     <button
       type="button"
-      onClick={handleShare}
+      onClick={handleClick}
       disabled={generating}
       style={{
         background: '#10b981',
@@ -86,9 +72,9 @@ export function ShareButton({ filename }: ShareButtonProps) {
         fontSize: 13,
         whiteSpace: 'nowrap',
       }}
-      title="スマホはコンビニ印刷アプリ等への共有、PCはダウンロード"
+      title="別タブでPDFを開きます。そこからスマホ標準の共有ボタンで印刷アプリ等に送れます。"
     >
-      {generating ? 'PDF生成中…' : '📤 PDFを共有'}
+      {generating ? 'PDF生成中…' : '📤 PDFを別タブで開く'}
     </button>
   );
 }
