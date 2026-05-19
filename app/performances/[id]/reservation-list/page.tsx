@@ -310,7 +310,7 @@ export default async function ReservationListPage({
                       {row.isTokuten && <span className="badge badge-tokuten">★特典</span>}
                     </td>
                     <td className="gyou-cell">{showGyou ? row.gyou : ''}</td>
-                    <td>{row.customerName ?? ''}</td>
+                    <td>{row.customerName ? `${row.customerName}　様` : ''}</td>
                     <td>{row.customerKana ?? ''}</td>
                     <td className="center">{row.ticketType ?? ''}</td>
                     <td className="center">{row.paymentMethod ?? ''}</td>
