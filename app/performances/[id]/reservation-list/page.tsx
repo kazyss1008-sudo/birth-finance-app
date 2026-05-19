@@ -1,8 +1,15 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
+
+// スマホでもA4横レイアウトを維持 (印刷用なので縮小されては困る)。
+// viewport 幅を固定し、画面が狭い場合は横スクロールで閲覧する。
+export const viewport: Viewport = {
+  width: 1180,
+  initialScale: 1,
+};
 
 // PDF保存時のファイル名を「予約票_YYYYMMDDHHMM」(公演日時) にするためのタイトル
 export async function generateMetadata({
@@ -265,14 +272,19 @@ export default async function ReservationListPage({
       color: #777;
     }
     @media screen {
-      body { padding: 16px; background: #f3f4f6 !important; }
+      body {
+        padding: 16px;
+        background: #f3f4f6 !important;
+        min-width: 1180px;
+      }
       .sheet {
         background: white;
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
         padding: 9mm 7mm;
         margin: 0 auto 18px;
-        max-width: 1120px;
-        min-height: calc(210mm - 18mm);
+        width: 297mm;
+        box-sizing: border-box;
+        min-height: 210mm;
       }
     }
     @media print {
