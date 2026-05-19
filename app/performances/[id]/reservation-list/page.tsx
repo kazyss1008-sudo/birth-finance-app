@@ -126,6 +126,11 @@ export default async function ReservationListPage({
       margin: 0;
       padding: 0;
     }
+    /* 印刷時も背景色・バッジ色を再現させる */
+    *, *::before, *::after {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
     .toolbar {
       position: sticky;
       top: 0;
@@ -151,9 +156,13 @@ export default async function ReservationListPage({
     .toolbar .info { opacity: 0.85; font-size: 12px; }
     .sheet {
       page-break-after: always;
+      break-after: page;
       padding: 0;
     }
-    .sheet:last-child { page-break-after: auto; }
+    .sheet:last-of-type {
+      page-break-after: auto;
+      break-after: auto;
+    }
     .sheet-header {
       font-size: 12pt;
       font-weight: 700;
