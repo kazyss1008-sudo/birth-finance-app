@@ -52,6 +52,8 @@ export default function PerformancePage() {
   const [salesFilterPayment, setSalesFilterPayment] = useState('');
   const [salesFilterCast, setSalesFilterCast] = useState('');
   const [salesFilterText, setSalesFilterText] = useState('');
+  // Reservation list picker
+  const [showReservationListPicker, setShowReservationListPicker] = useState(false);
   // CSV import state
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvUploading, setCsvUploading] = useState(false);
@@ -480,7 +482,10 @@ export default function PerformancePage() {
             const hasFilter = salesFilterDate || salesFilterType || salesFilterPayment || salesFilterCast || salesFilterText;
             return (<>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                <h2 className="brand" style={{ margin: 0 }}>売上一覧</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <h2 className="brand" style={{ margin: 0 }}>売上一覧</h2>
+                  <button type="button" onClick={() => setShowReservationListPicker(true)} disabled={!sales || sales.length === 0} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 10, border: 'none', fontWeight: 700, cursor: 'pointer', background: '#edf2ff', color: '#153b96', opacity: (!sales || sales.length === 0) ? 0.4 : 1 }}>📄 予約リスト</button>
+                </div>
                 <div style={{ fontSize: 20, fontWeight: 900, color: '#153b96' }}>合計: {totalTickets}枚</div>
               </div>
               <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -547,6 +552,53 @@ export default function PerformancePage() {
               )}
             </>);
           })()}
+
+          {/* 予約リスト ピッカー モーダル */}
+          {showReservationListPicker && (
+            <div onClick={() => setShowReservationListPicker(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+              <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 20, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(15, 23, 42, 0.3)', position: 'relative' }}>
+                <button type="button" onClick={() => setShowReservationListPicker(false)} aria-label="閉じる" style={{ position: 'absolute', top: 12, right: 14, background: 'none', border: 'none', fontSize: 26, lineHeight: 1, cursor: 'pointer', color: '#94a3b8', padding: 4 }}>×</button>
+                <h2 className="brand" style={{ margin: '0 32px 4px 0' }}>予約リストを出力</h2>
+                <p className="subtitle" style={{ fontSize: 12, marginBottom: 16 }}>出力したい公演日時を選択してください。クリックすると別タブで予約リスト (印刷用) が開きます。</p>
+                {(() => {
+                  const DOW = ['日','月','火','水','木','金','土'];
+                  const map = new Map<string, { iso: string; display: string; count: number; tickets: number }>();
+                  for (const s of sales ?? []) {
+                    const d = new Date(s.visitedAt);
+                    if (isNaN(d.getTime())) continue;
+                    const iso = d.toISOString();
+                    const display = `${d.getUTCMonth()+1}/${d.getUTCDate()}(${DOW[d.getUTCDay()]}) ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
+                    const cur = map.get(iso) ?? { iso, display, count: 0, tickets: 0 };
+                    cur.count++;
+                    cur.tickets += s.ticketCount;
+                    map.set(iso, cur);
+                  }
+                  const items = Array.from(map.values()).sort((a, b) => a.iso.localeCompare(b.iso));
+                  if (items.length === 0) return <p className="subtitle" style={{ textAlign: 'center', padding: '24px 0' }}>公演日時が見つかりません。先にCSVを取り込んでください。</p>;
+                  return (
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      {items.map(it => (
+                        <a
+                          key={it.iso}
+                          href={`/performances/${id}/reservation-list?visitedAt=${encodeURIComponent(it.iso)}` as `/performances/${string}/reservation-list?visitedAt=${string}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setShowReservationListPicker(false)}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f4f7ff', border: '1px solid #dbe2ea', borderRadius: 12, textDecoration: 'none', color: '#153b96', fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          <span style={{ fontSize: 16 }}>📅 {it.display}</span>
+                          <span className="subtitle" style={{ fontSize: 12, color: '#64748b' }}>{it.count}件 / {it.tickets}枚</span>
+                        </a>
+                      ))}
+                    </div>
+                  );
+                })()}
+                <div style={{ marginTop: 16, textAlign: 'right' }}>
+                  <button type="button" className="secondary" onClick={() => setShowReservationListPicker(false)}>閉じる</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
