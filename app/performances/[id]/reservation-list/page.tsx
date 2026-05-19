@@ -212,7 +212,7 @@ export default async function ReservationListPage({
       background: #c8c8c8;
       color: #444 !important;
     }
-    /* 備考: 2行までで省略 (...) */
+    /* 備考: 本文のみフォントを小さく + 2行までで省略 (...) */
     .memo-clamp {
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -220,6 +220,7 @@ export default async function ReservationListPage({
       overflow: hidden;
       line-height: 1.3;
       word-break: break-all;
+      font-size: 7.5pt;
     }
     /* バッジは特典のみ */
     .badge {
