@@ -76,21 +76,21 @@ export default async function ReservationListPage({
     gyou: string;
     isNewGyou: boolean;
     isTokuten: boolean;
-    isInvited: boolean;
-    isPrepaid: boolean;
+    isReceptionFree: boolean;
   };
   const enriched: EnrichedRow[] = sortedSales.map((s, idx, arr) => {
     const gyou = getGyou(s.customerKana ?? s.customerName ?? '');
     const prevGyou = idx > 0 ? getGyou(arr[idx - 1].customerKana ?? arr[idx - 1].customerName ?? '') : null;
     const tt = s.ticketType ?? '';
     const pm = s.paymentMethod ?? '';
+    const isInvited = tt.includes('招待') || pm.includes('招待');
+    const isPrepaid = pm.includes('代済');
     return {
       ...s,
       gyou,
       isNewGyou: gyou !== prevGyou,
       isTokuten: tt.includes('特典'),
-      isInvited: tt.includes('招待') || pm.includes('招待'),
-      isPrepaid: pm.includes('代済'),
+      isReceptionFree: isInvited || isPrepaid,
     };
   });
 
@@ -180,7 +180,7 @@ export default async function ReservationListPage({
     table.resv th, table.resv td {
       border-bottom: 0.4pt solid #777;
       padding: 3pt 5pt;
-      vertical-align: top;
+      vertical-align: middle;
       color: #000;
       word-break: break-all;
     }
@@ -206,23 +206,22 @@ export default async function ReservationListPage({
       font-size: 11pt;
       text-align: center;
     }
-    .right { text-align: right; }
-    .row-tokuten { background: #ebebeb; }
-    /* 代済/招待: 濃いグレー背景 + 名前と金額に強い取消線 */
+    .center { text-align: center; }
+    /* 支払いなし (招待/代済) のみグレー背景 */
     .row-grayed {
       background: #c8c8c8;
       color: #444 !important;
     }
-    .row-grayed .customer-name {
-      text-decoration: line-through;
-      text-decoration-color: #000;
-      text-decoration-thickness: 1pt;
+    /* 備考: 2行までで省略 (...) */
+    .memo-clamp {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.3;
+      word-break: break-all;
     }
-    .row-grayed .amount {
-      text-decoration: line-through;
-      text-decoration-color: #000;
-      text-decoration-thickness: 1pt;
-    }
+    /* バッジは特典のみ */
     .badge {
       display: inline-block;
       font-weight: 700;
@@ -234,8 +233,6 @@ export default async function ReservationListPage({
       white-space: nowrap;
     }
     .badge-tokuten { background: #333; }
-    .badge-invited { background: #555; }
-    .badge-prepaid { background: #666; }
     .empty {
       text-align: center;
       padding: 40pt 0;
@@ -305,27 +302,21 @@ export default async function ReservationListPage({
               )}
               {page.map((row, idx) => {
                 const showGyou = idx === 0 || row.isNewGyou;
-                const isReceptionFree = row.isInvited || row.isPrepaid;
-                const rowClass = [
-                  row.isTokuten && !isReceptionFree ? 'row-tokuten' : '',
-                  isReceptionFree ? 'row-grayed' : '',
-                ].filter(Boolean).join(' ');
+                const rowClass = row.isReceptionFree ? 'row-grayed' : '';
                 return (
                   <tr key={row.id.toString()} className={rowClass}>
                     <td className="badge-cell">
                       {row.isTokuten && <span className="badge badge-tokuten">★特典</span>}
-                      {row.isInvited && <span className="badge badge-invited">招待</span>}
-                      {row.isPrepaid && <span className="badge badge-prepaid">代済</span>}
                     </td>
                     <td className="gyou-cell">{showGyou ? row.gyou : ''}</td>
-                    <td className="customer-name">{row.customerName ?? ''}</td>
+                    <td>{row.customerName ?? ''}</td>
                     <td>{row.customerKana ?? ''}</td>
-                    <td>{row.ticketType ?? ''}</td>
-                    <td>{row.paymentMethod ?? ''}</td>
-                    <td className="right">{row.ticketCount}枚</td>
-                    <td className="right amount">¥{row.salesAmount.toLocaleString()}</td>
-                    <td>{row.handledCastName}</td>
-                    <td>{row.note ?? ''}</td>
+                    <td className="center">{row.ticketType ?? ''}</td>
+                    <td className="center">{row.paymentMethod ?? ''}</td>
+                    <td className="center">{row.ticketCount}枚</td>
+                    <td className="center">¥{row.salesAmount.toLocaleString()}</td>
+                    <td className="center">{row.handledCastName}</td>
+                    <td><div className="memo-clamp">{row.note ?? ''}</div></td>
                   </tr>
                 );
               })}
