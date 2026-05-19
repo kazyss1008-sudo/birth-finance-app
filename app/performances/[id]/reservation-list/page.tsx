@@ -191,11 +191,11 @@ export default async function ReservationListPage({
       border-bottom: 0.6pt solid #000;
       text-align: center;
     }
-    /* バッジ列: 表の左外に見せるため枠線・背景なし */
+    /* バッジ列: 表の左外に見せるため枠線なし。row-grayed の背景もここまでは伸ばさない */
     table.resv th.badge-header,
     table.resv td.badge-cell {
       border: none !important;
-      background: transparent !important;
+      background: white !important;
       padding: 2pt 6pt 2pt 0 !important;
       text-align: right;
       vertical-align: middle;
