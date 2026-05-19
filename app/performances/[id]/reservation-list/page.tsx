@@ -185,7 +185,7 @@ export default async function ReservationListPage({
       word-break: break-all;
     }
     table.resv th {
-      background: #ddd;
+      background: #c8c8c8;
       font-weight: 700;
       border-top: 0.6pt solid #000;
       border-bottom: 0.6pt solid #000;
@@ -207,9 +207,9 @@ export default async function ReservationListPage({
       text-align: center;
     }
     .center { text-align: center; }
-    /* 支払いなし (招待/代済) のみグレー背景 */
+    /* 支払いなし (招待/代済) のみグレー背景 (ヘッダより薄め) */
     .row-grayed {
-      background: #c8c8c8;
+      background: #ddd;
       color: #444 !important;
     }
     /* 備考: 本文のみフォントを小さく + 2行までで省略 (...) */
