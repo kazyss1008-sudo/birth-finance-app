@@ -12,32 +12,40 @@ export function ShareButton({ filename }: ShareButtonProps) {
   const handleClick = async () => {
     setGenerating(true);
     try {
-      // html2pdf.js を遅延ロード (約600KB)
-      const mod = await import('html2pdf.js');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const html2pdf: any = mod.default;
+      // jspdf + html2canvas を遅延ロード (合計 約700KB)
+      const [jsPdfMod, html2canvasMod] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas'),
+      ]);
+      const jsPDF = jsPdfMod.default;
+      const html2canvas = html2canvasMod.default;
 
-      const printArea = document.getElementById('pdf-content');
-      if (!printArea) {
+      const sheets = document.querySelectorAll<HTMLElement>('#pdf-content .sheet');
+      if (sheets.length === 0) {
         throw new Error('印刷対象が見つかりません');
       }
 
-      const opt = {
-        margin: 0,
-        filename: `${filename}.pdf`,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-        pagebreak: { mode: ['css'], before: '.sheet + .sheet' },
-      };
+      // A4 横 (297mm × 210mm) でPDFを初期化
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape', compress: true });
 
-      const pdfBlob: Blob = await html2pdf().set(opt).from(printArea).outputPdf('blob');
+      for (let i = 0; i < sheets.length; i++) {
+        const canvas = await html2canvas(sheets[i], {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          windowWidth: sheets[i].scrollWidth,
+        });
+        const imgData = canvas.toDataURL('image/jpeg', 0.92);
+        if (i > 0) pdf.addPage('a4', 'landscape');
+        // ページ全面に画像を配置 (297mm × 210mm)
+        pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210, undefined, 'FAST');
+      }
+
+      const pdfBlob: Blob = pdf.output('blob');
       const url = URL.createObjectURL(pdfBlob);
 
-      // 別タブで PDF を開く。
-      // iOS Safari: ネイティブPDFビューアで開く → 右上の共有ボタンから netprint 等にダイレクトで送れる
-      // Android Chrome: PDFが新しいタブで開く (またはダウンロード)
-      // Desktop: PDFが新しいタブで開く (またはダウンロード)
+      // 別タブで PDF を開く (iOS は Safari の PDF ビューア → 右上の共有から netprint 等へ)
       const a = document.createElement('a');
       a.href = url;
       a.target = '_blank';
@@ -45,7 +53,6 @@ export function ShareButton({ filename }: ShareButtonProps) {
       a.download = `${filename}.pdf`;
       a.click();
 
-      // PDFビューアが読み込み終わるまで URL を保持
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (err) {
       console.error('PDF generation error:', err);
@@ -72,7 +79,7 @@ export function ShareButton({ filename }: ShareButtonProps) {
         fontSize: 13,
         whiteSpace: 'nowrap',
       }}
-      title="別タブでPDFを開きます。そこからスマホ標準の共有ボタンで印刷アプリ等に送れます。"
+      title="別タブでPDFを開きます。スマホはそこからの共有ボタンで印刷アプリ等に送れます。"
     >
       {generating ? 'PDF生成中…' : '📤 PDFを別タブで開く'}
     </button>

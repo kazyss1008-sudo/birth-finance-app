@@ -25,7 +25,9 @@
     "react-dom": "19.0.0",
     "ws": "^8.20.0",
     "zod": "^3.24.2",
-    "html2pdf.js": "^0.10.2"
+    "html2pdf.js": "^0.10.2",
+    "jspdf": "^2.5.2",
+    "html2canvas": "^1.4.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
