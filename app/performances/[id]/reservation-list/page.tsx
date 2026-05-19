@@ -180,13 +180,12 @@ export default async function ReservationListPage({
     }
     .toolbar .info { opacity: 0.85; font-size: 12px; }
     .sheet {
-      page-break-after: always;
-      break-after: page;
       padding: 0;
     }
-    .sheet:last-of-type {
-      page-break-after: auto;
-      break-after: auto;
+    /* 改ページは「次のシートの前」に入れる方式 (after 方式は html2pdf で空ページ発生のため) */
+    .sheet + .sheet {
+      page-break-before: always;
+      break-before: page;
     }
     .sheet-header {
       font-size: 12pt;
