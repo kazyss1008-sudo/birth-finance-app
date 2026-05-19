@@ -298,7 +298,6 @@ export default async function ReservationListPage({
     <>
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <div className="toolbar">
-        <button type="button" id="print-btn">🖨 印刷 / PDF保存</button>
         <ShareButton filename={pdfFilename} />
         <span className="info">劇団Birth『{performance.name}』 / 公演日時：{showStr}〜 / {enriched.length}件 / {pages.length}ページ</span>
       </div>
@@ -366,16 +365,7 @@ export default async function ReservationListPage({
         </div>
       ))}
       </div>
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            document.addEventListener('DOMContentLoaded', function() {
-              var btn = document.getElementById('print-btn');
-              if (btn) btn.addEventListener('click', function() { window.print(); });
-            });
-          `,
-        }}
-      />
+
     </>
   );
 }

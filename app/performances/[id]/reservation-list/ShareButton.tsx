@@ -81,7 +81,7 @@ export function ShareButton({ filename }: ShareButtonProps) {
       }}
       title="別タブでPDFを開きます。スマホはそこからの共有ボタンで印刷アプリ等に送れます。"
     >
-      {generating ? 'PDF生成中…' : '📤 PDFを別タブで開く'}
+      {generating ? 'PDF生成中…' : '📄 PDF出力'}
     </button>
   );
 }
