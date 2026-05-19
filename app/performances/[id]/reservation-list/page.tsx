@@ -1,7 +1,23 @@
+import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
+
+// PDF保存時のファイル名を「予約票_YYYYMMDDHHMM」(公演日時) にするためのタイトル
+export async function generateMetadata({
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ visitedAt?: string }>;
+}): Promise<Metadata> {
+  const { visitedAt } = await searchParams;
+  if (!visitedAt) return { title: '予約票' };
+  const d = new Date(visitedAt);
+  if (isNaN(d.getTime())) return { title: '予約票' };
+  const ts = `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}${String(d.getUTCHours()).padStart(2, '0')}${String(d.getUTCMinutes()).padStart(2, '0')}`;
+  return { title: `予約票_${ts}` };
+}
 
 // Katakana → Hiragana 正規化 (ソート用)
 function toHiragana(s: string): string {
