@@ -100,6 +100,7 @@ export default async function ReservationListPage({
     gyou: string;
     isNewGyou: boolean;
     isTokuten: boolean;
+    isRepeater: boolean;
     isReceptionFree: boolean;
   };
   const enriched: EnrichedRow[] = sortedSales.map((s, idx, arr) => {
@@ -114,6 +115,7 @@ export default async function ReservationListPage({
       gyou,
       isNewGyou: gyou !== prevGyou,
       isTokuten: tt.includes('特典'),
+      isRepeater: tt.includes('リピ'),
       isReceptionFree: isInvited || isPrepaid,
     };
   });
@@ -267,6 +269,7 @@ export default async function ReservationListPage({
       white-space: nowrap;
     }
     .badge-tokuten { background: #333; }
+    .badge-repeater { background: #555; }
     .empty {
       text-align: center;
       padding: 40pt 0;
@@ -347,6 +350,7 @@ export default async function ReservationListPage({
                   <tr key={row.id.toString()} className={rowClass}>
                     <td className="badge-cell">
                       {row.isTokuten && <span className="badge badge-tokuten">★特典</span>}
+                      {row.isRepeater && <span className="badge badge-repeater">リピ</span>}
                     </td>
                     <td className="gyou-cell">{showGyou ? row.gyou : ''}</td>
                     <td>{row.customerName ? `${row.customerName}　様` : ''}</td>
