@@ -18,8 +18,12 @@ const csvRowSchema = z.object({
 
 function extractTicketType(ticketName: string | undefined): string | null {
   if (!ticketName) return null;
-  const match = ticketName.match(/\[([^\]]+)\]/);
-  return match ? match[1] : null;
+  // 「<種別/割引>[座席]（販売方式）」形式のプレフィックスをチケット種別として保持する。
+  // 例: "通常/リピーター割[通常]（前売）" → "通常/リピーター割"
+  // 例: "招待[通常]（前売）" → "招待"
+  // 例: "特典付き/前売[特典付き]（前売）" → "特典付き/前売"
+  const prefix = ticketName.split('[')[0].trim();
+  return prefix || null;
 }
 
 export type ParsedSaleRow = {
