@@ -40,7 +40,7 @@ export default function CastSettlementPage() {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
         <div className="card"><div className="subtitle">販売枚数</div><div className="title brand">{data.totalTickets}枚</div></div>
-        <div className="card"><div className="subtitle">ノルマ控除</div><div className="title" style={{ color: '#e74c3c' }}>{yen(data.normaDeduction)}</div></div>
+        <div className="card"><div className="subtitle">ノルマ分</div><div className="title" style={{ color: '#e74c3c' }}>{yen(data.normaDeduction)}</div></div>
         <div className="card"><div className="subtitle">最終精算額</div><div className="title" style={{ color: data.settlementAmount >= 0 ? '#059669' : '#e74c3c' }}>{yen(data.settlementAmount)}</div></div>
       </div>
       <div className="grid-2" style={{ marginTop: 16 }}>
@@ -72,10 +72,10 @@ export default function CastSettlementPage() {
             </p>
           </div>
           <div style={{ marginTop: 16 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: '#153b96', marginBottom: 6 }}>② ノルマ控除</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#153b96', marginBottom: 6 }}>② ノルマによって発生する金額</div>
             {data.totalTickets >= data.cast.normaTicketCount ? (
               <p style={{ margin: 0 }}>
-                ノルマ <strong>{data.cast.normaTicketCount}枚</strong> に対して <strong>{data.totalTickets}枚</strong> 販売 → 達成しているため、ノルマ控除は <strong>なし (¥0)</strong> です。
+                ノルマ <strong>{data.cast.normaTicketCount}枚</strong> に対して <strong>{data.totalTickets}枚</strong> 販売 → 達成しているため、ノルマによって発生する金額は <strong>なし (¥0)</strong> です。
               </p>
             ) : (
               <>
@@ -83,7 +83,7 @@ export default function CastSettlementPage() {
                   ノルマ <strong>{data.cast.normaTicketCount}枚</strong> に対して <strong>{data.totalTickets}枚</strong> 販売、未達成分が <strong>{data.cast.normaTicketCount - data.totalTickets}枚</strong> あります。
                 </p>
                 <p style={{ margin: '6px 0 0' }}>
-                  <strong>{data.cast.normaTicketCount - data.totalTickets}枚</strong> × ノルマ単価 <strong>{yen(data.cast.normaUnitPrice)}</strong> = <strong style={{ color: '#e74c3c' }}>{yen(data.normaDeduction)}</strong> を差し引きます。
+                  <strong>{data.cast.normaTicketCount - data.totalTickets}枚</strong> × ノルマ単価 <strong>{yen(data.cast.normaUnitPrice)}</strong> = <strong style={{ color: '#e74c3c' }}>{yen(data.normaDeduction)}</strong> が、ノルマによって発生する金額です。
                 </p>
               </>
             )}
@@ -95,7 +95,7 @@ export default function CastSettlementPage() {
               <span style={{ color: '#64748b', fontSize: 12 }}>（バック）</span>
               {' − '}
               <strong>{yen(data.normaDeduction)}</strong>
-              <span style={{ color: '#64748b', fontSize: 12 }}>（ノルマ控除）</span>
+              <span style={{ color: '#64748b', fontSize: 12 }}>（ノルマ分）</span>
               {' = '}
               <strong style={{ fontSize: 20, color: data.settlementAmount >= 0 ? '#059669' : '#e74c3c' }}>
                 {yen(data.settlementAmount)}
