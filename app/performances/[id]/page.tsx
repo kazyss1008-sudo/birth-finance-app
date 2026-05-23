@@ -403,7 +403,7 @@ export default function PerformancePage() {
         <div className="grid-2">
           <div className="card">
             <h2 className="brand">CSVファイル取込</h2>
-            <p className="subtitle">再取込は公演単位で全洗替されます。キャスト名が一致しない場合はエラーになります。</p>
+            <p className="subtitle">同じ公演で再取込すると、それまでの売上データはすべて上書きされます。キャスト名が一致しない行があるとエラーになります。</p>
             <div className="grid" style={{ marginTop: 16 }}>
               <input className="input" type="file" accept=".csv" onChange={e => setCsvFile(e.target.files?.[0] ?? null)} />
               <button className="primary" onClick={handleCsvUpload} disabled={!csvFile || csvUploading}>
@@ -863,7 +863,7 @@ export default function PerformancePage() {
               </form>
             ) : (
               <div style={{ marginTop: 8 }}>
-                <p className="subtitle" style={{ marginBottom: 8 }}>複数行を一括登録します。1件でも不備があれば全件ロールバックされます。</p>
+                <p className="subtitle" style={{ marginBottom: 8 }}>複数行を一括登録します。1件でも不備があると、登録は行われません。</p>
                 {bulkResult && (
                   <div className={bulkResult.success ? 'success-msg' : 'error-msg'} style={{ marginBottom: 8 }}>
                     <p style={{ margin: 0, fontWeight: 700 }}>{bulkResult.message}</p>
@@ -1156,7 +1156,7 @@ export default function PerformancePage() {
                     {/* PC: テーブル表示 */}
                     <div className="hide-mobile" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                       <table className="table">
-                        <thead><tr><th>キャスト</th><th>販売枚数</th><th>売上金額</th><th>バック総額</th><th>ノルマ控除</th><th>精算額</th><th></th></tr></thead>
+                        <thead><tr><th>キャスト</th><th>販売枚数</th><th>売上金額</th><th>バック総額</th><th>ノルマ分</th><th>精算額</th><th></th></tr></thead>
                         <tbody>
                           {summary.castDetails.map(c => (
                             <tr key={c.castId} style={c.castId === '0' ? { background: '#f0fdf4', fontStyle: 'italic' } : {}}>
@@ -1184,7 +1184,7 @@ export default function PerformancePage() {
                             <span className="subtitle">販売枚数</span><span style={{ textAlign: 'right' }}>{c.ticketCount}枚</span>
                             <span className="subtitle">売上金額</span><span style={{ textAlign: 'right' }}>{yen(c.salesAmount)}</span>
                             {c.castId !== '0' && <><span className="subtitle">バック総額</span><span style={{ textAlign: 'right' }}>{yen(c.backTotal)}</span></>}
-                            {c.castId !== '0' && <><span className="subtitle">ノルマ控除</span><span style={{ textAlign: 'right' }}>{yen(c.normaDeduction)}</span></>}
+                            {c.castId !== '0' && <><span className="subtitle">ノルマ分</span><span style={{ textAlign: 'right' }}>{yen(c.normaDeduction)}</span></>}
                           </div>
                           <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e5e7eb', fontWeight: 900, fontSize: 16, textAlign: 'right', color: c.castId === '0' ? '#153b96' : (c.settlement >= 0 ? '#059669' : '#e74c3c') }}>
                             {c.castId === '0' ? `売上 ${yen(c.salesAmount)}` : `精算額 ${yen(c.settlement)}`}

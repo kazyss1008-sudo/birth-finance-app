@@ -57,7 +57,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (unmatched.length > 0) {
       return NextResponse.json({
         ok: false,
-        message: `キャスト不一致: ${unmatched.length}件。全件ロールバックしました。（※「Web」「劇団Birth」は劇団売上として自動処理されます）`,
+        message: `キャスト名が一致しない行が ${unmatched.length}件 あります。取り込みは中止しました。（※「Web」「劇団Birth」は劇団売上として自動処理されます）`,
         unmatchedCount: unmatched.length,
         errors: unmatched.map((row) => ({ rowNo: row.rowNo, castName: row.handledCastName })),
       }, { status: 422 });

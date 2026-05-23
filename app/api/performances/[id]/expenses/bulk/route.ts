@@ -94,7 +94,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (rowErrors.length > 0) {
       return NextResponse.json({
         ok: false,
-        message: `${rowErrors.length}件のエラーがあります。全件ロールバックしました。`,
+        message: `${rowErrors.length}件のエラーがあります。登録は行われませんでした。`,
         errors: rowErrors,
       }, { status: 422 });
     }
