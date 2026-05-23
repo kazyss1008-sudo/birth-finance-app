@@ -1151,7 +1151,6 @@ export default function PerformancePage() {
               </div>
               <div className="card">
                 <h2 className="brand">キャスト毎精算管理</h2>
-                <p className="subtitle">段階式ルールで都度再計算。計算結果はDB保存なし。</p>
                 {summary.castDetails && summary.castDetails.length > 0 ? (
                   <>
                     {/* PC: テーブル表示 */}
