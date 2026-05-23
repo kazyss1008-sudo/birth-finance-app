@@ -61,10 +61,47 @@ export default function CastSettlementPage() {
           </table>
         </div>
         <div className="card">
-          <h2 className="brand">計算式</h2>
-          <p>バック総額 {yen(data.backTotal)}</p>
-          <p>ノルマ残 max({data.cast.normaTicketCount} - {data.totalTickets}, 0) = {Math.max(data.cast.normaTicketCount - data.totalTickets, 0)} 枚 × {yen(data.cast.normaUnitPrice)} = {yen(data.normaDeduction)}</p>
-          <p><strong>精算額 = {yen(data.backTotal)} - {yen(data.normaDeduction)} = {yen(data.settlementAmount)}</strong></p>
+          <h2 className="brand">計算の流れ</h2>
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#153b96', marginBottom: 6 }}>① バック (販売してくれた分の還元)</div>
+            <p style={{ margin: 0 }}>
+              チケット販売バックの合計は <strong>{yen(data.backTotal)}</strong> です。
+            </p>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>
+              ※ 内訳は左の表「バック内訳」をご覧ください。
+            </p>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#153b96', marginBottom: 6 }}>② ノルマ控除</div>
+            {data.totalTickets >= data.cast.normaTicketCount ? (
+              <p style={{ margin: 0 }}>
+                ノルマ <strong>{data.cast.normaTicketCount}枚</strong> に対して <strong>{data.totalTickets}枚</strong> 販売 → 達成しているため、ノルマ控除は <strong>なし (¥0)</strong> です。
+              </p>
+            ) : (
+              <>
+                <p style={{ margin: 0 }}>
+                  ノルマ <strong>{data.cast.normaTicketCount}枚</strong> に対して <strong>{data.totalTickets}枚</strong> 販売、未達成分が <strong>{data.cast.normaTicketCount - data.totalTickets}枚</strong> あります。
+                </p>
+                <p style={{ margin: '6px 0 0' }}>
+                  <strong>{data.cast.normaTicketCount - data.totalTickets}枚</strong> × ノルマ単価 <strong>{yen(data.cast.normaUnitPrice)}</strong> = <strong style={{ color: '#e74c3c' }}>{yen(data.normaDeduction)}</strong> を差し引きます。
+                </p>
+              </>
+            )}
+          </div>
+          <div style={{ marginTop: 16, padding: 12, background: '#f4f7ff', borderRadius: 12 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#153b96', marginBottom: 6 }}>③ 最終精算額</div>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.8 }}>
+              <strong>{yen(data.backTotal)}</strong>
+              <span style={{ color: '#64748b', fontSize: 12 }}>（バック）</span>
+              {' − '}
+              <strong>{yen(data.normaDeduction)}</strong>
+              <span style={{ color: '#64748b', fontSize: 12 }}>（ノルマ控除）</span>
+              {' = '}
+              <strong style={{ fontSize: 20, color: data.settlementAmount >= 0 ? '#059669' : '#e74c3c' }}>
+                {yen(data.settlementAmount)}
+              </strong>
+            </p>
+          </div>
         </div>
       </div>
       {data.salesByDate.length > 0 && (
