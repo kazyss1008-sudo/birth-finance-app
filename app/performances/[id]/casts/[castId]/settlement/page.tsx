@@ -34,7 +34,18 @@ export default function CastSettlementPage() {
   if (!data || !data.cast) return <Shell title="エラー"><div className="card"><p>データが見つかりません。</p></div></Shell>;
 
   return (
-    <Shell title="キャスト精算内訳" subtitle={data.performanceName} actions={<Link href={`/performances/${id}?tab=収支`} className="secondary">← 戻る</Link>}>
+    <Shell title="キャスト精算内訳" subtitle={data.performanceName} actions={
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <a
+          href={`/performances/${id}/casts/${castId}/gala`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="primary"
+          style={{ textDecoration: 'none' }}
+        >📄 ギャランティ明細PDF</a>
+        <Link href={`/performances/${id}?tab=収支`} className="secondary">← 戻る</Link>
+      </div>
+    }>
       <div className="card" style={{ textAlign: 'center', margin: '0 0 16px', padding: '20px 24px' }}>
         <span style={{ fontSize: '2.2rem', fontWeight: 900, color: '#153b96' }}>{data.cast.name} 様</span>
       </div>
