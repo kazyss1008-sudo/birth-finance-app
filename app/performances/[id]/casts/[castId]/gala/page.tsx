@@ -125,7 +125,7 @@ export default async function GalaPage({
       width: 210mm;
       min-height: 297mm;
       box-sizing: border-box;
-      padding: 16mm 18mm 14mm 18mm;
+      padding: 10mm 18mm 14mm 18mm;
       background: white;
       display: flex;
       flex-direction: column;
@@ -135,8 +135,8 @@ export default async function GalaPage({
       align-items: center;
       justify-content: space-between;
       border-bottom: 1pt solid #333;
-      padding-bottom: 8pt;
-      margin-bottom: 18pt;
+      padding-bottom: 5pt;
+      margin-bottom: 8pt;
     }
     .header-logo {
       width: 56pt;
@@ -155,19 +155,19 @@ export default async function GalaPage({
     .recipient {
       font-size: 16pt;
       font-weight: 700;
-      margin: 14pt 0 10pt;
-      padding-bottom: 4pt;
+      margin: 6pt 0 6pt;
+      padding-bottom: 3pt;
       border-bottom: 0.5pt solid #888;
     }
     .intro {
       font-size: 10pt;
-      line-height: 1.6;
-      margin-bottom: 14pt;
+      line-height: 1.5;
+      margin-bottom: 8pt;
     }
     .amount-box {
       border: 1.5pt solid #000;
-      padding: 10pt 16pt;
-      margin: 10pt 0 18pt;
+      padding: 8pt 16pt;
+      margin: 6pt 0 12pt;
       display: flex;
       justify-content: space-between;
       align-items: center;
