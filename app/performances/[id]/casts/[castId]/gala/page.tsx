@@ -139,9 +139,10 @@ export default async function GalaPage({
       margin-bottom: 8pt;
     }
     .header-logo {
-      width: 56pt;
-      height: 56pt;
-      object-fit: contain;
+      width: 80pt;
+      height: auto;
+      max-height: 52pt;
+      display: block;
     }
     .header-title {
       font-size: 22pt;
@@ -150,7 +151,7 @@ export default async function GalaPage({
       color: #000;
     }
     .header-spacer {
-      width: 56pt;
+      width: 80pt;
     }
     .recipient {
       font-size: 16pt;
