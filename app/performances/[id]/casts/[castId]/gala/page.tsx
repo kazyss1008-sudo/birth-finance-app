@@ -104,7 +104,7 @@ export default async function GalaPage({
       background: white !important;
       color: black !important;
       font-family: "Yu Gothic", "Hiragino Sans", "Noto Sans JP", sans-serif !important;
-      font-size: 11pt;
+      font-size: 10.5pt;
       margin: 0;
       padding: 0;
     }
@@ -125,9 +125,10 @@ export default async function GalaPage({
       width: 210mm;
       min-height: 297mm;
       box-sizing: border-box;
-      padding: 18mm 18mm 16mm 18mm;
+      padding: 16mm 18mm 14mm 18mm;
       background: white;
-      position: relative;
+      display: flex;
+      flex-direction: column;
     }
     .header-row {
       display: flex;
@@ -152,21 +153,21 @@ export default async function GalaPage({
       width: 56pt;
     }
     .recipient {
-      font-size: 18pt;
+      font-size: 16pt;
       font-weight: 700;
-      margin: 18pt 0 12pt;
+      margin: 14pt 0 10pt;
       padding-bottom: 4pt;
       border-bottom: 0.5pt solid #888;
     }
     .intro {
-      font-size: 10.5pt;
-      line-height: 1.7;
-      margin-bottom: 18pt;
+      font-size: 10pt;
+      line-height: 1.6;
+      margin-bottom: 14pt;
     }
     .amount-box {
       border: 1.5pt solid #000;
-      padding: 12pt 18pt;
-      margin: 12pt 0 22pt;
+      padding: 10pt 16pt;
+      margin: 10pt 0 18pt;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -183,21 +184,21 @@ export default async function GalaPage({
       letter-spacing: 0.05em;
     }
     .section-title {
-      font-size: 11pt;
+      font-size: 10.5pt;
       font-weight: 700;
       color: #000;
-      margin: 16pt 0 6pt;
+      margin: 12pt 0 5pt;
       padding-left: 6pt;
       border-left: 3pt solid #333;
     }
     table.detail {
       width: 100%;
       border-collapse: collapse;
-      font-size: 10.5pt;
+      font-size: 10pt;
       margin-bottom: 4pt;
     }
     table.detail td {
-      padding: 5pt 8pt;
+      padding: 4pt 8pt;
       border-bottom: 0.4pt solid #aaa;
       vertical-align: middle;
     }
@@ -220,12 +221,12 @@ export default async function GalaPage({
     table.back {
       width: 100%;
       border-collapse: collapse;
-      font-size: 10pt;
+      font-size: 9.5pt;
       margin-bottom: 4pt;
     }
     table.back th, table.back td {
       border: 0.4pt solid #888;
-      padding: 5pt 8pt;
+      padding: 4pt 8pt;
     }
     table.back th {
       background: #dcdcdc;
@@ -242,17 +243,17 @@ export default async function GalaPage({
       color: #000;
     }
     .footer {
-      position: absolute;
-      right: 18mm;
-      bottom: 18mm;
+      margin-top: auto;
+      padding-top: 16pt;
       text-align: right;
-      font-size: 10pt;
-      line-height: 1.7;
+      font-size: 9.5pt;
+      line-height: 1.6;
+      border-top: 0.4pt solid #ccc;
     }
     .footer .issuer-name {
-      font-size: 13pt;
+      font-size: 12pt;
       font-weight: 700;
-      margin-bottom: 4pt;
+      margin-bottom: 3pt;
     }
     .footer .issuer-line {
       color: #333;
@@ -323,10 +324,12 @@ export default async function GalaPage({
                 <td className="label">チケットバック合計</td>
                 <td className="value">{yen(backTotal)}</td>
               </tr>
-              <tr>
-                <td className="label">ノルマ分</td>
-                <td className="value">{normaDeduction > 0 ? `−${yen(normaDeduction)}` : yen(0)}</td>
-              </tr>
+              {normaDeduction > 0 && (
+                <tr>
+                  <td className="label">ノルマ控除額</td>
+                  <td className="value">−{yen(normaDeduction)}</td>
+                </tr>
+              )}
               <tr className="total">
                 <td className="label">出演料合計</td>
                 <td className="value">{yen(settlementAmount)}</td>
