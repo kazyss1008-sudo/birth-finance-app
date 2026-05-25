@@ -62,6 +62,7 @@ export default function PerformancePage() {
   // Expense filter state
   const [expFilterCategory, setExpFilterCategory] = useState('');
   const [expFilterUser, setExpFilterUser] = useState('');
+  const [expFilterSettled, setExpFilterSettled] = useState<'' | 'unsettled' | 'settled'>('');
 
   // Expense form state
   const [expForm, setExpForm] = useState({ expenseDate: '', amount: '', expenseCategoryId: '', itemName: '', memo: '', isProvisional: false });
@@ -960,6 +961,8 @@ export default function PerformancePage() {
               const filtered = expenses?.filter(e => {
                 if (expFilterCategory && e.category?.name !== expFilterCategory) return false;
                 if (expFilterUser && e.createdBy !== expFilterUser) return false;
+                if (expFilterSettled === 'unsettled' && e.isSettled) return false;
+                if (expFilterSettled === 'settled' && !e.isSettled) return false;
                 return true;
               }) ?? [];
               const filteredSum = filtered.reduce((s, e) => s + e.amount, 0);
@@ -988,7 +991,15 @@ export default function PerformancePage() {
                       {uniqueUsers.map(([uid, name]) => <option key={uid} value={uid}>{name}</option>)}
                     </select>
                   </div>
-                  {(expFilterCategory || expFilterUser) && <button className="ghost" onClick={() => { setExpFilterCategory(''); setExpFilterUser(''); }} style={{ fontSize: 12, padding: '4px 8px' }}>フィルタ解除</button>}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>精算状況</label>
+                    <select className="select" value={expFilterSettled} onChange={e => setExpFilterSettled(e.target.value as '' | 'unsettled' | 'settled')} style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10 }}>
+                      <option value="">すべて</option>
+                      <option value="unsettled">未精算のみ</option>
+                      <option value="settled">精算済のみ</option>
+                    </select>
+                  </div>
+                  {(expFilterCategory || expFilterUser || expFilterSettled) && <button className="ghost" onClick={() => { setExpFilterCategory(''); setExpFilterUser(''); setExpFilterSettled(''); }} style={{ fontSize: 12, padding: '4px 8px' }}>フィルタ解除</button>}
                 </div>
                 {!expenses ? (
                   <p className="subtitle">読み込み中...</p>
