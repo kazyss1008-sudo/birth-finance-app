@@ -29,14 +29,20 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id, castId } = await params;
   try {
-    const cast = await prisma.cast.findUnique({
-      where: { id: BigInt(castId), performanceId: BigInt(id) },
-      select: { name: true },
-    });
-    if (!cast) return { title: 'ギャランティ明細' };
-    return { title: `ギャランティ明細_${cast.name}` };
+    const [cast, performance] = await Promise.all([
+      prisma.cast.findUnique({
+        where: { id: BigInt(castId), performanceId: BigInt(id) },
+        select: { name: true },
+      }),
+      prisma.performance.findUnique({
+        where: { id: BigInt(id) },
+        select: { name: true },
+      }),
+    ]);
+    if (!cast || !performance) return { title: 'ギャランティ明細書' };
+    return { title: `${performance.name}ギャランティ明細書_${cast.name}様` };
   } catch {
-    return { title: 'ギャランティ明細' };
+    return { title: 'ギャランティ明細書' };
   }
 }
 
@@ -89,7 +95,7 @@ export default async function GalaPage({
       : `${formatJpDate(performance.startDate)} 〜 ${formatJpDate(performance.endDate)}`
     : formatJpDate(performance.startDate) || formatJpDate(performance.endDate) || '';
 
-  const pdfFilename = `ギャランティ明細_${cast.name}_${performance.name}`;
+  const pdfFilename = `${performance.name}ギャランティ明細書_${cast.name}様`;
 
   const css = `
     @page {
