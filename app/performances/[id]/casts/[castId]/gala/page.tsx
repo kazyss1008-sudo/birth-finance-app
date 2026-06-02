@@ -302,7 +302,7 @@ export default async function GalaPage({
           </div>
 
           <div className="amount-box">
-            <div className="amount-label">出 演 料</div>
+            <div className="amount-label">出 演 料 <span style={{ fontSize: '11pt', fontWeight: 400, letterSpacing: 'normal' }}>(税込)</span></div>
             <div className="amount-value">{yen(settlementAmount)}</div>
           </div>
 
@@ -338,11 +338,15 @@ export default async function GalaPage({
                 </tr>
               )}
               <tr className="total">
-                <td className="label">出演料合計</td>
+                <td className="label">出演料合計 (税込)</td>
                 <td className="value">{yen(settlementAmount)}</td>
               </tr>
             </tbody>
           </table>
+
+          <div style={{ fontSize: '8.5pt', color: '#555', marginTop: '2pt', marginBottom: '8pt', textAlign: 'right' }}>
+            ※ 記載の金額はすべて消費税込みの金額です。
+          </div>
 
           {backBreakdown.length > 0 && (
             <>
