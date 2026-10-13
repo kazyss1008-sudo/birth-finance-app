@@ -43,7 +43,6 @@ schedule 専用: `rehearsals`, `cast_schedules`, enum `ScheduleStatus`、およ�
 - ビルド確認（`npx next build`）が通ってから push / デプロイ。
 - コミットメッセージは日本語。既存履歴は `feat:` / `fix:` + 日本語の要約の形式に合わせる。
 - push はユーザーが自分のPCで行うことがある（AI実行環境から GitHub へ push できない場合がある）。その場合は push 用コマンドを案内する。
-- 旧セッションでは「JSTのタイムスタンプ（[受信]/[応答]）を表示する」ルールが CLAUDE.md にあったが、**原文は消失**。必要ならユーザーに再確認する。
 - Windows 環境（`C:\ClaudeWorks\...`）。.env の中身（DB パスワード等）は出力・コミットしない。
 - **旧PCのローカルファイルは新PCへ移行しない前提**。復元の拠り所は GitHub と、ユーザーが保管した `.env` の値のみ（`SETUP.md` 参照）。
 
