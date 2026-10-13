@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifySession } from '@/lib/session';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Public routes
@@ -20,9 +21,13 @@ export function middleware(request: NextRequest) {
   }
 
   const cookieName = process.env.SESSION_COOKIE_NAME ?? 'birth_finance_session';
-  const session = request.cookies.get(cookieName);
+  // Cookie の署名と有効期限を検証する (Cookie があるだけでは通さない)
+  const loginId = await verifySession(request.cookies.get(cookieName)?.value);
 
-  if (!session?.value) {
+  if (!loginId) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ ok: false, message: 'ログインしてください。' }, { status: 401 });
+    }
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

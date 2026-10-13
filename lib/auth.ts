@@ -1,6 +1,9 @@
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { signSession, verifySession } from '@/lib/session';
+
+const SESSION_MAX_AGE = 60 * 60 * 8; // 8時間
 
 export async function verifyLogin(loginId: string, password: string) {
   const user = await prisma.user.findUnique({ where: { loginId } });
@@ -11,12 +14,13 @@ export async function verifyLogin(loginId: string, password: string) {
 
 export async function createSession(loginId: string) {
   const store = await cookies();
-  store.set(process.env.SESSION_COOKIE_NAME ?? 'birth_finance_session', loginId, {
+  const token = await signSession(loginId, SESSION_MAX_AGE);
+  store.set(process.env.SESSION_COOKIE_NAME ?? 'birth_finance_session', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 * 8,
+    maxAge: SESSION_MAX_AGE,
   });
 }
 
@@ -27,7 +31,7 @@ export async function destroySession() {
 
 export async function currentLoginId() {
   const store = await cookies();
-  return store.get(process.env.SESSION_COOKIE_NAME ?? 'birth_finance_session')?.value ?? null;
+  return verifySession(store.get(process.env.SESSION_COOKIE_NAME ?? 'birth_finance_session')?.value);
 }
 
 export async function getSessionUser() {
