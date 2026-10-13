@@ -41,6 +41,7 @@ schedule 専用: `rehearsals`, `cast_schedules`, enum `ScheduleStatus`、およ�
 - スマホ対応必須（メンバーがスマホで使う）。レイアウト崩れに敏感で、スクリーンショットで確認してもらうことが多い。
 - 画面に開発者向けの注記・実装メモを出さない（ユーザー向けの表現にする）。
 - ビルド確認（`npx next build`）が通ってから push / デプロイ。
+- **Gitのコミット者メールは GitHub の noreply アドレスにする**（PCごとに設定が必要）: `git config user.name "水島 和也"` / `git config user.email "270341803+kazyss1008-sudo@users.noreply.github.com"`。他のメールだと Vercel が「GitHubアカウントと一致しない」としてデプロイを Blocked にする（2026-10-13 に実際に発生）。
 - コミットメッセージは日本語。既存履歴は `feat:` / `fix:` + 日本語の要約の形式に合わせる。
 - push はユーザーが自分のPCで行うことがある（AI実行環境から GitHub へ push できない場合がある）。その場合は push 用コマンドを案内する。
 - Windows 環境（`C:\ClaudeWorks\...`）。.env の中身（DB パスワード等）は出力・コミットしない。

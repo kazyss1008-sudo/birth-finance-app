@@ -41,6 +41,13 @@ cd ..\birth-schedule-app && npm install
 - 両アプリは**同じ Neon DB**（プロジェクト `ep-wandering-credit-a1iizr7u`、DB名 `neondb`、ユーザー `neondb_owner`、リージョン ap-southeast-1）につなぐ。
 - Vercel 上で値が「Sensitive」で表示できない場合は、Vercel CLI の `vercel env pull`（要 `vercel link`）か、Neon コンソールでパスワードを再発行する。**パスワードを再発行したら、両アプリの Vercel 環境変数と全 `.env` を更新し、再デプロイすること**（片方だけ更新すると片方のアプリが落ちる）。
 
+## 3.5 Git のコミット者メールを設定（重要）
+各リポジトリのフォルダで次を実行する。**設定しないと、push しても Vercel のデプロイが「Blocked」になる**（別のメールだと GitHub アカウントと結びつかないため）。
+```
+git config user.name "水島 和也"
+git config user.email "270341803+kazyss1008-sudo@users.noreply.github.com"
+```
+
 ## 4. 動作確認
 ```
 cd C:\ClaudeWorks\birth-finance-app
