@@ -31,7 +31,7 @@ schedule 専用: `rehearsals`, `cast_schedules`, enum `ScheduleStatus`、およ�
 
 ### 既知の相違・技術的負債（引き継ぎ時点で発見）
 - **Prismaドライバー不一致**: finance は `PrismaNeon`（WebSocket、トランザクション可）。schedule の `lib/prisma.ts` は `PrismaNeonHttp`（トランザクション不可）。schedule 側で `$transaction` や `update+include` を使うと 500 になる恐れがある。必要になったら WebSocket 版へ揃える。
-- **セッションCookieが署名なし**: 両アプリとも Cookie の値が `loginId` そのもの。Cookie を偽造すれば他人になりすませる。`SESSION_SECRET` は finance の .env にあるが auth.ts では未使用。改善候補。
+- **セッションCookieの署名**: finance-app は 2026-10-13 に HMAC 署名付きへ対応済み（`lib/session.ts`、`SESSION_SECRET` 使用、middlewareで検証）。**schedule-app は未対応**（Cookie の値が `loginId` そのまま・middleware は認証なし）。schedule-app に導入する場合は、Vercel に `SESSION_SECRET` を新規登録し、finance の `lib/session.ts` を流用できる。公開する画面（キャスト向けURL配布など）の方針を先に決めること。
 - **schedule-app の middleware は認証をしていない**（素通し）。各API/ページ側の認証チェック有無は要確認。
 - finance の `/quick-expense/[performanceId]` は意図的にログイン不要（公演IDを知っていれば誰でもアクセス可）。
 
@@ -54,4 +54,4 @@ schedule 専用: `rehearsals`, `cast_schedules`, enum `ScheduleStatus`、およ�
 - 主画面: /performances（一覧）, /performances/new（4ステップ作成）, /performances/[id]（8タブ: CSV取込/売上/キャスト/バック/グッズ/経費/協賛金/収支）, 精算詳細 `casts/[castId]/settlement`, ギャランティ明細PDF `casts/[castId]/gala`, 予約リスト `reservation-list`（A4横・PDF共有）, /users, /expense-categories, /quick-expense/[performanceId]
 - 計算ロジック（バック・ノルマ・収支・CSV取込・時刻はUTCメソッドで表示）は HANDOFF.md 参照。`lib/ticketBack.ts`, `lib/csvImport.ts`。
 - 直近の開発（Git履歴 2026-05〜06）: ギャランティ明細PDF（税込明記・ファイル名「[公演名]ギャランティ明細書_[キャスト名]様」）、経費の精算状況フィルタ、予約リストPDF/リピバッジ、精算内訳の表現を一般向けに刷新、等。
-- 状態メモ（2026-10-13時点）: Git は main / GitHub と同期済み。`HANDOFF.md`（詳細仕様）もコミット済み。
+- 状態メモ（2026-10-13時点）: Git は main / GitHub と同期済み。署名付きCookie対応済み（本番反映済み）。`HANDOFF.md`（詳細仕様）もコミット済み。
