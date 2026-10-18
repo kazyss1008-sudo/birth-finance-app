@@ -62,10 +62,10 @@ schedule 専用: `rehearsals`, `cast_schedules`, enum `ScheduleStatus`、およ�
 
 詳細・環境変数・本番反映順序は `CAST_SCHEDULE_SETUP.md` を参照。
 
-- 両アプリの `schema.prisma` は現在同一。financeにも既存schedule専用モデルを含めた。追加項目のmigrationはfinance側のみ。本番DB反映は未実施。
+- 両アプリの `schema.prisma` は現在同一。financeにも既存schedule専用モデルを含めた。追加項目のmigrationはfinance側のみ。本番DBは2026-10-18のfinanceデプロイで反映済み。
 - castsにメール、スケジュール用パスワードハッシュ、認証バージョンを追加。収支管理側のキャストタブで一括登録・URLメール送信。
 - scheduleの管理者Cookieは署名付きへ変更済み（`admin:`識別子）。`SESSION_SECRET`が必須。旧Cookieは使えずスタッフも再ログインが必要。
 - キャストは別Cookie・本人専用APIでログイン/閲覧/保存。既存管理APIはスタッフ認証必須。
 - scheduleのPrismaドライバーをWebSocket版`PrismaNeon`へ変更。本人の保存と変更履歴をトランザクション化。
-- Resend送信設定とVercel Cronを追加。前日までの本人の変更を翌朝日本時間09時台に1通で通知。送信設定・本番デプロイ・実メール確認は別途必要。
+- Resend送信設定とVercel Cronを追加。前日までの本人の変更を翌朝日本時間09時台に1通で通知。Resendの送信設定・実メール確認は別途必要。劇団通知先はtac.birth2003@gmail.com。
 - ローカル検証は `prisma generate` と `next build`。`npm run build`はDB migrationを実行するため、検証に使わない。
