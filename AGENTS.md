@@ -44,8 +44,8 @@ schedule 専用: `rehearsals`, `cast_schedules`, enum `ScheduleStatus`、およ�
 - **Gitのコミット者メールは GitHub の noreply アドレスにする**（PCごとに設定が必要）: `git config user.name "水島 和也"` / `git config user.email "270341803+kazyss1008-sudo@users.noreply.github.com"`。他のメールだと Vercel が「GitHubアカウントと一致しない」としてデプロイを Blocked にする（2026-10-13 に実際に発生）。
 - コミットメッセージは日本語。既存履歴は `feat:` / `fix:` + 日本語の要約の形式に合わせる。
 - push はユーザーが自分のPCで行うことがある（AI実行環境から GitHub へ push できない場合がある）。その場合は push 用コマンドを案内する。
-- Windows 環境（`C:\ClaudeWorks\...`）。.env の中身（DB パスワード等）は出力・コミットしない。
-- **旧PCのローカルファイルは新PCへ移行しない前提**。復元の拠り所は GitHub と、ユーザーが保管した `.env` の値のみ（`SETUP.md` 参照）。
+- Windows 環境（`C:\ClaudeWorks\...`）。**`.env` は開かない・読まない・内容を出力しない・コミットしない**（AI エージェントも同様）。秘密情報（DBパスワード等）を Git・チャット・ログに出さない。
+- **ローカルファイルの受け渡しはしない前提**（USB・メール・チャット添付・クラウド共有を使わない）。ソースは GitHub から取得し、`.env` などの秘密情報は新PCで Neon / Vercel の画面から直接作る（`SETUP.md` 3章）。移行後は DB パスワードを再発行して旧PCの `.env` を無効化する（`SETUP.md` 7章）。
 
 ## このアプリ（finance）固有の情報
 

@@ -1,12 +1,12 @@
 # 新PCでの環境構築手順（birth-finance-app / birth-schedule-app 共通）
 
-旧PCのローカルファイルは移行できない前提の手順です。**復元に使うのは GitHub と、保管しておいた `.env` の値だけ**です。
+旧PCのローカルファイルは移行できない前提の手順です。**復元に使うのは GitHub と、各サービス（Neon / Vercel）の画面だけ。ファイルの受け渡しはしない**です。
 
 ## 0. 失われるもの / 失われないもの
 | もの | 場所 | 備考 |
 |---|---|---|
 | ソースコード・履歴・マイグレーション・文書 | GitHub | 両アプリとも push 済み |
-| `.env`（DB接続情報など） | 旧PCのみ | **Git管理外。下記の入手先から再取得** |
+| `.env`（DB接続情報など） | 旧PCのみ | **Git管理外。ファイルは移さず、新PCで Neon コンソールから直接作り直す（3章）** |
 | `.vercel/`（schedule-app） | 旧PCのみ | `vercel link` で再作成可能 |
 | `node_modules/`, `.next/` | 旧PCのみ | `npm install` / ビルドで再生成 |
 | 本番DBのデータ | Neon | PCに依存しない |
@@ -26,20 +26,18 @@ cd ..\birth-schedule-app && npm install
 ```
 （初回 clone/push 時に GitHub のサインイン画面が出たら、ブラウザで認証する）
 
-## 3. `.env` を作る（各アプリのフォルダ直下）
-`.env.example` をコピーして `.env` にし、値を埋める。
+## 3. `.env` を作る（ファイルを移さず、取得元から直接作る）
+**方針: 旧PCの `.env` は新PCへコピーしない。** USB・メール・チャット添付・クラウド共有など、ファイルでの受け渡しは一切行わない。値は取得元のサービス画面（新PCのブラウザ）で確認し、新PCのエディタで直接入力する。`.env.example` をコピーして `.env` にし、値を埋める。
 
-| 変数 | finance | schedule | 値の入手先 |
-|---|---|---|---|
-| `DATABASE_URL` | 必須 | 必須 | Vercel の各プロジェクト Settings → Environment Variables、または Neon コンソール（`-pooler` 付きの接続文字列） |
-| `DIRECT_URL` | 任意※ | 任意※ | Neon コンソール（pooler なしの接続文字列） |
-| `SESSION_COOKIE_NAME` | `birth_finance_session` | `birth_schedule_session` | 固定値 |
-| `SESSION_SECRET` | あり（現状コードでは未使用） | なし | Vercel の finance-app の環境変数。無ければ新しいランダム文字列でよい |
+| 変数 | 作り方 |
+|---|---|
+| `DATABASE_URL` | Neon コンソール → プロジェクト `ep-wandering-credit-a1iizr7u` → Connect → **Pooled connection**（`-pooler` 付きホスト）の接続文字列（パスワードを表示して使う） |
+| `DIRECT_URL` | 同じ画面の **Direct connection**（pooler なし）。`prisma migrate` / `prisma db` 系を実行する場合のみ必要。通常の `npm run dev` では不要 |
+| `SESSION_COOKIE_NAME` | 固定値（finance: `birth_finance_session` / schedule: `birth_schedule_session`） |
+| `SESSION_SECRET` | finance のみ。ローカル用は**新規に生成**してよい（Vercel の値と一致させる必要はない）: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 
-※ `prisma migrate` / `prisma db` 系を実行する場合のみ。普段の `npm run dev` では不要。
-
-- 両アプリは**同じ Neon DB**（プロジェクト `ep-wandering-credit-a1iizr7u`、DB名 `neondb`、ユーザー `neondb_owner`、リージョン ap-southeast-1）につなぐ。
-- Vercel 上で値が「Sensitive」で表示できない場合は、Vercel CLI の `vercel env pull`（要 `vercel link`）か、Neon コンソールでパスワードを再発行する。**パスワードを再発行したら、両アプリの Vercel 環境変数と全 `.env` を更新し、再デプロイすること**（片方だけ更新すると片方のアプリが落ちる）。
+- 両アプリは**同じ Neon DB**（DB名 `neondb`、ユーザー `neondb_owner`、ap-southeast-1）につなぐ。
+- `.env` は Git に入れない（`.gitignore` 済み）。チャット・Issue・コミットメッセージにも貼らない。AI（Codex 等）にも `.env` を開かせない・読ませない。
 
 ## 3.5 Git のコミット者メールを設定（重要）
 各リポジトリのフォルダで次を実行する。**設定しないと、push しても Vercel のデプロイが「Blocked」になる**（別のメールだと GitHub アカウントと結びつかないため）。
@@ -65,3 +63,12 @@ schedule-app も同様。
 - `.env` は本番DBに直結。ローカル操作も本番データに反映される。
 - 会社ネットワークからは Neon の 5432 ポートに接続できない（マイグレーション等は自宅 or Vercel 経由）。
 - finance 側から `prisma migrate dev` / `db push` を実行すると、schedule 専用テーブルが消える危険がある。実行前に必ず差分確認。
+
+## 7. 移行完了後の後始末（旧PCの `.env` を無効化する）
+新PCで動作確認が済んだら、**DB パスワードを再発行**して、旧PCに残る `.env` を使えなくする。ファイルを消す前でも、古い値が無効になるので安全。
+1. Neon コンソールでロール `neondb_owner` のパスワードをリセットする。
+2. Vercel の**両プロジェクト**（birth-finance-app / birth-schedule-app）の `DATABASE_URL` / `DIRECT_URL`（finance は両方、schedule も両方）を新しい値に更新し、**両方を Redeploy** する。
+3. 新PCの `.env` を新しい値に更新する。
+4. 旧PC: 2つのアプリのフォルダ（`.env` を含む）を削除し、GitHub / Vercel / Neon / Codex からサインアウトし、Windows の資格情報マネージャーから GitHub の認証情報を削除する。
+
+⚠ 手順 1〜2 の間は本番が一時的に DB へつながらなくなる。**利用者がいない時間帯**に行うこと。
