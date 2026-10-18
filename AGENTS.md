@@ -56,3 +56,16 @@ schedule 専用: `rehearsals`, `cast_schedules`, enum `ScheduleStatus`、およ�
 - 計算ロジック（バック・ノルマ・収支・CSV取込・時刻はUTCメソッドで表示）は HANDOFF.md 参照。`lib/ticketBack.ts`, `lib/csvImport.ts`。
 - 直近の開発（Git履歴 2026-05〜06）: ギャランティ明細PDF（税込明記・ファイル名「[公演名]ギャランティ明細書_[キャスト名]様」）、経費の精算状況フィルタ、予約リストPDF/リピバッジ、精算内訳の表現を一般向けに刷新、等。
 - 状態メモ（2026-10-13時点）: Git は main / GitHub と同期済み。署名付きCookie対応済み（本番反映済み）。`HANDOFF.md`（詳細仕様）もコミット済み。
+
+
+## 2026-10-18 キャスト用ログイン・メール仕様変更（ローカル実装）
+
+詳細・環境変数・本番反映順序は `CAST_SCHEDULE_SETUP.md` を参照。
+
+- 両アプリの `schema.prisma` は現在同一。financeにも既存schedule専用モデルを含めた。追加項目のmigrationはfinance側のみ。本番DB反映は未実施。
+- castsにメール、スケジュール用パスワードハッシュ、認証バージョンを追加。収支管理側のキャストタブで一括登録・URLメール送信。
+- scheduleの管理者Cookieは署名付きへ変更済み（`admin:`識別子）。`SESSION_SECRET`が必須。旧Cookieは使えずスタッフも再ログインが必要。
+- キャストは別Cookie・本人専用APIでログイン/閲覧/保存。既存管理APIはスタッフ認証必須。
+- scheduleのPrismaドライバーをWebSocket版`PrismaNeon`へ変更。本人の保存と変更履歴をトランザクション化。
+- Resend送信設定とVercel Cronを追加。前日までの本人の変更を翌朝日本時間09時台に1通で通知。送信設定・本番デプロイ・実メール確認は別途必要。
+- ローカル検証は `prisma generate` と `next build`。`npm run build`はDB migrationを実行するため、検証に使わない。

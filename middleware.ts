@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
   // Cookie の署名と有効期限を検証する (Cookie があるだけでは通さない)
   const loginId = await verifySession(request.cookies.get(cookieName)?.value);
 
-  if (!loginId) {
+  if (!loginId || loginId.startsWith('cast:')) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ ok: false, message: 'ログインしてください。' }, { status: 401 });
     }

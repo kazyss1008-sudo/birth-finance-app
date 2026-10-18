@@ -31,7 +31,8 @@ export async function destroySession() {
 
 export async function currentLoginId() {
   const store = await cookies();
-  return verifySession(store.get(process.env.SESSION_COOKIE_NAME ?? 'birth_finance_session')?.value);
+  const loginId = await verifySession(store.get(process.env.SESSION_COOKIE_NAME ?? 'birth_finance_session')?.value);
+  return loginId && !loginId.startsWith('cast:') ? loginId : null;
 }
 
 export async function getSessionUser() {

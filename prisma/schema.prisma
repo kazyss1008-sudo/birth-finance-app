@@ -9,6 +9,8 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ========== Shared enums (from finance app) ==========
+
 enum PerformanceStatus {
   PREPARING
   ACTIVE
@@ -19,6 +21,14 @@ enum ImportStatus {
   SUCCESS
   FAILED
 }
+
+enum ScheduleStatus {
+  OK
+  NG
+  TIME_LIMITED
+}
+
+// ========== Existing tables (shared with finance app) ==========
 
 model User {
   id                 BigInt       @id @default(autoincrement())
@@ -54,6 +64,9 @@ model Performance {
   settlements           Settlement[]
   sponsorships          Sponsorship[]
   goods                 Goods[]
+  // Schedule app relations
+  rehearsals            Rehearsal[]
+  castSchedules         CastSchedule[]
 
   @@map("performances")
 }
@@ -80,8 +93,14 @@ model Cast {
   normaUnitPrice     Int         @default(0) @map("norma_unit_price")
   isTicketBackTarget Boolean     @default(true) @map("is_ticket_back_target")
   sortOrder          Int         @default(0) @map("sort_order")
+  email              String?     @db.VarChar(254)
+  schedulePasswordHash String?   @map("schedule_password_hash") @db.VarChar(255)
+  scheduleAuthVersion Int       @default(0) @map("schedule_auth_version")
+  // Schedule app field
+  roleName           String      @default("") @map("role_name") @db.VarChar(200)
   performance        Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
   sales              Sale[]
+  castSchedules      CastSchedule[]
 
   @@unique([performanceId, name])
   @@map("casts")
@@ -230,4 +249,71 @@ model GoodsSale {
 
   @@unique([goodsId, performanceStageId])
   @@map("goods_sales")
+}
+
+// ========== New tables (schedule app) ==========
+
+model Rehearsal {
+  id            BigInt      @id @default(autoincrement())
+  performanceId BigInt      @map("performance_id")
+  date          DateTime    @db.Date
+  startTime     String      @map("start_time") @db.VarChar(5)
+  endTime       String      @map("end_time") @db.VarChar(5)
+  location      String      @default("") @db.VarChar(200)
+  memo          String?     @db.Text
+  sortOrder     Int         @default(0) @map("sort_order")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  performance   Performance    @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  castSchedules CastSchedule[]
+
+  @@map("rehearsals")
+}
+
+model CastSchedule {
+  id            BigInt         @id @default(autoincrement())
+  castId        BigInt         @map("cast_id")
+  rehearsalId   BigInt         @map("rehearsal_id")
+  performanceId BigInt         @map("performance_id")
+  status        ScheduleStatus @default(OK)
+  availableFrom String?        @map("available_from") @db.VarChar(5)
+  availableTo   String?        @map("available_to") @db.VarChar(5)
+  memo          String?        @db.Text
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  cast        Cast        @relation(fields: [castId], references: [id], onDelete: Cascade)
+  rehearsal   Rehearsal   @relation(fields: [rehearsalId], references: [id], onDelete: Cascade)
+  performance Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+
+  @@unique([castId, rehearsalId])
+  @@map("cast_schedules")
+}
+
+// Immutable actor changes; notification delivery never depends on current schedule values.
+model ScheduleChange {
+  id         BigInt   @id @default(autoincrement())
+  details    String   @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+  notifiedAt DateTime? @map("notified_at")
+  @@index([notifiedAt, createdAt])
+  @@map("schedule_changes")
+}
+
+model ScheduleDigest {
+  day       String @id @db.VarChar(10)
+  text      String @db.Text
+  changeIds Json @map("change_ids")
+  recipient String @db.VarChar(254)
+  sentAt    DateTime? @map("sent_at")
+  @@map("schedule_digests")
+}
+
+model CastLoginAttempt {
+  key       String @id @db.VarChar(100)
+  count     Int @default(1)
+  expiresAt DateTime @map("expires_at")
+  @@index([expiresAt])
+  @@map("cast_login_attempts")
 }

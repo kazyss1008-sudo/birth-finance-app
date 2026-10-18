@@ -10,6 +10,7 @@ function serializeBigInt(obj: unknown): unknown {
   if (typeof obj === 'object') {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      if (key === 'schedulePasswordHash') continue;
       result[key] = serializeBigInt(value);
     }
     return result;

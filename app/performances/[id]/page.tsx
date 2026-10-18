@@ -1,4 +1,5 @@
 'use client';
+import { CastAccounts } from '@/components/CastAccounts';
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
@@ -635,6 +636,7 @@ export default function PerformancePage() {
             </table>
             </div>
           )}
+          <CastAccounts performanceId={id} />
         </div>
       )}
 
