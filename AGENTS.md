@@ -69,3 +69,10 @@ schedule 専用: `rehearsals`, `cast_schedules`, enum `ScheduleStatus`、およ�
 - scheduleのPrismaドライバーをWebSocket版`PrismaNeon`へ変更。本人の保存と変更履歴をトランザクション化。
 - Resend送信設定とVercel Cronを追加。前日までの本人の変更を翌朝日本時間09時台に1通で通知。Resendの送信設定・実メール確認は別途必要。劇団通知先はtac.birth2003@gmail.com。
 - ローカル検証は `prisma generate` と `next build`。`npm run build`はDB migrationを実行するため、検証に使わない。
+
+## LINE更新通知への変更
+
+- 更新通知はメールからLINE公式アカウント `@773bgnjo` へ変更。メール送信設定はキャストへのURL案内にのみ必要。
+- `/line-settings` にテスト用個人と本番用グループを別登録する。初期TESTではCronが送信も通知済み更新もしない。テスト送信は常に個人のみ。
+- LINE署名を検証する公開Webhook `/api/line/webhook` が「通知登録」の送信元候補を記録し、スタッフが画面で明示選択する。
+- 追加migrationはfinance側 `20261018160000_line_notifications` のみ。LINEのトークンとシークレットはVercel Secretへ設定し、コード・チャットへ出さない。

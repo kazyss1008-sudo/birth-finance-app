@@ -317,3 +317,20 @@ model CastLoginAttempt {
   @@index([expiresAt])
   @@map("cast_login_attempts")
 }
+
+// Destinations are discovered only from signed LINE registration messages.
+model LineDestination {
+  id          String   @id @db.VarChar(64)
+  type        String   @db.VarChar(10)
+  name        String   @db.VarChar(200)
+  lastSeenAt  DateTime @default(now()) @map("last_seen_at")
+  @@map("line_destinations")
+}
+
+model LineNotificationSetting {
+  id                 Int    @id @default(1)
+  mode               String @default("TEST") @db.VarChar(10)
+  testTargetId       String? @map("test_target_id") @db.VarChar(64)
+  productionTargetId String? @map("production_target_id") @db.VarChar(64)
+  @@map("line_notification_settings")
+}
