@@ -61,7 +61,11 @@ export function CastAccounts({ performanceId }: { performanceId: string }) {
   }
   const count = rows.filter(r => r.selected).length;
   return <section style={{ marginTop: 28, borderTop: '1px solid #e2e8f0', paddingTop: 20 }}>
-    <h3 className="brand">キャスト用スケジュール ログイン設定</h3>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+      <h3 className="brand" style={{ margin: 0 }}>キャスト用スケジュール ログイン設定</h3>
+      <a className="secondary" href="https://birth-schedule-app.vercel.app/line-settings" target="_blank" rel="noopener noreferrer" style={{ whiteSpace: 'nowrap', textDecoration: 'none' }}>LINE通知設定 ↗</a>
+    </div>
+    <p className="subtitle">更新通知の宛先登録・個人宛テストは「LINE通知設定」から行えます。スケジュールアプリを別のタブで開きます。</p>
     <p className="subtitle">メールアドレスとパスワードをまとめて登録できます。パスワードは8文字以上。空欄なら現在のパスワードを維持します。登録後のパスワードは表示されません。メールアドレスを空欄にするとログインできなくなります。</p>
     <details style={{ margin: '16px 0' }}>
       <summary>表計算からまとめて貼り付け</summary>
