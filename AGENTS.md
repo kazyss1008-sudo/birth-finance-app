@@ -82,3 +82,8 @@ schedule 専用: `rehearsals`, `cast_schedules`, enum `ScheduleStatus`、およ�
 - キャストへのURL案内は `GMAIL_USER` と `GMAIL_APP_PASSWORD` でGmail SMTP送信に対応。送信元はtac.birth2003@gmail.com。設定先はfinanceのVercel Production。
 - アプリパスワードは所有者がGoogleで発行しVercelへ直接入力。通常パスワード・秘密値をチャットやログに出さない。詳細はCAST_SCHEDULE_SETUP.md。
 - Gmail設定を優先。未設定なら既存Resendを利用可能。SMTPのMessage-IDは固定するが送信重複防止は保証されないため、タイムアウト時は送信済みを確認してから再送する。
+
+## 2026-11-03 LINE差分サマリ
+
+- 共有schemaにScheduleChange.payloadとLineTestDigestを追加。migrationは20261103140000_line_change_summaries（nullable列・新規テーブルのみ）。financeのデプロイで先行反映し、その後scheduleを反映する。
+- LINE本文はschedule側でキャスト別・稽古日順に最初→最後の差分を集計し、元に戻した変更を省く。個人テストの確認位置は本番通知と別管理する。
