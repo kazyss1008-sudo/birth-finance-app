@@ -13,7 +13,7 @@ Module._load = function(id, ...args) {
   if (id === '@/lib/auth') return { getSessionUser: async () => state.user };
   if (id === '@/lib/mail') return {
     mailConfigured: () => !!((process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) || (process.env.RESEND_API_KEY && process.env.MAIL_FROM)),
-    sendMail: async to => { state.sent.push(to); if (to === 'fail@example.com') throw Error('test failure'); },
+    sendMail: async (to, subject, text) => { state.sent.push(to); state.mailMessages ||= []; state.mailMessages.push({ to, subject, text }); if (to === 'fail@example.com') throw Error('test failure'); },
   };
   return originalLoad.call(this, id, ...args);
 };
@@ -57,6 +57,18 @@ test('cast sessions cannot access finance management even if secrets were shared
   const req = new NextRequest('http://localhost/api/performances', { headers: { cookie: `birth_finance_session=${token}` } });
   assert.equal((await middleware(req)).status, 401);
 });
+test('common login rejects duplicate emails across full and partial account saves before writes', async () => {
+  state.casts = [{ ...cast }, { ...cast, id: 2n, email: 'other@example.com' }];
+  const before = state.updates.length;
+  try {
+    const partial = await route.PUT(req([{ castId: '1', email: 'OTHER@example.com', password: '' }]), context);
+    assert.equal(partial.status, 400);
+    assert.match((await partial.json()).error, /メールアドレスが重複/);
+    const full = await route.PUT(req([{ castId: '1', email: 'same@example.com', password: '' }, { castId: '2', email: 'same@example.com', password: '' }]), context);
+    assert.equal(full.status, 400);
+    assert.equal(state.updates.length, before);
+  } finally { delete state.casts; }
+});
 test('invitations require configured mail and report each recipient independently', async () => {
   const invitations = require('../app/api/performances/[id]/cast-invitations/route.ts');
   const body = { castIds: ['1', '2'], requestId: '08fd3338-4082-4a0b-b901-c5262dc4296f' };
@@ -72,4 +84,6 @@ test('invitations require configured mail and report each recipient independentl
   assert.equal(response.status, 200);
   const data = await response.json();
   assert.deepEqual(data.results.map(r => r.ok), [true, false]);
+  assert.ok(state.mailMessages.every(m => m.text.includes('https://schedule.example.com/performances/10/cast\n')));
+  assert.ok(state.mailMessages.every(m => !m.text.includes('/cast/1') && !m.text.includes('/cast/2')));
 });

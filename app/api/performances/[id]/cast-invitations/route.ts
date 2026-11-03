@@ -28,7 +28,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       continue;
     }
     try {
-      const url = new URL(`/performances/${id}/cast/${cast.id}`, base).toString();
+      const url = new URL(`/performances/${id}/cast`, base).toString();
       await sendMail(cast.email!, `【劇団Birth】${cast.performance.name} スケジュール登録のご案内`,
         `${cast.name} 様\n\nスケジュールの登録・変更は次のページからお願いします。\n${url}\n\nログインメールアドレス: ${cast.email}\nパスワード: 劇団から別途ご案内したものをご利用ください。\n\nご自身のOK・NG・参加可能時間を登録できます。\nパスワードが不明な場合は劇団へお問い合わせください。`,
         `cast-invite/${parsed.data.requestId}/${cast.id}`);

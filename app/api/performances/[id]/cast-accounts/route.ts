@@ -28,6 +28,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const hashes = await Promise.all(items.map(async c => c.password ? bcrypt.hash(c.password, 12) : null));
   try {
     await prisma.$transaction(async tx => {
+      // Serialize account edits per performance, including partial bulk saves.
+      await tx.$queryRaw`SELECT id FROM performances WHERE id = ${BigInt(id)} FOR NO KEY UPDATE`;
+      const all = await tx.cast.findMany({ where: { performanceId: BigInt(id) }, select: { id: true, email: true } });
+      const nextEmails = new Map(all.map(c => [String(c.id), c.email?.trim().toLowerCase() || '']));
+      for (const item of items) nextEmails.set(item.castId, item.email);
+      const used = new Set<string>();
+      for (const email of nextEmails.values()) {
+        if (email && used.has(email)) throw new Error('duplicate-email');
+        if (email) used.add(email);
+      }
       for (const [index, item] of items.entries()) {
         await tx.$queryRaw`SELECT id FROM casts WHERE id = ${BigInt(item.castId)} FOR UPDATE`;
         const cast = await tx.cast.findFirst({ where: { id: BigInt(item.castId), performanceId: BigInt(id) } });
@@ -40,7 +50,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }
     }, { timeout: 15000 });
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'duplicate-email') return NextResponse.json({
+      error: '同じ公演でメールアドレスが重複しています。キャストごとに異なるメールアドレスを登録してください',
+    }, { status: 400 });
     return NextResponse.json({ error: '保存に失敗しました。再読み込みしてお試しください' }, { status: 400 });
   }
 }
