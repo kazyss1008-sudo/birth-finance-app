@@ -23,6 +23,7 @@ enum ImportStatus {
 }
 
 enum ScheduleStatus {
+  UNDECIDED
   OK
   NG
   TIME_LIMITED
@@ -276,7 +277,7 @@ model CastSchedule {
   castId        BigInt         @map("cast_id")
   rehearsalId   BigInt         @map("rehearsal_id")
   performanceId BigInt         @map("performance_id")
-  status        ScheduleStatus @default(OK)
+  status        ScheduleStatus @default(UNDECIDED)
   availableFrom String?        @map("available_from") @db.VarChar(5)
   availableTo   String?        @map("available_to") @db.VarChar(5)
   memo          String?        @db.Text

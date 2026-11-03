@@ -1,0 +1,1 @@
+ALTER TYPE "ScheduleStatus" ADD VALUE 'UNDECIDED';

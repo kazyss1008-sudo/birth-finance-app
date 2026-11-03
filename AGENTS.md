@@ -87,3 +87,4 @@ schedule 専用: `rehearsals`, `cast_schedules`, enum `ScheduleStatus`、およ�
 
 - 共有schemaにScheduleChange.payloadとLineTestDigestを追加。migrationは20261103140000_line_change_summaries（nullable列・新規テーブルのみ）。financeのデプロイで先行反映し、その後scheduleを反映する。
 - LINE本文はschedule側でキャスト別・稽古日順に最初→最後の差分を集計し、元に戻した変更を省く。個人テストの確認位置は本番通知と別管理する。
+- 2026-11-03: ScheduleStatusにUNDECIDED（未定）を追加しCastSchedule.statusのDBデフォルトを変更。migrations 20261103150000/20261103150100でenum追加とdefault変更を分ける。既存行の状態は変更しない。schedule側は未入力セルを未定として表示し、未定を参加可能数に含めない。

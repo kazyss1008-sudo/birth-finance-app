@@ -1,0 +1,1 @@
+ALTER TABLE "cast_schedules" ALTER COLUMN "status" SET DEFAULT 'UNDECIDED';
