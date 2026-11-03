@@ -76,3 +76,9 @@ schedule 専用: `rehearsals`, `cast_schedules`, enum `ScheduleStatus`、およ�
 - `/line-settings` にテスト用個人と本番用グループを別登録する。初期TESTではCronが送信も通知済み更新もしない。テスト送信は常に個人のみ。
 - LINE署名を検証する公開Webhook `/api/line/webhook` が「通知登録」の送信元候補を記録し、スタッフが画面で明示選択する。
 - 追加migrationはfinance側 `20261018160000_line_notifications` のみ。LINEのトークンとシークレットはVercel Secretへ設定し、コード・チャットへ出さない。
+
+## 2026-11-03 Gmail案内メール
+
+- キャストへのURL案内は `GMAIL_USER` と `GMAIL_APP_PASSWORD` でGmail SMTP送信に対応。送信元はtac.birth2003@gmail.com。設定先はfinanceのVercel Production。
+- アプリパスワードは所有者がGoogleで発行しVercelへ直接入力。通常パスワード・秘密値をチャットやログに出さない。詳細はCAST_SCHEDULE_SETUP.md。
+- Gmail設定を優先。未設定なら既存Resendを利用可能。SMTPのMessage-IDは固定するが送信重複防止は保証されないため、タイムアウト時は送信済みを確認してから再送する。

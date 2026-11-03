@@ -11,7 +11,10 @@ const prisma = {
 Module._load = function(id, ...args) {
   if (id === '@/lib/prisma') return { prisma };
   if (id === '@/lib/auth') return { getSessionUser: async () => state.user };
-  if (id === '@/lib/mail') return { sendMail: async to => { state.sent.push(to); if (to === 'fail@example.com') throw Error('test failure'); } };
+  if (id === '@/lib/mail') return {
+    mailConfigured: () => !!((process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) || (process.env.RESEND_API_KEY && process.env.MAIL_FROM)),
+    sendMail: async to => { state.sent.push(to); if (to === 'fail@example.com') throw Error('test failure'); },
+  };
   return originalLoad.call(this, id, ...args);
 };
 const route = require('../app/api/performances/[id]/cast-accounts/route.ts');
@@ -58,7 +61,7 @@ test('invitations require configured mail and report each recipient independentl
   const invitations = require('../app/api/performances/[id]/cast-invitations/route.ts');
   const body = { castIds: ['1', '2'], requestId: '08fd3338-4082-4a0b-b901-c5262dc4296f' };
   assert.equal((await invitations.POST(req(body), context)).status, 503);
-  Object.assign(process.env, { SCHEDULE_APP_URL: 'https://schedule.example.com', RESEND_API_KEY: 'test', MAIL_FROM: 'test@example.com' });
+  Object.assign(process.env, { SCHEDULE_APP_URL: 'https://schedule.example.com', GMAIL_USER: 'sender@gmail.com', GMAIL_APP_PASSWORD: 'test-app-password' });
   state.sent = [];
   state.casts = [{ ...cast, name: 'キャスト', performance: { name: '公演' } }, { ...cast, id: 2n, name: '失敗宛先', email: 'fail@example.com', performance: { name: '公演' } }];
   state.casts[1].schedulePasswordHash = null;

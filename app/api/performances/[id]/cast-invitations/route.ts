@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
-import { sendMail } from '@/lib/mail';
+import { sendMail, mailConfigured } from '@/lib/mail';
 export const maxDuration = 60;
 const schema = z.object({ castIds: z.array(z.string().regex(/^\d+$/)).min(1).max(50), requestId: z.string().uuid() });
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -12,7 +12,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: '送信対象を確認してください（1回50名まで）' }, { status: 400 });
   const origin = process.env.SCHEDULE_APP_URL;
-  if (!origin || !process.env.RESEND_API_KEY || !process.env.MAIL_FROM) return NextResponse.json({ error: 'メール送信設定が未完了です' }, { status: 503 });
+  if (!origin || !mailConfigured()) return NextResponse.json({ error: 'メール送信設定が未完了です' }, { status: 503 });
   let base: URL;
   try { base = new URL(origin); if (base.protocol !== 'https:') throw new Error(); }
   catch { return NextResponse.json({ error: 'スケジュールアプリのURL設定を確認してください' }, { status: 503 }); }
