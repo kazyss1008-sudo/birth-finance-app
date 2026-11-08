@@ -347,5 +347,17 @@ model LineNotificationSetting {
   mode               String @default("TEST") @db.VarChar(10)
   testTargetId       String? @map("test_target_id") @db.VarChar(64)
   productionTargetId String? @map("production_target_id") @db.VarChar(64)
+  rehearsalImageEnabled Boolean @default(false) @map("rehearsal_image_enabled")
   @@map("line_notification_settings")
+}
+
+// An immutable image payload for each daily delivery or explicit personal test.
+model LineRehearsalDelivery {
+  id        String    @id @db.VarChar(36)
+  recipient String    @db.VarChar(64)
+  pages     Json
+  createdAt DateTime  @default(now()) @map("created_at")
+  sentAt    DateTime? @map("sent_at")
+  @@index([createdAt])
+  @@map("line_rehearsal_deliveries")
 }
