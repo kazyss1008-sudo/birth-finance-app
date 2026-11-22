@@ -1,0 +1,6 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');const Module=require('node:module');const original=Module._load;
+let enabled=false;
+Module._load=function(id,...args){if(id==='@/lib/prisma')return{prisma:{performance:{findUnique:async()=>({id:1n,name:'公演',ticketSalesEnabled:enabled,ticketSalesStart:new Date('2099-01-01'),ticketTypes:[],stages:[]})}}};if(id==='@/lib/tickets/service')return{actorFor:async()=>({kind:'public',castId:null}),saveBooking:async()=>{throw Error('not used')}};if(id==='@/lib/tickets/notification')return{};return original.call(this,id,...args)};
+const route=require('../app/api/booking/[id]/[handler]/route.ts');const ctx={params:Promise.resolve({id:'1',handler:'birth'})};
+test('published sales page remains visible when reception is disabled or not started',async()=>{process.env.TICKETS_PUBLIC_ENABLED='true';for(enabled of [false,true]){const r=await route.GET(new Request('http://localhost'),ctx);assert.equal(r.status,200);assert.equal((await r.json()).ticketSalesEnabled,enabled)}});
+test('global emergency stop still hides public booking data',async()=>{process.env.TICKETS_PUBLIC_ENABLED='false';assert.equal((await route.GET(new Request('http://localhost'),ctx)).status,404)});

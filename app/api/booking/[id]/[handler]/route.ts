@@ -16,8 +16,8 @@ export async function GET(_req: Request, { params }: Context) {
         const { id, handler } = await params;
         const actor = await actorFor(BigInt(id), handler);
         const p = await prisma.performance.findUnique({ where: { id: BigInt(id) }, select: { id: true, name: true, venue: true, ticketSalesEnabled: true, ticketSalesStart: true, repeaterEnabled: true, repeaterDiscount: true, ticketTypes: { where: { active: true } }, stages: { orderBy: { sortOrder: 'asc' } } } });
-        if (!p?.ticketSalesEnabled)
-            throw new TicketError('現在受付を停止しています', 404);
+        if (!p)
+            throw new TicketError('予約ページがありません', 404);
         const cast = actor.castId ? await prisma.cast.findFirst({ where: { id: actor.castId, performanceId: p.id }, select: { name: true } }) : null;
         if (actor.castId && !cast)
             throw new TicketError('予約ページがありません', 404);

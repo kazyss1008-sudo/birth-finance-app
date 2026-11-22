@@ -87,3 +87,11 @@ test('invitations require configured mail and report each recipient independentl
   assert.ok(state.mailMessages.every(m => m.text.includes('https://schedule.example.com/performances/10/cast\n')));
   assert.ok(state.mailMessages.every(m => !m.text.includes('/cast/1') && !m.text.includes('/cast/2')));
 });
+
+test('one cast update includes profile, finance and account settings without resetting a blank password', async () => {
+  delete state.casts;
+  const response=await route.PUT(req([{castId:'1',name:'統合キャスト',roleName:'役名',normaTicketCount:12,normaUnitPrice:2000,isTicketBackTarget:false,email:'cast@example.com',password:''}]),context);
+  assert.equal(response.status,200);
+  const data=state.updates.at(-1).data;
+  assert.equal(data.name,'統合キャスト');assert.equal(data.roleName,'役名');assert.equal(data.normaTicketCount,12);assert.equal(data.normaUnitPrice,2000);assert.equal(data.isTicketBackTarget,false);assert.equal(data.schedulePasswordHash,undefined);
+});

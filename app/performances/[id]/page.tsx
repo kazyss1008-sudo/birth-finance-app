@@ -1,5 +1,4 @@
 'use client';
-import { CastMaster } from '@/components/CastMaster';
 import { CastAccounts } from '@/components/CastAccounts';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -610,42 +609,7 @@ export default function PerformancePage() {
         </div>
       )}
 
-      {/* キャスト Tab */}
-      {activeTab === 'キャスト' && (
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h2 className="brand">キャスト一覧</h2>
-            {editCasts && editCasts.some(c => c.changed) && (
-              <button className="primary" onClick={saveCasts} disabled={castSaving}>{castSaving ? '保存中...' : '変更を保存'}</button>
-            )}
-          </div>
-          {!editCasts ? (
-            <p className="subtitle">読み込み中...</p>
-          ) : editCasts.length === 0 ? (
-            <p className="subtitle">キャストが登録されていません。</p>
-          ) : (
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table className="table" style={{ minWidth: 600 }}>
-              <thead><tr><th style={{width:40}}></th><th>キャスト名</th><th style={{width:120}}>ノルマ枚数</th><th style={{width:120}}>ノルマ単価</th><th style={{width:80, textAlign:'center'}}>バック対象</th><th style={{width:80}}></th></tr></thead>
-              <tbody>
-                {editCasts.map((c, i) => (
-                  <tr key={c.id} draggable onDragStart={() => setDragIdx(i)} onDragOver={(e) => handleDragOver(e, i)} onDragEnd={() => setDragIdx(null)} style={{ ...(c.changed ? { background: '#fffbeb' } : {}), ...(dragIdx === i ? { opacity: 0.4 } : {}) }}>
-                    <td style={{cursor:'grab', textAlign:'center', color:'#94a3b8', fontSize:18, userSelect:'none'}} title="ドラッグで並び替え">☰</td>
-                    <td><input className="input" value={c.name} onChange={e => updateCastField(i, 'name', e.target.value)} /></td>
-                    <td><input className="input" type="number" min={0} value={c.normaTicketCount} onChange={e => updateCastField(i, 'normaTicketCount', Number(e.target.value))} /></td>
-                    <td><input className="input" type="number" min={0} value={c.normaUnitPrice} onChange={e => updateCastField(i, 'normaUnitPrice', Number(e.target.value))} /></td>
-                    <td style={{textAlign:'center'}}><input type="checkbox" checked={c.isTicketBackTarget} onChange={e => updateCastField(i, 'isTicketBackTarget', e.target.checked)} style={{width:20,height:20,accentColor:'#153b96',cursor:'pointer'}} /></td>
-                    <td>{c.changed && <span className="badge" style={{background:'#fef3c7',color:'#92400e',fontSize:11}}>変更あり</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
-          )}
-          <CastMaster id={id} saved={async()=>{ window.location.assign(`/performances/${id}?tab=${encodeURIComponent('キャスト')}`); }} />
-          <CastAccounts performanceId={id} />
-        </div>
-      )}
+      {activeTab === 'キャスト' && <div className="card"><CastAccounts performanceId={id} /></div>}
 
       {/* バック Tab */}
       {activeTab === 'バック' && (

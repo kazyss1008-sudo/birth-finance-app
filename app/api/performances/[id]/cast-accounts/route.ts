@@ -4,6 +4,11 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 const input = z.array(z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  roleName: z.string().max(200).optional(),
+  normaTicketCount: z.number().int().min(0).optional(),
+  normaUnitPrice: z.number().int().min(0).optional(),
+  isTicketBackTarget: z.boolean().optional(),
   castId: z.string().regex(/^\d+$/),
   email: z.string().trim().toLowerCase().email().max(254).or(z.literal('')),
   password: z.string().min(8).max(72).refine(s => Buffer.byteLength(s, 'utf8') <= 72).or(z.literal('')),
@@ -13,8 +18,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!user?.isActive) return NextResponse.json({ error: 'ログインしてください' }, { status: 401 });
   const { id } = await params;
   const casts = await prisma.cast.findMany({ where: { performanceId: BigInt(id) }, orderBy: { sortOrder: 'asc' },
-    select: { id: true, name: true, email: true, schedulePasswordHash: true } });
-  return NextResponse.json(casts.map(c => ({ id: String(c.id), name: c.name, email: c.email || '', hasPassword: !!c.schedulePasswordHash })));
+    select: { id: true, name: true, email: true, schedulePasswordHash: true, roleName: true, normaTicketCount: true, normaUnitPrice: true, isTicketBackTarget: true } });
+  return NextResponse.json(casts.map(c => ({ id: String(c.id), name: c.name, email: c.email || '', hasPassword: !!c.schedulePasswordHash, roleName:c.roleName, normaTicketCount:c.normaTicketCount, normaUnitPrice:c.normaUnitPrice, isTicketBackTarget:c.isTicketBackTarget })));
 }
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
@@ -44,6 +49,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         if (!cast) throw new Error('cast');
         const changed = cast.email !== (item.email || null) || !!hashes[index];
         await tx.cast.update({ where: { id: cast.id }, data: {
+          ...(item.name !== undefined ? {name:item.name} : {}),
+          ...(item.roleName !== undefined ? {roleName:item.roleName} : {}),
+          ...(item.normaTicketCount !== undefined ? {normaTicketCount:item.normaTicketCount} : {}),
+          ...(item.normaUnitPrice !== undefined ? {normaUnitPrice:item.normaUnitPrice} : {}),
+          ...(item.isTicketBackTarget !== undefined ? {isTicketBackTarget:item.isTicketBackTarget} : {}),
           email: item.email || null, ...(hashes[index] ? { schedulePasswordHash: hashes[index] } : {}),
           ...(changed ? { scheduleAuthVersion: { increment: 1 } } : {}),
         } });
