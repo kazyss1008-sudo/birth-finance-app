@@ -1,0 +1,26 @@
+.page { max-width: 1040px; padding-top: 40px; }
+.header { display: flex; align-items: center; gap: 18px; margin-bottom: 16px; }
+.logo { flex-shrink: 0; width: auto; height: 56px; object-fit: contain; }
+.eyebrow { margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .18em; color: #e74c3c; }
+.appTitle { margin: 0; color: #153b96; font-size: 26px; line-height: 1.4; font-weight: 900; }
+.intro { background: linear-gradient(135deg, #153b96, #305fd6); color: white; }
+.label { margin: 0 0 16px; font-size: 13px; letter-spacing: .1em; opacity: .85; font-weight: 700; }
+.performanceName { margin: 0 0 24px; font-size: 30px; line-height: 1.5; font-weight: 900; overflow-wrap: anywhere; }
+.description { margin: 0; font-size: 14px; line-height: 1.9; opacity: .95; }
+.formTitle { margin: 0 0 8px; font-size: 22px; color: #153b96; font-weight: 900; }
+.help { margin: 0 0 24px; color: #64748b; font-size: 14px; line-height: 1.8; }
+.fieldLabel { display: block; margin-bottom: 8px; font-weight: 700; font-size: 14px; }
+.form input { font-size: 16px; }
+.form button { width: 100%; padding: 14px 16px; font-size: 15px; }
+.contact { margin: 20px 0 0; color: #64748b; font-size: 12px; line-height: 1.8; }
+.footer { padding: 24px 0; text-align: center; font-size: 12px; color: #64748b; }
+@media (max-width: 900px) {
+  .page { padding-top: 20px; }
+  .header { gap: 12px; padding: 18px 16px; }
+  .logo { height: 44px; }
+  .eyebrow { font-size: 9px; letter-spacing: .12em; }
+  .appTitle { font-size: 19px; }
+  .intro, .form { padding: 24px 20px; }
+  .performanceName { font-size: 25px; margin-bottom: 16px; }
+  .formTitle { font-size: 21px; }
+}

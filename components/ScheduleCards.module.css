@@ -1,0 +1,51 @@
+.page { max-width: 900px; margin: 0 auto; padding: 16px; min-width: 0; overflow-wrap: anywhere; }
+.identity { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.identity > div { min-width: 0; }
+.identity img { flex-shrink: 0; }
+.section { background: white; border-radius: 24px; padding: 24px; box-shadow: 0 12px 30px rgba(61,72,152,.08); }
+.section.embedded { padding: 0; border-radius: 0; box-shadow: none; background: transparent; }
+.sectionHeading h2 { margin: 0; font-size: 20px; color: #153b96; }
+.sectionHeading p { margin: 10px 0 20px; color: #64748b; font-size: 13px; line-height: 1.7; }
+.list { display: grid; gap: 16px; }
+.rehearsal { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr); gap: 24px; padding: 20px; border: 1px solid #dbe2ea; border-radius: 18px; border-left: 5px solid #10b981; background: #fbfefd; min-width: 0; }
+.rehearsal[data-status="NG"] { border-left-color: #ef4444; background: #fffafa; }
+.rehearsal[data-status="TIME_LIMITED"] { border-left-color: #f59e0b; background: #fffdf6; }
+.rehearsal[data-status="UNDECIDED"] { border-left-color: #9ca3af; background: #f9fafb; }
+.rehearsalHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; min-width: 0; }
+.rehearsalHeading h3 { margin: 0; color: #153b96; font-size: 19px; line-height: 1.5; }
+.rehearsalTime { margin: 6px 0; font-size: 16px; font-weight: 700; }
+.location { margin: 0; color: #64748b; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+.saving { color: #64748b; font-size: 12px; flex-shrink: 0; }
+.saving[data-failed="true"] { color: #b91c1c; font-weight: 700; }
+.saveError { padding: 12px; background: #fee2e2; border-radius: 10px; color: #991b1b; font-size: 14px; line-height: 1.6; }
+.saveError p { margin: 0 0 8px; }
+.fields { display: grid; gap: 16px; min-width: 0; }
+.fieldLabel { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 700; line-height: 1.5; }
+.statusButtons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.statusButtons button { min-height: 48px; min-width: 0; padding: 8px 4px; border: 1px solid #cbd5e1; border-radius: 12px; background: white; color: #475569; font-size: 15px; font-weight: 700; cursor: pointer; }
+.statusButtons button[aria-pressed="true"] { border-width: 2px; }
+.statusButtons button[data-status="OK"][aria-pressed="true"] { background: #d1fae5; border-color: #059669; color: #047857; }
+.statusButtons button[data-status="NG"][aria-pressed="true"] { background: #fee2e2; border-color: #dc2626; color: #b91c1c; }
+.statusButtons button[data-status="TIME_LIMITED"][aria-pressed="true"] { background: #fef3c7; border-color: #b45309; color: #92400e; }
+.statusButtons button[data-status="UNDECIDED"][aria-pressed="true"] { background: #e5e7eb; border-color: #6b7280; color: #4b5563; }
+.timeFields { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; }
+.timeSeparator { align-self: start; margin-top: 45px; color: #64748b; font-size: 18px; }
+.timeFields > div { min-width: 0; }
+.timeInput, .memo { width: 100%; max-width: 100%; min-width: 0; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; font-size: 16px; background: white; color: #1f2937; }
+.timeInput { appearance: none; -webkit-appearance: none; min-height: 48px; }
+.timeInput::-webkit-date-and-time-value { text-align: left; }
+.memo { display: block; resize: vertical; line-height: 1.5; }
+.clearTime { min-height: 44px; padding: 6px 0; border: 0; background: transparent; color: #153b96; font-size: 12px; text-decoration: underline; cursor: pointer; }
+.clearTime:disabled { color: #94a3b8; cursor: default; text-decoration: none; }
+.hint { margin: 4px 0 0; color: #64748b; font-size: 12px; line-height: 1.7; }
+.statusButtons button:focus-visible, .clearTime:focus-visible, .timeInput:focus-visible, .memo:focus-visible { outline: 3px solid #153b96; outline-offset: 3px; }
+@media (max-width: 640px) {
+  .page { padding: 12px; }
+  .section { padding: 16px; border-radius: 20px; }
+  .identity { gap: 10px; }
+  .rehearsal { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 16px 12px; }
+  .rehearsalHeading h3 { font-size: 19px; }
+  .statusButtons { gap: 6px; }
+  .statusButtons button { font-size: 14px; }
+  .timeFields { gap: 10px; }
+}

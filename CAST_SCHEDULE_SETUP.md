@@ -94,3 +94,10 @@ npx next build
 テストはDBとメールをモック化し、本番データへ接続しない。`npm run build` は `migrate deploy` を含むため、ローカルの読み取り専用検証には使用しない。
 
 参考: [Resend Idempotency keys](https://resend.com/docs/dashboard/emails/idempotency-keys)、[Vercel Cron](https://vercel.com/docs/cron-jobs)、[Hobby実行精度](https://vercel.com/docs/cron-jobs/usage-and-pricing)。
+
+## 2026-11-22 統合版への切替（未実施）
+
+financeにも本人認証・スケジュール・LINE関連機能を実装。最新手順はINTEGRATION_HANDOFF.md参照。
+案内メールはBIRTH_APP_URLを優先（旧SCHEDULE_APP_URLはフォールバック）。キャストは同じアカウントで新ドメインへログインする。
+LINE画像の生成URLもfinanceへ変更。旧署名付き画像は48時間の有効期間中、旧APIを維持する。
+Google認証/アプリパスワード/実送信確認は未完了。秘密値は所有者が直接設定する。

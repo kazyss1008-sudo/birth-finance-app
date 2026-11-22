@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { getSessionUser } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { parseCp932CsvText } from '@/lib/csvImport';
@@ -18,6 +20,7 @@ function serializeBigInt(obj: unknown): unknown {
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!await getSessionUser()) return NextResponse.json({message:'ログインしてください'}, {status:401});
   const { id } = await params;
   const performanceId = BigInt(id);
 
@@ -63,9 +66,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       }, { status: 422 });
     }
 
+    if (rows.some(r=>!Number.isInteger(r.ticketCount)||r.ticketCount<1||!Number.isInteger(r.salesAmount)||r.salesAmount<0||!Number.isFinite(new Date(r.visitedAt).getTime()))) return NextResponse.json({message:'枚数・金額・日時を確認してください'},{status:422});
+    const duplicateKeys = rows.map(r=>r.reservationNo ? JSON.stringify([r.reservationNo,r.visitedAt,r.ticketType,r.handledCastName]) : null).filter(Boolean);
+    if (new Set(duplicateKeys).size !== duplicateKeys.length) return NextResponse.json({message:'同じ予約・券種の重複行があります。確認してください'},{status:422});
     const result = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM performances WHERE id = ${performanceId} FOR UPDATE`;
+      const perf = await tx.performance.findUnique({where:{id:performanceId}});
+      if (perf?.ticketSalesEnabled || await tx.reservation.count({where:{performanceId}})) throw new Error('予約方式の公演ではチケット管理の予約CSV取込を使用してください');
+      const previous = await tx.sale.findMany({where:{performanceId},orderBy:{id:'asc'}});
+      const previewToken=createHash('sha256').update(JSON.stringify(serializeBigInt({rows,previous}))).digest('hex');
+      if (!formData.get('confirmation')) return {previewToken};
+      if (formData.get('confirmation')!==previewToken) throw new Error('売上が変更されました。もう一度取込前確認を行ってください');
       // Delete existing sales for this performance (full replacement)
-      await tx.sale.deleteMany({ where: { performanceId } });
+      await tx.sale.deleteMany({ where: { performanceId, reservationId: null } });
       await tx.salesRawRow.deleteMany({
         where: { importHistory: { performanceId } },
       });
@@ -112,6 +125,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return history;
     });
 
+    if ('previewToken' in result) return NextResponse.json({previewToken:result.previewToken,importedRowCount:rows.length,ticketCount:rows.reduce((s,r)=>s+r.ticketCount,0),salesAmount:rows.reduce((s,r)=>s+r.salesAmount,0)});
     return NextResponse.json(serializeBigInt({
       ok: true,
       importHistoryId: result.id,

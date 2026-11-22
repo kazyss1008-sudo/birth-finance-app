@@ -66,7 +66,7 @@ export function CastAccounts({ performanceId }: { performanceId: string }) {
       <a className="secondary" href="https://birth-schedule-app.vercel.app/line-settings" target="_blank" rel="noopener noreferrer" style={{ whiteSpace: 'nowrap', textDecoration: 'none' }}>LINE通知設定 ↗</a>
     </div>
     <p className="subtitle">更新通知の宛先登録・個人宛テストは「LINE通知設定」から行えます。スケジュールアプリを別のタブで開きます。</p>
-    <p className="subtitle">公演共通のログインURL：<a className="brand" href={`https://birth-schedule-app.vercel.app/performances/${performanceId}/cast`} target="_blank" rel="noopener noreferrer" style={{ overflowWrap: 'anywhere' }}>{`https://birth-schedule-app.vercel.app/performances/${performanceId}/cast`}</a><br />全キャストに同じURLを配布できます。同じ公演では、キャストごとに異なるメールアドレスを登録してください。</p>
+    <p className="subtitle">公演共通のログインURL：<a className="brand" href={`/performances/${performanceId}/cast`} target="_blank" rel="noopener noreferrer" style={{ overflowWrap: 'anywhere' }}>{`/performances/${performanceId}/cast`}</a><br />全キャストに同じURLを配布できます。同じ公演では、キャストごとに異なるメールアドレスを登録してください。</p>
     <p className="subtitle">メールアドレスとパスワードをまとめて登録できます。パスワードは8文字以上。空欄なら現在のパスワードを維持します。登録後のパスワードは表示されません。メールアドレスを空欄にするとログインできなくなります。</p>
     <details style={{ margin: '16px 0' }}>
       <summary>表計算からまとめて貼り付け</summary>

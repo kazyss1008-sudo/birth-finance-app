@@ -21,7 +21,7 @@ export async function sendMail(to: string, subject: string, text: string, key: s
     });
     try {
       const result = await transport.sendMail({
-        from: { name: '劇団Birth', address: user }, to, subject, text,
+        from: { name: '劇団Birth', address: user }, replyTo: 'tac.birth2003@gmail.com', to, subject, text,
         // Stable for tracing retries. SMTP itself does not guarantee deduplication.
         messageId: `<${createHash('sha256').update(key).digest('hex')}@gmail.com>`,
       });

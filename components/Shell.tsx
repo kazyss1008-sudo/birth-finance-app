@@ -9,7 +9,7 @@ export function Shell({ title, subtitle, actions, children, hideManual }: { titl
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <Image src="/logo.png" alt="劇団Birth" width={48} height={48} style={{ height: 48, width: 'auto', objectFit: 'contain' }} priority />
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', color: '#e74c3c' }}>BIRTH FINANCE SYSTEM</div>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', color: '#e74c3c' }}>BIRTH MANAGEMENT SYSTEM</div>
               <h1 className="title brand">{title}</h1>
               {subtitle ? <p className="subtitle">{subtitle}</p> : null}
             </div>

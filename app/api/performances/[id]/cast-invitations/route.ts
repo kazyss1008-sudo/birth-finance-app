@@ -11,7 +11,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: '送信対象を確認してください（1回50名まで）' }, { status: 400 });
-  const origin = process.env.SCHEDULE_APP_URL;
+  const origin = process.env.BIRTH_APP_URL || process.env.SCHEDULE_APP_URL;
   if (!origin || !mailConfigured()) return NextResponse.json({ error: 'メール送信設定が未完了です' }, { status: 503 });
   let base: URL;
   try { base = new URL(origin); if (base.protocol !== 'https:') throw new Error(); }

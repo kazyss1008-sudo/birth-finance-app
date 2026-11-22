@@ -1,3 +1,12 @@
+# 2026-11-22 統合・予約実装の現状（最優先）
+
+最新の実装・検証・未検証事項・公開手順は [INTEGRATION_HANDOFF.md](INTEGRATION_HANDOFF.md) を参照。
+今回の変更はローカルのみ。本番DB・メール・LINE・デプロイは未操作。水島さんのGo前のpush禁止。
+現行.envは読まない。検証にはscripts/verify-isolated.py、または.envを除いた隔離コピーを使用する。npm run buildは検証に使用しない。
+以下は過去の記録。旧「.envから取得」「ビルド後push」「公演単位CSV全削除」の手順を新予約に適用しない。
+
+---
+
 # 劇団Birth公演収支管理 引き継ぎプロンプト
 
 以下を新しいClaudeセッションに貼り付けてください。
@@ -37,7 +46,7 @@ DIRECT_URL="postgresql://neondb_owner:<PASSWORD>@ep-wandering-credit-a1iizr7u.ap
 SESSION_COOKIE_NAME="birth_finance_session"
 SESSION_SECRET="<長いランダム文字列>"
 ```
-※ パスワードとSESSION_SECRETは現在のローカル `.env` から取得して貼ること
+※ 現行 `.env` は読まない。設定が必要な際は所有者が管理画面から直接登録し、秘密値を共有しない。
 ※ Vercel側の環境変数は Settings → Environment Variables から確認可能
 
 **Neon DB情報:**
@@ -195,7 +204,7 @@ npx next build
 
 - 日本語で応答
 - 「私がすべてYesと回答した」= 質問不要で進める指示
-- ビルド後はpush（Vercel自動デプロイ）
+- 統合版は水島さんのGoまでpush禁止（Vercel自動デプロイのため）
 - スマホ対応必須（メンバーがスマホで使う）
 - レイアウト崩れに敏感、スクショで確認してもらう
 - タイムスタンプ表示ルールあり（CLAUDE.md参照、JSTで [受信]/[応答]）

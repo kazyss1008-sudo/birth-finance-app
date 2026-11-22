@@ -89,3 +89,15 @@ schedule 専用: `rehearsals`, `cast_schedules`, enum `ScheduleStatus`、およ�
 - LINE本文はschedule側でキャスト別・稽古日順に最初→最後の差分を集計し、元に戻した変更を省く。個人テストの確認位置は本番通知と別管理する。
 - 2026-11-03: ScheduleStatusにUNDECIDED（未定）を追加しCastSchedule.statusのDBデフォルトを変更。migrations 20261103150000/20261103150100でenum追加とdefault変更を分ける。既存行の状態は変更しない。schedule側は未入力セルを未定として表示し、未定を参加可能数に含めない。
 - キャスト案内メールは公演共通URL `/performances/{id}/cast` を配布。キャスト設定画面にも共通URLを表示。同じ公演内の重複メールを保存時に拒否（公演行ロックで一括・部分保存を直列化）。scheduleの共通ログイン公開を先に確認してからfinanceを反映する。旧キャスト別URLは引き続き使用可能。
+
+## 2026-11-22 基幹統合・チケット（未公開）
+
+- 最新の方針はfinanceのINTEGRATION_HANDOFF.md。本番への反映・pushはGo待ち。
+- 両schemaは同一。migrationはfinanceの20261122000000_ticket_ledgerだけ。予約・価格snapshot・履歴・メール状態を追加、既存データは保持。
+- financeにスケジュール/本人認証/LINE/Cronを移設。旧URLはBIRTH_APP_URL設定後に誘導。未設定時は旧運用を維持。
+- 定時配信は共有line_notification_settings.scheduler_ownerとSCHEDULE_CRON_OWNERで制御。初期ownerはschedule。必ず引き継ぎの切替順序を守る。
+- 現行.envを開かない。本番テスト書込・migrate deploy・npm run buildによる検証は禁止。隔離コピーと架空APIで検証する。
+
+## 2026-11-22 リリース承認
+
+水島さんから本チャットでGoLiveとリリースの明示承認済み。Go待ちの記述は過去記録。隔離PostgreSQL/実PrismaNeon結合検証と最終ビルド成功。LINE秘密設定移行までは旧scheduleの通知担当を維持し、旧URL誘導は保留。Gmailは所有者設定待ち。実際の反映結果はfinanceのINTEGRATION_HANDOFF.md末尾を参照。

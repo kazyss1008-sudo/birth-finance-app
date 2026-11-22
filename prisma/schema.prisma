@@ -56,6 +56,13 @@ model Performance {
   status                PerformanceStatus    @default(PREPARING)
   createdAt             DateTime             @default(now()) @map("created_at")
   updatedAt             DateTime             @updatedAt @map("updated_at")
+  ticketSalesEnabled Boolean @default(false) @map("ticket_sales_enabled")
+  ticketSalesStart DateTime? @map("ticket_sales_start")
+  repeaterEnabled Boolean @default(false) @map("repeater_enabled")
+  repeaterDiscount Int @default(1000) @map("repeater_discount")
+  venue String @default("")
+  ticketTypes TicketType[]
+  reservations Reservation[]
   stages                PerformanceStage[]
   casts                 Cast[]
   ticketBackRules       TicketBackRule[]
@@ -80,6 +87,9 @@ model PerformanceStage {
   stageDate     DateTime?   @map("stage_date") @db.Date
   sortOrder     Int         @map("sort_order")
   performance   Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  startTime String? @map("start_time") @db.VarChar(5)
+  capacity Int?
+  reservations Reservation[]
   goodsSales    GoodsSale[]
 
   @@unique([performanceId, stageNo])
@@ -100,6 +110,7 @@ model Cast {
   // Schedule app field
   roleName           String      @default("") @map("role_name") @db.VarChar(200)
   performance        Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  reservations Reservation[]
   sales              Sale[]
   castSchedules      CastSchedule[]
 
@@ -139,7 +150,7 @@ model SalesImportHistory {
 
 model SalesRawRow {
   id              BigInt             @id @default(autoincrement())
-  importHistoryId BigInt             @map("import_history_id")
+  importHistoryId BigInt            @map("import_history_id")
   rowNo           Int                @map("row_no")
   rawJson         Json               @map("raw_json")
   importHistory   SalesImportHistory @relation(fields: [importHistoryId], references: [id], onDelete: Cascade)
@@ -150,7 +161,9 @@ model SalesRawRow {
 model Sale {
   id              BigInt             @id @default(autoincrement())
   performanceId   BigInt             @map("performance_id")
-  importHistoryId BigInt             @map("import_history_id")
+  importHistoryId BigInt?            @map("import_history_id")
+  reservationId String? @unique @map("reservation_id")
+  reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: Restrict)
   castId          BigInt?            @map("cast_id")
   handledCastName String             @map("handled_cast_name") @db.VarChar(200)
   ticketCount     Int                @map("ticket_count")
@@ -164,7 +177,7 @@ model Sale {
   customerKana    String?            @map("customer_kana") @db.VarChar(200)
   note            String?            @db.Text
   performance     Performance        @relation(fields: [performanceId], references: [id], onDelete: Cascade)
-  importHistory   SalesImportHistory @relation(fields: [importHistoryId], references: [id], onDelete: Cascade)
+  importHistory   SalesImportHistory? @relation(fields: [importHistoryId], references: [id], onDelete: Cascade)
   cast            Cast?              @relation(fields: [castId], references: [id])
 
   @@map("sales")
@@ -343,6 +356,7 @@ model LineDestination {
 }
 
 model LineNotificationSetting {
+  schedulerOwner String @default("schedule") @map("scheduler_owner")
   id                 Int    @id @default(1)
   mode               String @default("TEST") @db.VarChar(10)
   testTargetId       String? @map("test_target_id") @db.VarChar(64)
@@ -360,4 +374,79 @@ model LineRehearsalDelivery {
   sentAt    DateTime? @map("sent_at")
   @@index([createdAt])
   @@map("line_rehearsal_deliveries")
+}
+
+// Ticket ledger. Historical CSV sales remain independent.
+model TicketType {
+  id String @id @default(uuid())
+  performanceId BigInt @map("performance_id")
+  name String @db.VarChar(100)
+  price Int
+  active Boolean @default(true)
+  performance Performance @relation(fields: [performanceId], references: [id], onDelete: Restrict)
+  @@map("ticket_types")
+}
+model Reservation {
+  id String @id @default(uuid())
+  number String @unique
+  performanceId BigInt @map("performance_id")
+  stageId BigInt @map("stage_id")
+  castId BigInt? @map("cast_id")
+  source String
+  importSource String? @map("import_source")
+  externalKey String? @unique @map("external_key")
+  requestKey String @unique @map("request_key")
+  requestHash String @map("request_hash")
+  customerName String @map("customer_name")
+  email String
+  phone String @default("")
+  note String @default("")
+  cancelled Boolean @default(false)
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  performance Performance @relation(fields: [performanceId], references: [id], onDelete: Restrict)
+  stage PerformanceStage @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  cast Cast? @relation(fields: [castId], references: [id], onDelete: Restrict)
+  lines ReservationLine[]
+  history ReservationHistory[]
+  mail ReservationMail?
+  sale Sale?
+  @@index([performanceId, castId])
+  @@index([stageId, cancelled])
+  @@map("reservations")
+}
+model ReservationLine {
+  id String @id @default(uuid())
+  reservationId String @map("reservation_id")
+  ticketTypeId String? @map("ticket_type_id")
+  name String
+  basePrice Int @map("base_price")
+  discount Int
+  repeater Boolean
+  quantity Int
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  @@map("reservation_lines")
+}
+model ReservationHistory {
+  id String @id @default(uuid())
+  reservationId String @map("reservation_id")
+  actor String
+  before Json?
+  after Json
+  createdAt DateTime @default(now()) @map("created_at")
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  @@map("reservation_history")
+}
+model ReservationMail {
+  reservationId String @id @map("reservation_id")
+  state String @default("PENDING")
+  attempts Int @default(0)
+  subject String
+  body String
+  recipient String
+  attemptedAt DateTime? @map("attempted_at")
+  sentAt DateTime? @map("sent_at")
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  @@map("reservation_mail")
 }

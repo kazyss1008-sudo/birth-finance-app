@@ -149,8 +149,13 @@ export default function PerformancePage() {
     try {
       const form = new FormData();
       form.append('file', csvFile);
-      const res = await fetch(`/api/performances/${id}/import`, { method: 'POST', body: form });
-      const data = await res.json();
+      let res = await fetch(`/api/performances/${id}/import`, { method: 'POST', body: form });
+      let data = await res.json();
+      if (res.ok && data.previewToken) {
+        if (!confirm(`従来CSV売上を${data.importedRowCount}行（${data.ticketCount}枚・${data.salesAmount}円）で置き換えます。よろしいですか？`)) return;
+        form.set('confirmation', data.previewToken);
+        res = await fetch(`/api/performances/${id}/import`, {method:'POST',body:form}); data = await res.json();
+      }
       if (res.ok) {
         setCsvResult({ success: true, message: `${data.importedRowCount ?? 0}件のデータを取り込みました。` });
         // Reload all data
@@ -391,7 +396,7 @@ export default function PerformancePage() {
     <Shell
       title={perf.name}
       subtitle={`${statusLabel(perf.status)} | ${perf.startDate?.slice(0, 10) ?? ''} - ${perf.endDate?.slice(0, 10) ?? ''}`}
-      actions={<Link href="/performances" className="secondary">公演選択へ戻る</Link>}
+      actions={<><Link href={`/performances/${id}/tickets`} className="secondary">チケット管理</Link><Link href={`/performances/${id}/schedule`} className="secondary">スケジュール管理</Link><Link href="/performances" className="secondary">公演選択へ戻る</Link></>}
     >
       {/* Tabs */}
       <div className="tabs">

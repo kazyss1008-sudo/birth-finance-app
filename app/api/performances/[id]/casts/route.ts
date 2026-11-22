@@ -21,6 +21,7 @@ function serializeBigInt(obj: unknown): unknown {
 const updateSchema = z.object({
   castId: z.string(),
   name: z.string().min(1).optional(),
+  roleName: z.string().max(200).optional(),
   normaTicketCount: z.number().int().min(0).optional(),
   normaUnitPrice: z.number().int().min(0).optional(),
   isTicketBackTarget: z.boolean().optional(),
@@ -86,4 +87,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     console.error('Cast PATCH error:', err);
     return NextResponse.json({ ok: false, message: 'サーバーエラーが発生しました。' }, { status: 500 });
   }
+}
+
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { getSessionUser } = await import('@/lib/auth');
+  if (!await getSessionUser()) return NextResponse.json({error:'ログインしてください'},{status:401});
+  try {
+    const performanceId = BigInt((await params).id);
+    const data = z.object({name:z.string().trim().min(1).max(200),roleName:z.string().max(200).default('')}).parse(await request.json());
+    const cast = await prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM performances WHERE id = ${performanceId} FOR UPDATE`;
+      const max=await tx.cast.aggregate({where:{performanceId},_max:{sortOrder:true}});
+      return tx.cast.create({data:{...data,performanceId,sortOrder:(max._max.sortOrder??0)+1}});
+    });
+    return NextResponse.json(serializeBigInt(cast));
+  } catch { return NextResponse.json({error:'保存できませんでした。同じ名前が登録済みでないか確認してください'},{status:422}); }
 }

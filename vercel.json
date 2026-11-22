@@ -1,0 +1,15 @@
+{
+  "regions": [
+    "sin1"
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/schedule-digest",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/rehearsal-reminder",
+      "schedule": "0 11 * * *"
+    }
+  ]
+}

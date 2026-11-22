@@ -7,7 +7,7 @@ const SESSION_MAX_AGE = 60 * 60 * 8; // 8時間
 
 export async function verifyLogin(loginId: string, password: string) {
   const user = await prisma.user.findUnique({ where: { loginId } });
-  if (!user || !user.passwordHash) return null;
+  if (!user || !user.isActive || !user.passwordHash) return null;
   const ok = await bcrypt.compare(password, user.passwordHash);
   return ok ? user : null;
 }
@@ -38,5 +38,6 @@ export async function currentLoginId() {
 export async function getSessionUser() {
   const loginId = await currentLoginId();
   if (!loginId) return null;
-  return prisma.user.findUnique({ where: { loginId } });
+  const user = await prisma.user.findUnique({ where: { loginId } });
+  return user?.isActive ? user : null;
 }

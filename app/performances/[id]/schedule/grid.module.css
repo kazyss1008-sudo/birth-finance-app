@@ -1,0 +1,57 @@
+table.matrix th,
+table.matrix td {
+  height: 40px;
+  padding: 6px 8px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+table.matrix .castHeader,
+table.matrix .castName {
+  position: sticky;
+  left: 0;
+  min-width: 104px;
+  padding-left: 12px;
+  text-align: left;
+  border-right: 2px solid #eef2f7;
+}
+
+table.matrix .castHeader { z-index: 2; background: #f4f7ff; }
+table.matrix .castName { z-index: 1; background: white; font-weight: 700; }
+.roleName { display: block; color: #64748b; font-size: 11px; font-weight: 400; }
+table.matrix .dateHeader { min-width: 92px; font-size: 11px; line-height: 1.6; }
+table.matrix .countHeader { min-width: 40px; }
+.mark { display: inline-block; width: 21px; height: 21px; vertical-align: middle; }
+.time { font-size: 12px; font-weight: 700; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 12px; font-size: 12px; }
+.legendItem { display: inline-flex; align-items: center; gap: 6px; }
+.legendMark { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; }
+.legendMark .mark { width: 19px; height: 19px; }
+
+@media (max-width: 900px) {
+  table.matrix th, table.matrix td {
+    height: 32px;
+    padding: 4px;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  table.matrix .castHeader, table.matrix .castName {
+    min-width: 84px;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  table.matrix .dateHeader { min-width: 80px; font-size: 10px; line-height: 1.4; }
+  table.matrix .countHeader { min-width: 32px; }
+  .roleName { font-size: 10px; }
+  .mark { width: 18px; height: 18px; }
+  .time { font-size: 11px; }
+  .legend { gap: 6px 12px; margin-bottom: 10px; font-size: 11px; }
+  .legendItem { gap: 4px; }
+  .legendMark { width: 22px; height: 22px; border-radius: 4px; }
+  .legendMark .mark { width: 18px; height: 18px; }
+}
