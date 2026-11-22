@@ -62,3 +62,25 @@ input[type="date"].input { -webkit-appearance: none; appearance: none; min-width
   .balance-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .balance-grid .card { padding: 12px !important; }
 }
+
+/* Schedule-specific: NG table cell colors */
+.cell-ok { background: #d1fae5; color: #059669; font-weight: 700; text-align: center; font-size: 16px; }
+.cell-ng { background: #fee2e2; color: #dc2626; font-weight: 700; text-align: center; }
+.cell-time { background: #fef3c7; color: #92400e; font-weight: 700; text-align: center; font-size: 11px; }
+.cell-empty { background: #f9fafb; text-align: center; color: #9ca3af; }
+.cell-undecided { background: #f3f4f6; color: #6b7280; font-weight: 700; text-align: center; }
+
+/* Drag handle for sortable items */
+.drag-handle { cursor: grab; color: #9ca3af; user-select: none; }
+.drag-handle:active { cursor: grabbing; }
+
+
+.day-attendance-groups { flex-direction: row; flex-wrap: wrap; }
+.day-attendance-groups > div { flex: 0 0 calc((100% - 24px) / 3); }
+@media (max-width: 900px) {
+  .day-attendance-groups { flex-direction: column; }
+  .day-attendance-groups > div { flex: auto; }
+}
+
+.performance-nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px;padding:12px;background:white;border-radius:16px}.performance-link{padding:12px 16px;color:#153b96;font-weight:700}.performance-nav a:focus-visible{outline:2px solid #153b96;outline-offset:2px}
+@media(max-width:900px){.cell-time{font-size:10px}.performance-nav{gap:4px}.performance-link{padding:8px 12px;font-size:13px}}

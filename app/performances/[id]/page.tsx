@@ -1,4 +1,5 @@
 'use client';
+import { CastMaster } from '@/components/CastMaster';
 import { CastAccounts } from '@/components/CastAccounts';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -641,6 +642,7 @@ export default function PerformancePage() {
             </table>
             </div>
           )}
+          <CastMaster id={id} saved={async()=>{ window.location.assign(`/performances/${id}?tab=${encodeURIComponent('キャスト')}`); }} />
           <CastAccounts performanceId={id} />
         </div>
       )}

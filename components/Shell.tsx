@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { PerformanceNav } from './PerformanceNav';
 import Image from 'next/image';
 
 export function Shell({ title, subtitle, actions, children, hideManual }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode; hideManual?: boolean }) {
@@ -20,6 +21,7 @@ export function Shell({ title, subtitle, actions, children, hideManual }: { titl
           </div>
         </div>
       </div>
+      <PerformanceNav />
       {children}
     </div>
   );
