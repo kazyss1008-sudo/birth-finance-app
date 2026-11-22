@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { amount, totals, cutoff, type Snapshot } from '@/lib/tickets/domain';
+import {IntegerInput} from './IntegerInput';
 import styles from './Tickets.module.css';
 export type TicketMaster={id:string;name:string;price:number;active:boolean};
 export type TicketStage={id:string;stageName:string;stageDate:string|null;startTime:string|null;capacity:number|null};
@@ -26,8 +27,8 @@ export function TicketForm({performance:p, initial, admin=false, proxy=false, ca
  <label>公演回<select value={stageId} onChange={e=>{setStage(e.target.value);setReview(false);}} required>{p.stages.map(s=><option key={s.id} value={s.id}>{s.stageDate?.slice(0,10)} {s.startTime} {s.stageName}</option>)}</select></label>
  {admin&&<><label>取扱<select value={castId} onChange={e=>setCast(e.target.value)}><option value="">劇団Birth</option>{casts.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label><label>予約経路<input value={source} disabled={!!initial} onChange={e=>setSource(e.target.value)} required maxLength={60}/></label>{!initial&&<label>外部予約番号（外部サービスは必須）<input value={externalNumber} onChange={e=>setExternal(e.target.value)} maxLength={100}/></label>}</>}
  {lines.map((l,i)=><section className={styles.line} key={l.id??i} aria-label={`チケット明細 ${i+1}`}>
- <label>券種<select aria-label="券種" value={l.ticketTypeId} disabled={!!l.id} onChange={e=>update(i,{ticketTypeId:e.target.value})} required>{l.id?<option value={l.ticketTypeId}>{l.name}</option>:p.ticketTypes.filter(t=>t.active).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
- <label>枚数<input type="number" min={1} max={100} value={l.quantity} onChange={e=>update(i,{quantity:Number(e.target.value)})} required/></label>
+ <label>券種<select aria-label="券種" value={l.ticketTypeId} disabled={!!l.id} onChange={e=>update(i,{ticketTypeId:e.target.value})} required>{l.id?<option value={l.ticketTypeId}>{l.name}</option>:p.ticketTypes.filter(t=>t.active).map(t=><option key={t.id} value={t.id}>{t.name}（{t.price.toLocaleString()}円）</option>)}</select></label>
+ <label>枚数<IntegerInput min={1} max={100} value={l.quantity} onChange={quantity=>update(i,{quantity})}/></label>
  {(p.repeaterEnabled||!!l.id)&&<label className={styles.check}><input type="checkbox" checked={l.repeater} onChange={e=>update(i,{repeater:e.target.checked})}/>リピーター割引</label>}
  <p>{!l.id&&!p.ticketTypes.some(t=>t.id===l.ticketTypeId)?'券種・料金は準備中です':<>単価 {amount({...calculated[i],quantity:1}).toLocaleString()}円 ／ 小計 {amount(calculated[i]).toLocaleString()}円</>}</p>
  {l.id&&<small>保存済みの単価・割引額を使用します。券種を変える場合はカードを削除し、追加してください。</small>}
