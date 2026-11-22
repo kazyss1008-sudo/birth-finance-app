@@ -29,7 +29,7 @@ export function TicketForm({performance:p, initial, admin=false, proxy=false, ca
  <label>券種<select aria-label="券種" value={l.ticketTypeId} disabled={!!l.id} onChange={e=>update(i,{ticketTypeId:e.target.value})} required>{l.id?<option value={l.ticketTypeId}>{l.name}</option>:p.ticketTypes.filter(t=>t.active).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
  <label>枚数<input type="number" min={1} max={100} value={l.quantity} onChange={e=>update(i,{quantity:Number(e.target.value)})} required/></label>
  {(p.repeaterEnabled||!!l.id)&&<label className={styles.check}><input type="checkbox" checked={l.repeater} onChange={e=>update(i,{repeater:e.target.checked})}/>リピーター割引</label>}
- <p>単価 {amount({...calculated[i],quantity:1}).toLocaleString()}円 ／ 小計 {amount(calculated[i]).toLocaleString()}円</p>
+ <p>{!l.id&&!p.ticketTypes.some(t=>t.id===l.ticketTypeId)?'券種・料金は準備中です':<>単価 {amount({...calculated[i],quantity:1}).toLocaleString()}円 ／ 小計 {amount(calculated[i]).toLocaleString()}円</>}</p>
  {l.id&&<small>保存済みの単価・割引額を使用します。券種を変える場合はカードを削除し、追加してください。</small>}
  {lines.length>1&&<button type="button" onClick={()=>{setLines(a=>a.filter((_,j)=>i!==j));setReview(false);}}>この明細を削除</button>}
  </section>)}
@@ -39,7 +39,7 @@ export function TicketForm({performance:p, initial, admin=false, proxy=false, ca
  <label>電話番号<input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} maxLength={50} autoComplete="tel"/></label>
  <label>備考<textarea value={note} onChange={e=>setNote(e.target.value)} maxLength={2000}/></label>
  <p>全席自由・当日精算です。リピーター割引の方は、受付で同じ公演の半券をご提示ください。</p>
- <strong className={styles.total}>合計 {sum.quantity}枚 ／ {sum.amount.toLocaleString()}円</strong>
+ <strong className={styles.total}>{!initial&&!p.ticketTypes.length?'券種・料金は準備中です':<>合計 {sum.quantity}枚 ／ {sum.amount.toLocaleString()}円</>}</strong>
  {review&&<div className={styles.line} role="status"><h3>予約内容の確認</h3><p>{name} 様 ／ {email}</p><p>{p.stages.find(s=>s.id===stageId)?.stageDate?.slice(0,10)} {p.stages.find(s=>s.id===stageId)?.startTime}</p>{calculated.map((l,i)=><p key={i}>{l.name} {l.repeater?'（リピーター割引）':''} {l.quantity}枚：{amount(l).toLocaleString()}円</p>)}<p>当日お支払い：{sum.amount.toLocaleString()}円</p></div>}
  {error&&<p role="alert">{error}</p>}
  {blocked&&<p role="status">{(!p.ticketSalesStart||now<new Date(p.ticketSalesStart).getTime()) && !(selectedStage?.stageDate&&now>=cutoff(new Date(selectedStage.stageDate)).getTime())?'販売開始前です。販売開始まで少々お待ちください':'販売を終了しています。当日券をご希望の場合は直接お問い合わせください。tac.birth2003@gmail.com'}</p>}<div className={styles.actions}><button type="submit" disabled={blocked||!lines.length||sum.quantity>100}>{busy?'保存中…':review?(initial?'変更を保存':'予約を確定'):'予約内容を確認'}</button>{initial&&!initial.cancelled&&<button disabled={blocked} type="button" onClick={()=>{if(confirm('この予約をキャンセルしますか？'))void save(true);}}>予約をキャンセル</button>}{close&&<button type="button" onClick={close}>閉じる</button>}</div>
