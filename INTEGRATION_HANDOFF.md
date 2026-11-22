@@ -119,3 +119,12 @@ UNKNOWN/SENDINGの再送はGmail送信済み確認を必須とし、SENDINGは2�
 
 Go承認後、finance ProductionにBIRTH_APP_URL（finance正式URL）、TICKETS_PUBLIC_ENABLED=true、RESERVATION_MAIL_ENABLED=trueを登録。公演の受付許可は初期falseであり、券種・開始日時など本番公演設定完了までは新規販売されない。Gmail未設定はUNCONFIGUREDとして予約を保持する。
 LINEの既存SecretはVercelから読み出せず、所有者によるfinanceへの設定移行が必要。設定が揃うまでscheduler_owner=schedule、両SCHEDULE_CRON_OWNER未設定を維持する。旧scheduleのBIRTH_APP_URL設定・旧URLの誘導は通知切替時まで保留。基幹内のスケジュール画面は利用可能だが、LINE設定操作は引き続き旧scheduleを使用。新旧でCronを二重稼働させない。
+
+## 2026-11-22 本番反映結果
+
+- finance c1c56b0: Vercel Production AkmaFeuCzQbeHzTi3fzjEnKFwvsQ、Deployment completed。ビルドログで20261122000000_ticket_ledgerとAll migrations have been successfully appliedを確認。
+- schedule b04c1c0: Vercel Production 3CydBpw1JrPYu2N9Jwga87x7hM2P、Deployment completed。
+- 公開ログイン200、未認証の公演API・本人チケットAPI・本人稽古APIは401。未受付公演の予約APIは404。
+- スケジュール通知は従来どおりLINE。メールは予約完了用。LINE実行元は旧scheduleのまま維持。Gmail設定は水島さんが実施後に報告予定。実送信・通知担当移行・旧URL誘導は未完了。
+
+本番管理者ログイン後、次回公演の8公演回、劇団と全キャストの予約URL、既存稽古19日分の入力表示、過去公演のCSV履歴と収支画面を読み取り確認。金額・枚数の全件比較や本番での保存・メール送信は未実施。次回公演は受付許可オフ、券種/会場/開始日時/開演時刻/定員が未設定のため、販売前に設定が必要。デモ料金は登録していない。

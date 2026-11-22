@@ -245,3 +245,7 @@ birth-finance-app/
 ---
 
 以上を踏まえて、引き続き対応をお願いします。
+
+## 2026-11-22 本番リリース
+
+Go承認を受け、基幹統合・チケット管理をfinance c1c56b0、旧schedule互換対応をb04c1c0で本番反映。追加migration成功、両Vercel Production成功。予約メール状態・送信日時・再送を実装。Gmail所有者設定と実送信は未完了、次回公演の販売設定も未入力。スケジュール通知は従来のLINEを旧scheduleで継続し、通知担当移行と旧URL誘導は保留。詳細はINTEGRATION_HANDOFF.md末尾。
