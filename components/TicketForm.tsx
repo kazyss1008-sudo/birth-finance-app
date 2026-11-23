@@ -11,7 +11,7 @@ export function TicketForm({performance:p, initial, admin=false, proxy=false, ca
  const fresh=()=>({ticketTypeId:p.ticketTypes.find(t=>t.active)?.id??'',quantity:1,repeater:false});
  const [lines,setLines]=useState<(Partial<Snapshot>&{ticketTypeId:string;quantity:number;repeater:boolean})[]>(initial?initial.lines.map(l=>({...l,ticketTypeId:l.ticketTypeId??''})):[fresh()]);
  const [stageId,setStage]=useState(initial?.stageId??p.stages[0]?.id??'');
- const [name,setName]=useState(initial?.customerName??'');const [email,setEmail]=useState(initial?.email??'');const [phone,setPhone]=useState(initial?.phone??'');const [note,setNote]=useState(initial?.note??'');
+ const [name,setName]=useState(initial?.customerName??'');const [email,setEmail]=useState(initial?.email??'');const phone=initial?.phone??'';const [note,setNote]=useState(initial?.note??'');
  const [castId,setCast]=useState(initial?.castId??'');
  const [key,setKey]=useState(()=>crypto.randomUUID());
  const [now,setNow]=useState(Date.now());
@@ -37,7 +37,6 @@ export function TicketForm({performance:p, initial, admin=false, proxy=false, ca
  <button type="button" onClick={()=>{setLines(a=>[...a,fresh()]);setReview(false);}} disabled={lines.length>=30}>別の券種・割引を追加</button>
  <label>お名前 ＊<input value={name} onChange={e=>{setName(e.target.value);setReview(false);}} required maxLength={200} autoComplete="name"/></label>
  {!proxy&&<label>メールアドレス ＊<input type="email" value={email} onChange={e=>{setEmail(e.target.value);setReview(false);}} required={!proxy} maxLength={254} autoComplete="email"/></label>}
- <label>電話番号（任意）<input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} maxLength={50} autoComplete="tel"/></label>
  <label>備考（任意）<textarea value={note} onChange={e=>setNote(e.target.value)} maxLength={2000}/></label>
  <p>全席自由・当日精算です。リピーター割引の方は、受付で同じ公演の半券をご提示ください。</p>
  <strong className={styles.total}>{!initial&&!p.ticketTypes.length?'券種・料金は準備中です':<>合計 {sum.quantity}枚 ／ {sum.amount.toLocaleString()}円</>}</strong>
