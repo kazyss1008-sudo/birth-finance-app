@@ -8,11 +8,11 @@ import {IntegerInput} from './IntegerInput';
 import {CastNav} from './CastNav';
 import {Shell} from './Shell';
 type Data={performance:TicketPerformance;reservations:Booking[];casts:{id:string;name:string}[];actor:{kind:string;castId:string|null}};
-export default function TicketManager({id}:{id:string}){
+export default function TicketManager({id,castOnly=false}:{id:string;castOnly?:boolean}){
  const [data,setData]=useState<Data|null>(null);const [error,setError]=useState('');const [edit,setEdit]=useState<Booking|'new'|null>(null);const [q,setQ]=useState('');const [origin,setOrigin]=useState('');const [tab,setTab]=useState('予約一覧');
- const load=useCallback(async()=>{const r=await fetch(`/api/cast/tickets/${id}`);const d=await r.json();if(!r.ok)throw new Error(d.error);setData(d);},[id]);
+ const load=useCallback(async()=>{const r=await fetch(`/api/cast/tickets/${id}${castOnly?'?scope=cast':''}`);const d=await r.json();if(!r.ok)throw new Error(d.error);setData(d);},[id,castOnly]);
  useEffect(()=>{setOrigin(location.origin);const view=new URLSearchParams(location.search).get('view');if(view==='stages')setTab('公演回・残席');if(view==='settings')setTab('公演設定');load().catch(e=>setError(e.message));},[load]);
- async function post(body:unknown){const r=await fetch(`/api/cast/tickets/${id}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error);setEdit(null);await load();}
+ async function post(body:unknown){const r=await fetch(`/api/cast/tickets/${id}${castOnly?'?scope=cast':''}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error);setEdit(null);await load();}
  if(!data)return <main className={styles.page}><p>{error||'読み込み中…'}</p><a href={`/performances/${id}/cast`}>キャストログイン</a></main>;
  const {performance:p,reservations,casts,actor}=data;const admin=actor.kind==='admin';
  const urls=admin?[{id:'birth',name:'劇団Birth'},...casts]:[{id:actor.castId!,name:'自分の販売URL'}];

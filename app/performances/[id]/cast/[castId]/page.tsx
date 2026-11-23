@@ -237,7 +237,7 @@ export default function CastNGPage() {
 
         {err && <div role="alert" style={{ background: '#fee2e2', color: '#dc2626', padding: '12px 16px', borderRadius: 12, fontWeight: 700, marginBottom: 12 }}>{err}</div>}
 
-        <CastNav id={perfId} active={showSchedule?'schedule':'home'}/>
+        {showSchedule&&<CastNav id={perfId} active="schedule"/>}
         {!showSchedule&&<div className="grid grid-2"><a className="cast-menu-card" href={`/performances/${perfId}/cast?view=schedule`}><h2>スケジュール登録</h2><p>稽古の参加可否を登録・変更する</p></a><a className="cast-menu-card" href={`/performances/${perfId}/cast/tickets`}><h2>チケット管理</h2><p>自分扱いの予約・販売URLを確認する</p></a></div>}
         {showSchedule&&<ScheduleCards rehearsals={rehearsals} values={localSchedules} saving={saving} errors={saveErrors}
           onChange={updateAndSave} onClear={clearAndSave} onRetry={retrySave} />}

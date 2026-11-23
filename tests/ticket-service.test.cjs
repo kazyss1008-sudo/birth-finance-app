@@ -60,3 +60,11 @@ test('ticket back and quota respond to quantity, not discount or type price, and
  const r=await saveBooking(10n,actor,input());const settlement=()=>{const tickets=Object.values(state.sales).filter(s=>s.castId===2n).reduce((n,s)=>n+s.ticketCount,0);return{back:calculateTicketBack(tickets,rules),norma:Math.max(3-tickets,0)*3000}};
  assert.deepEqual(settlement(),{back:300,norma:3000});await saveBooking(10n,admin,input({castId:'2',version:1,lines:[{...r.lines[0],repeater:false}]}),r.id);assert.deepEqual(settlement(),{back:300,norma:3000});await saveBooking(10n,admin,input({castId:'2',version:2,cancelled:true}),r.id);assert.deepEqual(settlement(),{back:0,norma:9000});
 });
+
+test('cast ticket mode keeps its own identity even with a simultaneous admin login', async()=>{
+ state.admin={id:1n};state.cast=cast;
+ assert.equal((await actorFor(10n)).kind,'admin');
+ assert.deepEqual(await actorFor(10n,undefined,true),actor);
+ state.cast=null;
+ await assert.rejects(()=>actorFor(10n,undefined,true),/ログイン/);
+});

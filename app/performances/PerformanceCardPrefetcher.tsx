@@ -13,19 +13,19 @@ export function PerformanceCardPrefetcher({ id, children, first }: { id: string;
   useEffect(() => {
     if (first && !globalWarmed) {
       globalWarmed = true;
-      fetch(`/api/performances/${id}/all-data`).catch(() => {});
+      fetch(`/api/performances/${id}/schedule-grid`).catch(() => {});
     }
   }, [first, id]);
 
   const handleWarmup = useCallback(() => {
     if (warmed.current) return;
     warmed.current = true;
-    fetch(`/api/performances/${id}/all-data`).catch(() => {});
+    fetch(`/api/performances/${id}/schedule-grid`).catch(() => {});
   }, [id]);
 
   return (
     <Link
-      href={`/performances/${id}`}
+      href={`/performances/${id}/schedule`}
       className="card"
       style={{ transition: 'box-shadow 0.2s', cursor: 'pointer' }}
       onMouseEnter={handleWarmup}

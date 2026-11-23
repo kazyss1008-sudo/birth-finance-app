@@ -11,10 +11,10 @@ export type Actor = {
     castId: bigint | null;
     version?: number;
 };
-export async function actorFor(performanceId: bigint, publicCast?: string): Promise<Actor> {
+export async function actorFor(performanceId: bigint, publicCast?: string, castOnly = false): Promise<Actor> {
     if (publicCast !== undefined)
         return { kind: 'public', id: 'public', castId: publicCast === 'birth' ? null : /^\d+$/.test(publicCast) ? BigInt(publicCast) : (() => { throw new TicketError('予約ページがありません', 404); })() };
-    const admin = await getSessionUser();
+    const admin = castOnly ? null : await getSessionUser();
     if (admin)
         return { kind: 'admin', id: String(admin.id), castId: null };
     const cast = await getCastSession();

@@ -12,7 +12,7 @@ export async function GET(_req: Request, { params }: Context) {
     try {
         const { id } = await params;
         const pid = BigInt(id);
-        const actor = await actorFor(pid);
+        const actor = await actorFor(pid, undefined, new URL(_req.url).searchParams.get('scope') === 'cast');
         const performance = await prisma.performance.findUnique({ where: { id: pid }, select: { id:true,name:true,venue:true,ticketSalesEnabled:true,ticketSalesStart:true,repeaterEnabled:true,repeaterDiscount:true,ticketTypes: true, stages: { orderBy: { sortOrder: 'asc' } } } });
         if (!performance) throw new TicketError('公演がありません',404);
         const reservations = await prisma.reservation.findMany({ where: { performanceId: pid, ...(actor.kind === 'cast' ? { castId: actor.castId } : {}) }, include: { lines: true, stage: true, mail: { select: { state: true, attemptedAt: true, sentAt: true } }, history: actor.kind === 'admin' }, orderBy: { createdAt: 'desc' } });
@@ -28,7 +28,7 @@ export async function POST(req: Request, { params }: Context) {
         checkOrigin(req);
         const { id } = await params;
         const pid = BigInt(id);
-        const actor = await actorFor(pid);
+        const actor = await actorFor(pid, undefined, new URL(req.url).searchParams.get('scope') === 'cast');
         const body = await req.json();
         if (body.action === 'resend') {
             if (actor.kind !== 'admin')
