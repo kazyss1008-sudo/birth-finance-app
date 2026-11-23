@@ -31,9 +31,12 @@ export async function saveBooking(performanceId: bigint, actor: Actor, raw: unkn
         throw new TicketError('メールアドレスを入力してください');
     if (actor.kind !== 'admin') {
         input.castId = actor.castId ? String(actor.castId) : null;
-        input.source = actor.kind === 'public' ? 'Web' : 'キャスト代理';
+
         input.externalNumber = undefined;
     }
+    input.source = actor.kind === 'public' ? '予約ページ' : '管理ページ';
+    input.externalNumber = undefined;
+    if(actor.kind !== 'public') input.email = '';
     const hash = createHash('sha256').update(JSON.stringify({ performanceId: String(performanceId), actor, input }, (_, v) => typeof v === 'bigint' ? String(v) : v)).digest('hex');
     return prisma.$transaction(async (tx) => {
         await lockPerformance(tx, performanceId);
@@ -78,8 +81,6 @@ export async function mutateBooking(tx: Prisma.TransactionClient, performanceId:
         throw new TicketError('現在受付を停止しています');
     if (!old && !imported && await tx.sale.count({ where: { performanceId, reservationId: null } }))
         throw new TicketError('既存CSV売上のある公演への予約追加には移行確認が必要です');
-    if (actor.kind === 'admin' && !old && !['代理予約', 'Web'].includes(input.source) && !input.externalNumber)
-        throw new TicketError('外部予約番号を入力してください');
     const castId = actor.kind === 'admin' ? (input.castId ? BigInt(input.castId) : null) : actor.castId;
     const cast = castId ? await tx.cast.findFirst({ where: { id: castId, performanceId } }) : null;
     if (castId && !cast)
@@ -93,11 +94,11 @@ export async function mutateBooking(tx: Prisma.TransactionClient, performanceId:
         if ((count._sum.quantity ?? 0) + sum.quantity > stage.capacity)
             throw new TicketError('残席が不足しています', 409);
     }
-    const source = old?.source ?? (actor.kind === 'public' ? 'Web' : actor.kind === 'cast' ? 'キャスト代理' : input.source);
-    const externalKey = old?.externalKey ?? (input.externalNumber ? `${performanceId}:${source}:${input.externalNumber}` : null);
+    const source = old?.source ?? (imported ? 'CSV' : actor.kind === 'public' ? '予約ページ' : '管理ページ');
+    const externalKey = old?.externalKey ?? (input.externalNumber ? `${performanceId}:${imported?.source ?? source}:${input.externalNumber}` : null);
     if (!old && externalKey && await tx.reservation.findUnique({ where: { externalKey } }))
         throw new TicketError('同じ経路・外部予約番号が登録済みです', 409);
-    const data = { ...(imported ? { importSource: imported.source } : {}), stageId: stage.id, castId, source, externalKey, customerName: input.customerName, email: input.email, phone: input.phone, note: input.note, cancelled: input.cancelled };
+    const data = { ...(imported ? { importSource: imported.source } : {}), stageId: stage.id, castId, source, externalKey, customerName: input.customerName, email: !imported && actor.kind !== 'public' ? (old?.email ?? '') : input.email, phone: input.phone, note: input.note, cancelled: input.cancelled };
     if (old)
         await tx.reservationLine.deleteMany({ where: { reservationId: old.id } });
     const cleanLines = lines.map(l => ({ ticketTypeId: l.ticketTypeId, name: l.name, basePrice: l.basePrice, discount: l.discount, repeater: l.repeater, quantity: l.quantity }));

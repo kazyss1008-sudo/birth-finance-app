@@ -68,3 +68,16 @@ test('cast ticket mode keeps its own identity even with a simultaneous admin log
  state.cast=null;
  await assert.rejects(()=>actorFor(10n,undefined,true),/ログイン/);
 });
+
+test('new booking sources are server-assigned and proxy bookings do not collect email or create mail',async()=>{
+ const proxy=await saveBooking(10n,admin,input({source:'偽装経路'}));assert.equal(proxy.source,'管理ページ');assert.equal(proxy.email,'');assert.equal(state.mails.length,0);
+ state.reservations=[];state.sales={};
+ const customer=await saveBooking(10n,publicActor,input({source:'偽装経路'}));assert.equal(customer.source,'予約ページ');assert.equal(state.mails.length,1);
+ const updated=await saveBooking(10n,admin,input({version:customer.version,lines:customer.lines,email:''}),customer.id);
+ assert.equal(updated.email,customer.email);assert.equal(updated.source,'予約ページ');
+});
+test('CSV source label stays separate from its stable reimport key',async()=>{
+ const {mutateBooking}=require('../lib/tickets/service.ts');
+ const result=await mutateBooking(db,10n,admin,input({source:'外部A',externalNumber:'external-1'}),'hash',undefined,{source:'外部A',lines:[{ticketTypeId:null,name:'一般',basePrice:3000,discount:0,repeater:false,quantity:1}]});
+ assert.equal(result.source,'CSV');assert.equal(result.importSource,'外部A');assert.equal(result.externalKey,'10:外部A:external-1');
+});

@@ -6,6 +6,7 @@ import styles from './Tickets.module.css';
 import {TicketCsv} from './TicketCsv';
 import {IntegerInput} from './IntegerInput';
 import {CastNav} from './CastNav';
+import {StageMatrix} from './StageMatrix';
 import {Shell} from './Shell';
 type Data={performance:TicketPerformance;reservations:Booking[];casts:{id:string;name:string}[];actor:{kind:string;castId:string|null}};
 export default function TicketManager({id,castOnly=false}:{id:string;castOnly?:boolean}){
@@ -19,8 +20,8 @@ export default function TicketManager({id,castOnly=false}:{id:string;castOnly?:b
  return <Shell title={p.name} subtitle={admin?'チケット管理':'自分のチケット'} hideManual={!admin}><main className={styles.page}>{!admin&&<CastNav id={id} active="tickets"/>}{error&&<p role="alert">{error}</p>}
  <div className={styles.subtabs} role="tablist" aria-label="チケット管理">{(admin?['予約一覧','公演回・残席','予約URL','公演設定','CSV取込']:['予約一覧','公演回・残席','予約URL']).map(t=><button key={t} type="button" role="tab" aria-selected={tab===t} aria-controls={'ticket-panel-'+t} onClick={()=>setTab(t)}>{t}</button>)}</div>
  <div role="tabpanel" id="ticket-panel-公演回・残席" hidden={tab!=='公演回・残席'}>
- <section className={styles.line}><h2>公演回別の予約枚数{admin?'・残席':''}</h2>{p.stages.map(s=>{const n=reservations.filter(r=>!r.cancelled&&r.stageId===s.id).reduce((n,r)=>n+totals(r.lines).quantity,0);return <p key={s.id}>{s.stageDate?.slice(0,10)} {s.startTime} {s.stageName}：{n}枚 {admin?`／ 残席 ${s.capacity===null?'未設定':s.capacity-n}`:''}</p>;})}</section></div>
- <section role="tabpanel" id="ticket-panel-予約URL" hidden={tab!=='予約URL'} className={styles.line}><h2>予約ページURL一覧</h2>{urls.map(c=>{const url=`${origin}/reserve/${id}/${c.id}`;return <div key={c.id}><h3>{c.name}</h3><p className={styles.url}>{url}</p><div className={styles.actions}><button onClick={()=>navigator.clipboard.writeText(url).catch(()=>setError('URLを選択してコピーしてください'))}>コピー</button><a href={url} target="_blank" rel="noreferrer">ページを開く</a></div></div>;})}</section>
+ <StageMatrix performance={p} reservations={reservations} admin={admin}/></div>
+ <section role="tabpanel" id="ticket-panel-予約URL" hidden={tab!=='予約URL'} className={styles.line}><h2>予約ページURL一覧</h2><div className={styles.urlGrid}>{urls.map(c=>{const url=`${origin}/reserve/${id}/${c.id}`;return <div key={c.id} className={styles.urlCard}><h3>{c.name}</h3><input className={styles.url} aria-label={`${c.name}の予約URL`} readOnly value={url} onFocus={e=>e.target.select()}/><div className={styles.actions}><button onClick={()=>navigator.clipboard.writeText(url).catch(()=>setError('URLを選択してコピーしてください'))}>コピー</button><a href={url} target="_blank" rel="noreferrer">ページを開く</a></div></div>;})}</div></section>
  {admin&&<><div role="tabpanel" id="ticket-panel-公演設定" hidden={tab!=='公演設定'}><Settings p={p} saved={load}/></div><div role="tabpanel" id="ticket-panel-CSV取込" hidden={tab!=='CSV取込'}><TicketCsv id={id} saved={load}/></div></>}
  <div role="tabpanel" id="ticket-panel-予約一覧" hidden={tab!=='予約一覧'}>
  <div className={styles.actions}><button onClick={()=>setEdit('new')}>予約を追加</button><button onClick={()=>load().catch(e=>setError(e.message))}>再読み込み</button></div>
