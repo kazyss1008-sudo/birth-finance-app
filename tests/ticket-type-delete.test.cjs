@@ -1,0 +1,11 @@
+const {test,beforeEach}=require('node:test');const assert=require('node:assert/strict');const Module=require('node:module');const original=Module._load;let user,used,history,enabled,exists,removed,locked;
+const tx={ticketType:{findFirst:async()=>exists?{id:'t',active:true}:null,count:async()=>1,delete:async()=>{assert.ok(locked);removed++}},reservationLine:{count:async()=>used},reservationHistory:{findFirst:async()=>history?{id:'h'}:null},performance:{findUnique:async()=>({ticketSalesEnabled:enabled})}};
+Module._load=function(id,...args){if(id==='@/lib/prisma')return{prisma:{$transaction:async fn=>fn(tx)}};if(id==='@/lib/auth')return{getSessionUser:async()=>user};if(id==='@/lib/tickets/service')return{lockPerformance:async()=>{locked=true}};return original.call(this,id,...args)};
+const {DELETE}=require('../app/api/performances/[id]/ticket-settings/route.ts');
+const call=(origin)=>DELETE(new Request('http://localhost/api/performances/1/ticket-settings',{method:'DELETE',headers:origin?{origin}:{},body:JSON.stringify({ticketTypeId:'t'})}),{params:Promise.resolve({id:'1'})});
+beforeEach(()=>{user={id:1};used=0;history=false;enabled=false;exists=true;removed=0;locked=false});
+test('unused type can be deleted under the same performance lock as reservations',async()=>{assert.equal((await call()).status,200);assert.equal(removed,1)});
+test('current or cancelled reservation lines prevent deletion',async()=>{used=1;assert.equal((await call()).status,409);assert.equal(removed,0)});
+test('past reservation history prevents deletion after its line was edited out',async()=>{history=true;assert.equal((await call()).status,409);assert.equal(removed,0)});
+test('another performance type and anonymous/cross-origin requests cannot delete',async()=>{exists=false;assert.equal((await call()).status,404);user=null;assert.equal((await call()).status,401);assert.equal((await call('https://other.invalid')).status,403);assert.equal(removed,0)});
+test('last active type is retained while reception is enabled',async()=>{enabled=true;assert.equal((await call()).status,409);assert.equal(removed,0)});

@@ -68,3 +68,24 @@ export async function PUT(req: Request, { params }: {
         return failure(e);
     }
 }
+
+export async function DELETE(req: Request, {params}: {params:Promise<{id:string}>}) {
+    try {
+        checkOrigin(req);
+        if (!await getSessionUser()) throw new TicketError('ログインしてください',401);
+        const pid=BigInt((await params).id);
+        const {ticketTypeId}=z.object({ticketTypeId:z.string().min(1)}).parse(await req.json());
+        await prisma.$transaction(async tx=>{
+            await lockPerformance(tx,pid);
+            const type=await tx.ticketType.findFirst({where:{id:ticketTypeId,performanceId:pid}});
+            if(!type) throw new TicketError('券種がありません',404);
+            const used=await tx.reservationLine.count({where:{ticketTypeId}});
+            const history=await tx.reservationHistory.findFirst({where:{reservation:{performanceId:pid},OR:[{before:{path:['lines'],array_contains:[{ticketTypeId}]}},{after:{path:['lines'],array_contains:[{ticketTypeId}]}}]},select:{id:true}});
+            if(used||history) throw new TicketError('予約で使用された券種は削除できません。販売を止める場合は「販売中」を外してください。',409);
+            const performance=await tx.performance.findUnique({where:{id:pid},select:{ticketSalesEnabled:true}});
+            if(performance?.ticketSalesEnabled&&type.active&&await tx.ticketType.count({where:{performanceId:pid,active:true}})<=1) throw new TicketError('受付中の最後の券種は削除できません。先に新規受付を停止してください。',409);
+            await tx.ticketType.delete({where:{id:ticketTypeId}});
+        });
+        return reply({ok:true});
+    }catch(e){return failure(e);}
+}
