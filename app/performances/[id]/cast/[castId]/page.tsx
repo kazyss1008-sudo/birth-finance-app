@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import styles from './login.module.css';
 import editor from '@/components/ScheduleCards.module.css';
+import { CastNav } from '@/components/CastNav';
 import { ScheduleCards } from '@/components/ScheduleCards';
 
 type Rehearsal = { id: string; performanceId: string; date: string; startTime: string; endTime: string; location: string; memo: string | null };
@@ -13,6 +14,8 @@ type Performance = { id: string; name: string };
 
 export default function CastNGPage() {
   const { id: perfId, castId } = useParams<{ id: string; castId: string }>();
+  const [showSchedule,setShowSchedule]=useState(false);
+  useEffect(()=>{setShowSchedule(new URLSearchParams(location.search).get('view')==='schedule');},[]);
   const [perf, setPerf] = useState<Performance | null>(null);
   const [cast, setCast] = useState<Cast | null>(null);
   const [rehearsals, setRehearsals] = useState<Rehearsal[]>([]);
@@ -149,15 +152,15 @@ export default function CastNGPage() {
       <header className={`card ${styles.header}`}>
         <Image src="/logo.png" alt="劇団Birth" width={56} height={56} className={styles.logo} priority />
         <div>
-          <p className={styles.eyebrow}>BIRTH SCHEDULE SYSTEM</p>
-          <h1 className={styles.appTitle}>劇団Birth 稽古スケジュール</h1>
+          <p className={styles.eyebrow}>BIRTH MANAGEMENT SYSTEM</p>
+          <h1 className={styles.appTitle}>劇団Birth マイページ</h1>
         </div>
       </header>
       <div className="grid-2">
         <section className={`card ${styles.intro}`} aria-label="対象公演">
           <p className={styles.label}>公演名</p>
           <h2 className={styles.performanceName}>{perf?.name || '公演情報を確認できませんでした'}</h2>
-          <p className={styles.description}>キャストの皆さまへ<br />こちらは本公演専用のスケジュール登録ページです。<br />稽古への参加可否（OK・NG・時間指定）を登録・変更できます。</p>
+          <p className={styles.description}>キャストの皆さまへ<br />こちらは本公演専用のマイページです。<br />スケジュール登録と自分のチケット管理をご利用いただけます。</p>
         </section>
         <section className={`card ${styles.form}`}>
           <h2 className={styles.formTitle}>キャスト用ログイン</h2>
@@ -170,7 +173,7 @@ export default function CastNGPage() {
               body: JSON.stringify({ performanceId: perfId, castId, email, password }) });
             const data = await response.json();
             if (!response.ok) { setErr(data.error || 'ログインできませんでした'); return; }
-            blocked.current = false; setPassword(''); setSaveErrors({}); setSaving({}); await loadAll();
+            setShowSchedule(false); window.history.replaceState(null,'',`/performances/${perfId}/cast`); blocked.current = false; setPassword(''); setSaveErrors({}); setSaving({}); await loadAll();
           } catch { setErr('通信エラー。もう一度お試しください'); }
           finally { setLoggingIn(false); }
         }}>
@@ -209,10 +212,10 @@ export default function CastNGPage() {
             <div className={editor.identity}>
               <Image src="/logo.png" alt="劇団Birth" width={40} height={40} style={{ height: 40, width: 'auto', objectFit: 'contain' }} priority />
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', color: '#e74c3c' }}>BIRTH SCHEDULE SYSTEM</div>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', color: '#e74c3c' }}>BIRTH MANAGEMENT SYSTEM</div>
                 <div style={{ fontSize: 20, fontWeight: 900, color: '#153b96' }}>{cast.name} 様</div>
                 <div style={{ fontSize: 13, color: '#64748b' }}>
-                  {perf?.name} — スケジュール登録
+                  {perf?.name} — {showSchedule?'スケジュール登録':'マイページ'}
                   {cast.roleName && <span style={{ marginLeft: 8 }}>役: {cast.roleName}</span>}
                 </div>
               </div>
@@ -224,7 +227,7 @@ export default function CastNGPage() {
               await fetch('/api/cast/logout', { method: 'POST' });
               setCast(null); setSchedules([]); setLocalSchedules({}); localSchedulesRef.current = {}; setSaveErrors({}); setNeedsLogin(true);
             }}>ログアウト</button>
-            <a href={`/performances/${perfId}/cast/tickets`}>自分のチケット</a>
+
             <a href="/cast-guide.html" target="_blank" rel="noopener noreferrer"
               style={{ background: '#edf2ff', color: '#153b96', border: 'none', borderRadius: 16, padding: '8px 14px', fontWeight: 700, fontSize: 13, textDecoration: 'none', whiteSpace: 'nowrap' }}>
               📖 入力ガイド
@@ -234,8 +237,10 @@ export default function CastNGPage() {
 
         {err && <div role="alert" style={{ background: '#fee2e2', color: '#dc2626', padding: '12px 16px', borderRadius: 12, fontWeight: 700, marginBottom: 12 }}>{err}</div>}
 
-        <ScheduleCards rehearsals={rehearsals} values={localSchedules} saving={saving} errors={saveErrors}
-          onChange={updateAndSave} onClear={clearAndSave} onRetry={retrySave} />
+        <CastNav id={perfId} active={showSchedule?'schedule':'home'}/>
+        {!showSchedule&&<div className="grid grid-2"><a className="cast-menu-card" href={`/performances/${perfId}/cast?view=schedule`}><h2>スケジュール登録</h2><p>稽古の参加可否を登録・変更する</p></a><a className="cast-menu-card" href={`/performances/${perfId}/cast/tickets`}><h2>チケット管理</h2><p>自分扱いの予約・販売URLを確認する</p></a></div>}
+        {showSchedule&&<ScheduleCards rehearsals={rehearsals} values={localSchedules} saving={saving} errors={saveErrors}
+          onChange={updateAndSave} onClear={clearAndSave} onRetry={retrySave} />}
 
         {/* Footer */}
         <div style={{ textAlign: 'center', padding: '24px 0', color: '#9ca3af', fontSize: 12 }}>

@@ -31,15 +31,15 @@ export default function LoginPage() {
         return;
       }
       if (!res.ok) { setError(data.message || 'ログインに失敗しました。'); return; }
-      router.push(data.redirectTo || '/performances');
+      window.location.replace('/performances');
     } catch { setError('通信エラーが発生しました。'); } finally { setLoading(false); }
   }
 
   return (
-    <Shell title="劇団Birth公演収支管理" subtitle="ログイン後に公演を選択して管理を開始します。" hideManual>
+    <Shell title="劇団Birth 管理" subtitle="ログイン後に公演を選択して管理を開始します。" hideManual>
       <div className="grid-2">
         <div className="card" style={{ background: 'linear-gradient(135deg, #153b96, #305fd6)', color: 'white' }}>
-          <div style={{ fontSize: 12, letterSpacing: '0.25em', opacity: 0.85, fontWeight: 700 }}>BIRTH FINANCE SYSTEM</div>
+          <div style={{ fontSize: 12, letterSpacing: '0.25em', opacity: 0.85, fontWeight: 700 }}>BIRTH MANAGEMENT SYSTEM</div>
           <h2 style={{ fontSize: 28, lineHeight: 1.2, fontWeight: 900, whiteSpace: 'nowrap' }}>ログイン</h2>
           <p style={{ opacity: 0.9 }}>売上・経費・キャスト精算・CSV取込を一元管理するための運用画面です。</p>
         </div>
