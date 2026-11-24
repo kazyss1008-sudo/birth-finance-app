@@ -12,7 +12,10 @@ export function mailText(r: {
     stageDate: Date | null;
     startTime: string | null;
 }) {
-    return `${r.customerName}様\nこのたびは劇団Birthの公演をご予約いただき、ありがとうございます。\n\n公演：${p.name}\n日時：${s.stageDate?.toISOString().slice(0, 10)} ${s.startTime}\n会場：${p.venue}\n予約番号：${r.number}\n\n${r.lines.map(l => `${l.name}${l.repeater ? '（リピーター割引）' : ''}：単価${amount({ ...l, quantity: 1 })}円 × ${l.quantity}枚 = ${amount(l)}円`).join('\n')}\n\nお支払い予定額：${totals(r.lines).amount}円（当日精算・全席自由）\n${r.lines.some(l => l.repeater) ? 'リピーター割引をご利用の方は、受付で同じ公演の半券をご提示ください。\n' : ''}変更・キャンセルをご希望の場合は、予約番号とお名前を添えて、このメールへご返信ください。\n劇団Birth tac.birth2003@gmail.com`;
+    const date = s.stageDate;
+    const stageDate = date ? `${date.getUTCFullYear()}年${date.getUTCMonth() + 1}月${date.getUTCDate()}日` : '';
+    const stageTime = s.startTime ? `${s.startTime}〜` : '';
+    return `${r.customerName}様\nこのたびは劇団Birthの公演をご予約いただき、ありがとうございます。\n\n公演：${p.name}\n日時：${[stageDate, stageTime].filter(Boolean).join(' ')}\n会場：${p.venue}\n予約番号：${r.number}\n申込内容\n${r.lines.map(l => `　${l.name}${l.repeater ? '（リピーター割引）' : ''}：単価${amount({ ...l, quantity: 1 })}円 × ${l.quantity}枚 = ${amount(l)}円`).join('\n')}\n合計金額：${totals(r.lines).amount}円（当日精算・全席自由）\n\n変更・キャンセルをご希望の場合は、予約番号とお名前を添えて、このメールへご返信ください。\n劇団Birth tac.birth2003@gmail.com`;
 }
 export async function deliverReservationMail(id: string, retry = false, reviewed = false) {
     const mail = await prisma.reservationMail.findUnique({ where: { reservationId: id } });

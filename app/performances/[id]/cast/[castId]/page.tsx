@@ -5,6 +5,7 @@ import Image from 'next/image';
 import styles from './login.module.css';
 import editor from '@/components/ScheduleCards.module.css';
 import { CastNav } from '@/components/CastNav';
+import { CastLogout } from '@/components/CastLogout';
 import { ScheduleCards } from '@/components/ScheduleCards';
 
 type Rehearsal = { id: string; performanceId: string; date: string; startTime: string; endTime: string; location: string; memo: string | null };
@@ -208,6 +209,16 @@ export default function CastNGPage() {
       <div className={editor.page}>
         {/* Header */}
         <div style={{ background: 'white', borderRadius: 24, padding: '20px 24px', boxShadow: '0 12px 30px rgba(61,72,152,0.08)', marginBottom: 16 }}>
+          <CastLogout id={perfId} disabled={Object.values(saving).some(Boolean)} onLogout={async () => {
+            blocked.current = true;
+            Object.values(saveTimers.current).forEach(clearTimeout);
+            await saveQueue.current;
+            try {
+              const response = await fetch('/api/cast/logout', { method: 'POST' });
+              if (!response.ok) throw new Error('ログアウトできませんでした');
+              setCast(null); setSchedules([]); setLocalSchedules({}); localSchedulesRef.current = {}; setSaveErrors({}); setNeedsLogin(true);
+            } catch (error) { blocked.current = false; throw error; }
+          }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <div className={editor.identity}>
               <Image src="/logo.png" alt="劇団Birth" width={40} height={40} style={{ height: 40, width: 'auto', objectFit: 'contain' }} priority />
@@ -220,14 +231,6 @@ export default function CastNGPage() {
                 </div>
               </div>
             </div>
-            <button className="secondary" disabled={Object.values(saving).some(Boolean)} onClick={async () => {
-              blocked.current = true;
-              Object.values(saveTimers.current).forEach(clearTimeout);
-              await saveQueue.current;
-              await fetch('/api/cast/logout', { method: 'POST' });
-              setCast(null); setSchedules([]); setLocalSchedules({}); localSchedulesRef.current = {}; setSaveErrors({}); setNeedsLogin(true);
-            }}>ログアウト</button>
-
             <a href="/cast-guide.html" target="_blank" rel="noopener noreferrer"
               style={{ background: '#edf2ff', color: '#153b96', border: 'none', borderRadius: 16, padding: '8px 14px', fontWeight: 700, fontSize: 13, textDecoration: 'none', whiteSpace: 'nowrap' }}>
               📖 入力ガイド

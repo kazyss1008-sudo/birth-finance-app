@@ -11,7 +11,7 @@ const db={
  reservation:{
  findUnique:async({where})=>clone(state.reservations.find(r=>Object.entries(where).every(([k,v])=>r[k]===v))??null),
  create:async({data})=>{const r={...data,id:crypto.randomUUID(),version:1,lines:data.lines.create.map(l=>({...l,id:crypto.randomUUID()})),stage};state.reservations.push(r);return clone(r)},
- update:async({where,data})=>{const r=state.reservations.find(r=>r.id===where.id);Object.assign(r,{...data,version:r.version+1,lines:data.lines.create.map(l=>({...l,id:crypto.randomUUID()}))});r.stage=r.stageId===1n?stage:{...stage,id:r.stageId,stageDate:new Date('2000-01-01')};return clone(r)},
+ update:async({where,data})=>{const r=state.reservations.find(r=>r.id===where.id);const {lines,...rest}=data;Object.assign(r,{...rest,version:r.version+1,...(lines?{lines:lines.create.map(l=>({...l,id:crypto.randomUUID()}))}:{})});r.stage=r.stageId===1n?stage:{...stage,id:r.stageId,stageDate:new Date('2000-01-01')};return clone(r)},
  },
  reservationLine:{deleteMany:async()=>{},aggregate:async({where})=>({_sum:{quantity:state.reservations.filter(r=>!r.cancelled&&r.stageId===where.reservation.stageId&&r.id!==where.reservation.id?.not).reduce((s,r)=>s+r.lines.reduce((n,l)=>n+l.quantity,0),0)}})},
  reservationHistory:{create:async({data})=>state.history.push(data)},
@@ -53,7 +53,7 @@ test('actor resolution never accepts a cast from another performance',async()=>{
  state.cast=cast;assert.equal((await actorFor(10n)).id,'2');await assert.rejects(actorFor(11n),/ログイン/);
 });
 test('receipt contains required details but no cast attribution',async()=>{
- const r=await saveBooking(10n,actor,input());const body=mailText(r,p,stage);assert.match(body,/半券/);assert.match(body,/4000円/);assert.match(body,/当日精算/);assert.match(body,/会場/);assert.doesNotMatch(body,/役者|取扱/);
+ const r=await saveBooking(10n,actor,input());const body=mailText(r,p,stage);assert.match(body,/申込内容\n　/);assert.match(body,/リピーター割引/);assert.match(body,/4000円/);assert.match(body,/合計金額：/);assert.match(body,/日時：\d{4}年\d{1,2}月\d{1,2}日 \d{2}:\d{2}〜/);assert.match(body,/当日精算/);assert.match(body,/会場/);assert.doesNotMatch(body,/役者|取扱|お支払い予定額|半券/);
 });
 test('ticket back and quota respond to quantity, not discount or type price, and cancellation clears sales',async()=>{
  const {calculateTicketBack}=require('../lib/ticketBack.ts');const rules=[{minTicketCount:1,maxTicketCount:1,backUnitPrice:100},{minTicketCount:2,maxTicketCount:null,backUnitPrice:200}];
@@ -121,4 +121,33 @@ test('fixed-width codes reject overflow and do not reuse cancelled numbers',asyn
  await assert.rejects(saveBooking(10n,admin,input()),/4桁上限/);
  await assert.rejects(saveBooking(10n,admin,input({stageId:'1000'})),/3桁上限/);
  assert.equal(state.reservations.length,1);assert.equal(state.history.length,0);
+});
+
+
+test('direct cancellation uses the same finance, ownership, deadline and version checks as editing',async()=>{
+ const {cancelBooking}=require('../lib/tickets/service.ts');
+ const r=await saveBooking(10n,actor,input());
+ await assert.rejects(cancelBooking(10n,{...actor,castId:3n},r.id,1),/予約がありません/);
+ await assert.rejects(cancelBooking(11n,admin,r.id,1),/予約がありません/);
+ await assert.rejects(cancelBooking(10n,actor,r.id,99),/他の操作/);
+ const cancelled=await cancelBooking(10n,actor,r.id,1);
+ assert.equal(cancelled.cancelled,true);assert.equal(Object.keys(state.sales).length,0);
+ assert.equal(cancelled.number,r.number);assert.equal(state.history.length,2);
+});
+
+test('only administrators can remove cancelled bookings; deletion preserves numbers and rejects revival',async()=>{
+ const {cancelBooking,deleteCancelledBooking}=require('../lib/tickets/service.ts');
+ const body=input();const r=await saveBooking(10n,publicActor,body);
+ await assert.rejects(deleteCancelledBooking(10n,actor,r.id,1),/管理者のみ/);
+ await assert.rejects(deleteCancelledBooking(11n,admin,r.id,1),/予約がありません/);
+ await assert.rejects(deleteCancelledBooking(10n,admin,r.id,1),/キャンセル済み/);
+ await cancelBooking(10n,admin,r.id,1);
+ await assert.rejects(deleteCancelledBooking(10n,admin,r.id,1),/他の操作/);
+ await deleteCancelledBooking(10n,admin,r.id,2);
+ const removed=state.reservations.find(x=>x.id===r.id);assert.ok(removed.deletedAt);assert.equal(removed.cancelled,true);
+ assert.equal(state.reservations.length,1);assert.equal(state.history.length,3);assert.equal(Object.keys(state.sales).length,0);
+ await deleteCancelledBooking(10n,admin,r.id,2);assert.equal(state.history.length,3);
+ await assert.rejects(saveBooking(10n,admin,input({version:3}),r.id),/削除済み/);
+ await assert.rejects(saveBooking(10n,publicActor,body),/削除済み/);
+ const next=await saveBooking(10n,admin,input());assert.equal(next.number,'B-001-0002');
 });

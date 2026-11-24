@@ -58,7 +58,6 @@ export default function PerformanceDetailPage() {
       title={perf.name}
       subtitle={perf.startDate ? `${perf.startDate} 〜 ${perf.endDate ?? ''}` : '稽古スケジュール管理'}
       actions={<>
-        <Link href={`/performances/${id}/master`} className="secondary">マスタ</Link>
         <Link href="/performances" className="secondary" style={{ textDecoration: 'none', whiteSpace: 'nowrap' }}>← 公演一覧</Link>
       </>}
     >

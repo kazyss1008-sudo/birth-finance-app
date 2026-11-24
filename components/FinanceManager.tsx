@@ -25,7 +25,7 @@ type EditCast = { id: string; name: string; normaTicketCount: number; normaUnitP
 type GoodsItem = { id: string; name: string; unitPrice: number; sortOrder: number; sales: { id: string; performanceStageId: string; quantity: number; performanceStage: { id: string; stageName: string } }[] };
 type GoodsSaleCell = { goodsId: string; performanceStageId: string; quantity: number };
 
-const TABS = ['CSV取込', '売上', 'キャスト', 'バック', 'グッズ', '経費', '協賛金', '収支'] as const;
+const TABS = ['売上', 'キャスト', 'バック', 'グッズ', '経費', '協賛金', '収支'] as const;
 type TabName = typeof TABS[number];
 
 function yen(n: number) { return `¥${n.toLocaleString()}`; }
@@ -36,10 +36,10 @@ export default function FinanceManager({masterTab}:{masterTab?:'バック'|'グ�
   const searchParams = useSearchParams();
   const id = params.id as string;
   const requestedTab=searchParams.get('tab');
-  const initialTab = masterTab || (requestedTab==='キャスト'||requestedTab==='バック'?'CSV取込':requestedTab as TabName) || 'CSV取込';
+  const initialTab = masterTab || (requestedTab==='キャスト'||requestedTab==='バック'?'売上':requestedTab as TabName) || '売上';
 
   const [perf, setPerf] = useState<Performance | null>(null);
-  const [activeTab, setActiveTab] = useState<TabName>(TABS.includes(initialTab as TabName) ? initialTab : 'CSV取込');
+  const [activeTab, setActiveTab] = useState<TabName>(TABS.includes(initialTab as TabName) ? initialTab : '売上');
   const [loading, setLoading] = useState(true);
 
   useEffect(()=>{if(masterTab)setActiveTab(masterTab);},[masterTab]);
@@ -59,11 +59,6 @@ export default function FinanceManager({masterTab}:{masterTab?:'バック'|'グ�
   const [salesFilterText, setSalesFilterText] = useState('');
   // Reservation list picker
   const [showReservationListPicker, setShowReservationListPicker] = useState(false);
-  // CSV import state
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [csvUploading, setCsvUploading] = useState(false);
-  const [csvResult, setCsvResult] = useState<{ success: boolean; message: string; details?: string[] } | null>(null);
-
   // Expense filter state
   const [expFilterCategory, setExpFilterCategory] = useState('');
   const [expFilterUser, setExpFilterUser] = useState('');
@@ -144,39 +139,6 @@ export default function FinanceManager({masterTab}:{masterTab?:'バック'|'グ�
     const netBalance = summary.totalSales + (summary.totalSponsorship ?? 0) + (summary.totalGoodsSales ?? 0) - totalExpenses - summary.totalGara;
     setSummary(prev => prev ? { ...prev, totalExpenses, confirmedExpenses, provisionalExpenses, netBalance } : prev);
   }, [expenses]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // CSV upload handler
-  const handleCsvUpload = async () => {
-    if (!csvFile) return;
-    setCsvUploading(true);
-    setCsvResult(null);
-    try {
-      const form = new FormData();
-      form.append('file', csvFile);
-      let res = await fetch(`/api/performances/${id}/import`, { method: 'POST', body: form });
-      let data = await res.json();
-      if (res.ok && data.previewToken) {
-        if (!confirm(`従来CSV売上を${data.importedRowCount}行（${data.ticketCount}枚・${data.salesAmount}円）で置き換えます。よろしいですか？`)) return;
-        form.set('confirmation', data.previewToken);
-        res = await fetch(`/api/performances/${id}/import`, {method:'POST',body:form}); data = await res.json();
-      }
-      if (res.ok) {
-        setCsvResult({ success: true, message: `${data.importedRowCount ?? 0}件のデータを取り込みました。` });
-        // Reload all data
-        await loadAllData();
-      } else {
-        const details: string[] = [];
-        if (data.errors && data.errors.length > 0) {
-          details.push(...data.errors.map((r: { rowNo: number; castName: string }) => `行${r.rowNo}: キャスト名「${r.castName}」が一致しません`));
-        }
-        setCsvResult({ success: false, message: data.message || 'インポートに失敗しました。', details });
-      }
-    } catch {
-      setCsvResult({ success: false, message: '通信エラーが発生しました。' });
-    } finally {
-      setCsvUploading(false);
-    }
-  };
 
   // Add expense
   const handleAddExpense = async (e: React.FormEvent) => {
@@ -409,54 +371,6 @@ export default function FinanceManager({masterTab}:{masterTab?:'バック'|'グ�
         ))}
       </div>
 
-      {/* CSV取込 Tab */}
-      {activeTab === 'CSV取込' && (
-        <div className="grid-2">
-          <div className="card">
-            <h2 className="brand">CSVファイル取込</h2>
-            <p className="subtitle">同じ公演で再取込すると、それまでの売上データはすべて上書きされます。キャスト名が一致しない行があるとエラーになります。</p>
-            <div className="grid" style={{ marginTop: 16 }}>
-              <input className="input" type="file" accept=".csv" onChange={e => setCsvFile(e.target.files?.[0] ?? null)} />
-              <button className="primary" onClick={handleCsvUpload} disabled={!csvFile || csvUploading}>
-                {csvUploading ? 'アップロード中...' : 'CSVをアップロード'}
-              </button>
-            </div>
-            {csvResult && (
-              <div className={csvResult.success ? 'success-msg' : 'error-msg'} style={{ marginTop: 12 }}>
-                <p>{csvResult.message}</p>
-                {csvResult.details && csvResult.details.length > 0 && (
-                  <ul style={{ margin: '8px 0 0 16px', fontSize: 13 }}>
-                    {csvResult.details.map((d, i) => <li key={i}>{d}</li>)}
-                  </ul>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="card">
-            <h2 className="brand">取込履歴</h2>
-            {perf.importHistories && perf.importHistories.length > 0 ? (
-              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <table className="table">
-                <thead><tr><th>ファイル名</th><th>件数</th><th>状態</th><th>日時</th></tr></thead>
-                <tbody>
-                  {perf.importHistories.map(h => (
-                    <tr key={h.id}>
-                      <td>{h.fileName}</td>
-                      <td>{h.importedRowCount}件</td>
-                      <td><span className="badge">{h.status}</span></td>
-                      <td className="subtitle">{new Date(h.importedAt).toLocaleString('ja-JP')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-            ) : (
-              <p className="subtitle">取込履歴はありません。</p>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* 売上 Tab */}
       {activeTab === '売上' && (
         <div className="card">
@@ -537,7 +451,7 @@ export default function FinanceManager({masterTab}:{masterTab?:'バック'|'グ�
               {!sales ? (
                 <p className="subtitle">読み込み中...</p>
               ) : filtered.length === 0 ? (
-                <p className="subtitle" style={{ marginTop: 12 }}>{sales.length === 0 ? '売上データがありません。CSVを取り込んでください。' : '該当する売上がありません。'}</p>
+                <p className="subtitle" style={{ marginTop: 12 }}>{sales.length === 0 ? '売上データがありません。チケット管理から予約を登録してください。' : '該当する売上がありません。'}</p>
               ) : (
                 <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginTop: 12 }}>
                 <table className="table" style={{ minWidth: 1100, fontSize: 13 }}>
@@ -585,7 +499,7 @@ export default function FinanceManager({masterTab}:{masterTab?:'バック'|'グ�
                     map.set(iso, cur);
                   }
                   const items = Array.from(map.values()).sort((a, b) => a.iso.localeCompare(b.iso));
-                  if (items.length === 0) return <p className="subtitle" style={{ textAlign: 'center', padding: '24px 0' }}>公演日時が見つかりません。先にCSVを取り込んでください。</p>;
+                  if (items.length === 0) return <p className="subtitle" style={{ textAlign: 'center', padding: '24px 0' }}>公演日時が見つかりません。マスタで公演回を登録してください。</p>;
                   return (
                     <div style={{ display: 'grid', gap: 8 }}>
                       {items.map(it => (

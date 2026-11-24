@@ -2,10 +2,11 @@ import type { ReactNode } from 'react';
 import { PerformanceNav } from './PerformanceNav';
 import Image from 'next/image';
 
-export function Shell({ title, subtitle, actions, children, hideManual, compact }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode; hideManual?: boolean; compact?: boolean }) {
+export function Shell({ title, subtitle, actions, topActions, children, hideManual, compact }: { title: string; subtitle?: string; actions?: ReactNode; topActions?: ReactNode; children: ReactNode; hideManual?: boolean; compact?: boolean }) {
   return (
     <div className="container">
       <div className="card" style={{ marginBottom: compact ? 10 : 16, padding: compact ? 14 : undefined }}>
+        {topActions}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <Image src="/logo.png" alt="劇団Birth" width={48} height={48} style={{ height: 48, width: 'auto', objectFit: 'contain' }} priority />

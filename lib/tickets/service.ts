@@ -74,9 +74,13 @@ export async function mutateBooking(tx: Prisma.TransactionClient, performanceId:
     const old = reservationId ? await tx.reservation.findUnique({ where: { id: reservationId }, include: { lines: true, stage: true } }) : null;
     if (reservationId && (!old || old.performanceId !== performanceId || actor.kind === 'public' || (actor.kind === 'cast' && old.castId !== actor.castId)))
         throw new TicketError('予約がありません', 404);
+    if (old?.deletedAt)
+        throw new TicketError('この予約は削除済みです', 410);
     if (!reservationId) {
         const duplicate = await tx.reservation.findUnique({ where: { requestKey: input.requestKey } });
         if (duplicate) {
+            if (duplicate.deletedAt)
+                throw new TicketError('この予約は削除済みです。劇団へお問い合わせください', 410);
             if (duplicate.requestHash !== hash)
                 throw new TicketError('送信済みの内容と異なります。予約一覧をご確認ください', 409);
             return duplicate;
@@ -133,4 +137,35 @@ export async function mutateBooking(tx: Prisma.TransactionClient, performanceId:
         await tx.reservationMail.create({ data: { reservationId: saved.id, recipient: saved.email, subject: `【劇団Birth】ご予約ありがとうございます｜${perf.name} ${saved.number}`, body: mailText(saved, perf, stage) } });
     assertWindow(actor.kind === 'admin', perf.ticketSalesStart, old ? [old.stage.stageDate, stage.stageDate] : [stage.stageDate]);
     return saved;
+}
+
+export async function cancelBooking(performanceId: bigint, actor: Actor, id: string, version: number) {
+    if (actor.kind === 'public') throw new TicketError('ログインしてください', 401);
+    const current = await prisma.reservation.findUnique({ where: { id }, include: { lines: true } });
+    if (!current || current.performanceId !== performanceId || (actor.kind === 'cast' && current.castId !== actor.castId))
+        throw new TicketError('予約がありません', 404);
+    if (current.deletedAt) throw new TicketError('この予約は削除済みです', 410);
+    return saveBooking(performanceId, actor, {
+        requestKey: current.requestKey, version, stageId: String(current.stageId),
+        castId: current.castId ? String(current.castId) : null,
+        customerName: current.customerName, email: current.email, phone: current.phone, note: current.note,
+        lines: current.lines.map(line => ({ id: line.id, ticketTypeId: line.ticketTypeId ?? '', quantity: line.quantity, repeater: line.repeater })),
+        cancelled: true,
+    }, id);
+}
+
+export async function deleteCancelledBooking(performanceId: bigint, actor: Actor, id: string, version: number) {
+    if (actor.kind !== 'admin') throw new TicketError('管理者のみ削除できます', 403);
+    return prisma.$transaction(async tx => {
+        await lockPerformance(tx, performanceId);
+        const current = await tx.reservation.findUnique({ where: { id }, include: { lines: true } });
+        if (!current || current.performanceId !== performanceId) throw new TicketError('予約がありません', 404);
+        if (current.deletedAt) return;
+        if (!current.cancelled) throw new TicketError('キャンセル済みの予約だけ削除できます', 409);
+        if (current.version !== version) throw new TicketError('他の操作で更新されました。再読み込みしてください', 409);
+        // Retain the issued number and audit history, so deletion cannot recycle a number.
+        const saved = await tx.reservation.update({ where: { id }, data: { deletedAt: new Date(), version: { increment: 1 } }, include: { lines: true } });
+        await tx.sale.deleteMany({ where: { reservationId: id } });
+        await tx.reservationHistory.create({ data: { reservationId: id, actor: `admin:${actor.id}`, before: jsonValue(current) as unknown as Prisma.InputJsonValue, after: jsonValue(saved) as unknown as Prisma.InputJsonValue } });
+    }, { maxWait: 10000, timeout: 20000 });
 }
