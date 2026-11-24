@@ -2,15 +2,14 @@ import type { ReactNode } from 'react';
 import { PerformanceNav } from './PerformanceNav';
 import Image from 'next/image';
 
-export function Shell({ title, subtitle, actions, topActions, children, hideManual, compact }: { title: string; subtitle?: string; actions?: ReactNode; topActions?: ReactNode; children: ReactNode; hideManual?: boolean; compact?: boolean }) {
+export function Shell({ title, subtitle, actions, children, hideManual, compact }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode; hideManual?: boolean; compact?: boolean }) {
   return (
     <div className="container">
       <div className="card" style={{ marginBottom: compact ? 10 : 16, padding: compact ? 14 : undefined }}>
-        {topActions}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Image src="/logo.png" alt="劇団Birth" width={48} height={48} style={{ height: 48, width: 'auto', objectFit: 'contain' }} priority />
-            <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0, flex: '1 1 240px' }}>
+            <Image src="/logo.png" alt="劇団Birth" width={48} height={48} style={{ height: 48, width: 'auto', objectFit: 'contain', flexShrink: 0 }} priority />
+            <div style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', color: '#e74c3c' }}>BIRTH MANAGEMENT SYSTEM</div>
               <h1 className="title brand" style={compact?{fontSize:22,margin:'6px 0',whiteSpace:'normal'}:undefined}>{title}</h1>
               {subtitle ? <p className="subtitle" style={compact?{margin:'4px 0'}:undefined}>{subtitle}</p> : null}

@@ -5,7 +5,6 @@ import {amount,totals,cutoff} from '@/lib/tickets/domain';
 import styles from './Tickets.module.css';
 import {TicketCsv} from './TicketCsv';
 import {CastNav} from './CastNav';
-import {CastLogout} from './CastLogout';
 import {StageMatrix} from './StageMatrix';
 import {Shell} from './Shell';
 type Data={performance:TicketPerformance;reservations:Booking[];casts:{id:string;name:string}[];actor:{kind:string;castId:string|null}};
@@ -24,14 +23,14 @@ export default function TicketManager({id,castOnly=false,bookingId}:{id:string;c
    else{const response=await fetch(`/api/cast/tickets/${id}${castOnly?'?scope=cast':''}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:r.id,version:r.version})});const result=await response.json();if(!response.ok)throw new Error(result.error||'削除できませんでした');location.assign(`/performances/${id}/tickets`);}
   }catch(e){setError((e as Error).message);}finally{setBusy(false);}
  }
- if(!data)return <main className={styles.page}>{castOnly&&<CastLogout id={id}/>}<p>{error||'読み込み中…'}</p><a href={`/performances/${id}/cast`}>キャストログイン</a></main>;
+ if(!data)return <main className={styles.page}><p>{error||'読み込み中…'}</p><a href={`/performances/${id}/cast`}>キャストログイン</a></main>;
  const {performance:p,reservations,casts,actor}=data;const admin=actor.kind==='admin';
  const listBase=castOnly?`/performances/${id}/cast/tickets`:`/performances/${id}/tickets`;
  if(bookingId){
   const r=reservations.find(r=>r.id===bookingId);
   const stage=r?p.stages.find(s=>s.id===r.stageId):undefined;
   const closed=!admin&&(!p.ticketSalesStart||now<new Date(p.ticketSalesStart).getTime()||!stage?.stageDate||now>=cutoff(new Date(stage.stageDate)).getTime());
-  return <Shell compact title={p.name} subtitle="予約詳細" hideManual={!admin} topActions={!admin?<CastLogout id={id}/>:undefined}><main className={styles.page}>{!admin&&<CastNav id={id} active="tickets"/>}<a href={listBase}>← 予約一覧に戻る</a>{error&&<p role="alert">{error}</p>}{!r?<p role="alert">予約が見つかりません。</p>:<>
+  return <Shell compact title={p.name} subtitle="予約詳細" hideManual={!admin}><main className={styles.page}>{!admin&&<CastNav id={id} active="tickets"/>}<a href={listBase}>← 予約一覧に戻る</a>{error&&<p role="alert">{error}</p>}{!r?<p role="alert">予約が見つかりません。</p>:<>
   <BookingDetail r={r} p={p} casts={casts} admin={admin}/>
   <div className={styles.actions}><button disabled={closed||busy} onClick={()=>setEdit(r)}>予約内容を変更{r.cancelled?'・再開':''}</button>{!r.cancelled&&<button type="button" className={styles.cancelButton} disabled={closed||busy} onClick={()=>operate('cancel',r)}>予約をキャンセル</button>}{admin&&r.cancelled&&<button type="button" className={styles.deleteButton} disabled={busy} onClick={()=>operate('delete',r)}>この予約を削除</button>}{admin&&!r.cancelled&&r.mail&&r.mail.state!=='SENT'&&<button onClick={()=>{if(confirm('予約時点の受付メールを再送します。変更済みの場合は現在の予約内容と異なります。Gmailの送信済みを確認し、未送信であることを確認しましたか？'))post({action:'resend',id:r.id,reviewed:true}).catch(e=>setError(e.message));}}>受付メール再送</button>}</div>
   {closed&&<p>この公演回の変更受付は終了しました。劇団へご連絡ください。</p>}
@@ -39,7 +38,7 @@ export default function TicketManager({id,castOnly=false,bookingId}:{id:string;c
   </>}</main></Shell>;
  }
  const urls=admin?[{id:'birth',name:'劇団Birth'},...casts]:[{id:actor.castId!,name:'自分の販売URL'}];
- return <Shell compact title={p.name} subtitle={admin?'チケット管理':'自分のチケット'} hideManual={!admin} topActions={!admin?<CastLogout id={id}/>:undefined}><main className={styles.page}>{!admin&&<CastNav id={id} active="tickets"/>}{error&&<p role="alert">{error}</p>}
+ return <Shell compact title={p.name} subtitle={admin?'チケット管理':'自分のチケット'} hideManual={!admin}><main className={styles.page}>{!admin&&<CastNav id={id} active="tickets"/>}{error&&<p role="alert">{error}</p>}
  <div className={styles.subtabs} role="tablist" aria-label="チケット管理">{(admin?['予約一覧','公演回・残席','予約URL','CSV取込']:['予約一覧','公演回・残席','予約URL']).map(t=><button key={t} type="button" role="tab" aria-selected={tab===t} aria-controls={'ticket-panel-'+t} onClick={()=>setTab(t)}>{t}</button>)}</div>
  <div role="tabpanel" id="ticket-panel-公演回・残席" hidden={tab!=='公演回・残席'}>
  <StageMatrix performance={p} reservations={reservations} admin={admin}/></div>

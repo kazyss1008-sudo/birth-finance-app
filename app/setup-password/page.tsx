@@ -30,7 +30,7 @@ export default function SetupPasswordPage() {
   }
 
   return (
-    <Shell title="劇団Birth公演収支管理" subtitle="管理者の初回パスワードを設定してください。">
+    <Shell title="劇団Birth 管理アプリ" subtitle="管理者の初回パスワードを設定してください。">
       <div className="grid-2">
         <div className="card" style={{ background: 'linear-gradient(135deg, #153b96, #305fd6)', color: 'white' }}>
           <div style={{ fontSize: 12, letterSpacing: '0.25em', opacity: 0.85, fontWeight: 700 }}>BIRTH FINANCE SYSTEM</div>

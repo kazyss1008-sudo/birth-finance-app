@@ -362,7 +362,7 @@ export default function FinanceManager({masterTab}:{masterTab?:'バック'|'グ�
     <FinanceLayout embedded={!!masterTab}
       title={perf.name}
       subtitle={`${statusLabel(perf.status)} | ${perf.startDate?.slice(0, 10) ?? ''} - ${perf.endDate?.slice(0, 10) ?? ''}`}
-      actions={<><Link href={`/performances/${id}/tickets`} className="secondary">チケット管理</Link><Link href={`/performances/${id}/schedule`} className="secondary">スケジュール管理</Link><Link href="/performances" className="secondary">公演選択へ戻る</Link></>}
+      actions={<><Link href="/performances" className="secondary">公演選択へ戻る</Link></>}
     >
       {/* Tabs */}
       <div className="tabs" hidden={!!masterTab}>

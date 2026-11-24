@@ -116,7 +116,7 @@ export default function UsersPage() {
   if (loading) return <Shell title="ユーザー管理"><div className="card"><p>読み込み中...</p></div></Shell>;
 
   return (
-    <Shell title="ユーザー管理" subtitle="ユーザーの追加・編集・無効化を行います。" actions={<a href={masterId?`/performances/${masterId}/master?section=common`:'/master'} className="secondary">マスタへ戻る</a>}>
+    <Shell title="ユーザー管理" subtitle="ユーザーの追加・編集・無効化を行います。" actions={!masterId&&<a href={masterId?`/performances/${masterId}/master?section=common`:'/master'} className="secondary">マスタへ戻る</a>}>
       {msg && <div className={msg.type === 'success' ? 'success-msg' : 'error-msg'} style={{ marginBottom: 16 }}>{msg.text}</div>}
 
       <div className="card" style={{ marginBottom: 16 }}>

@@ -23,20 +23,20 @@ export function TicketForm({performance:p, initial, admin=false, proxy=false, ca
  const update=(i:number,patch:Partial<typeof lines[number]>)=>{setLines(a=>a.map((l,j)=>j===i?{...l,...patch}:l));setReview(false);};
  async function save(cancelled=false){if(blocked)return;setBusy(true);setError('');try{await submit({id:initial?.id,version:initial?.version,requestKey:key,stageId,castId:castId||null,customerName:name,email,phone,note,lines:lines.map(l=>({id:l.id,ticketTypeId:l.ticketTypeId,quantity:l.quantity,repeater:l.repeater})),cancelled});sessionStorage.removeItem(`birth-booking:${location.pathname}:${initial?.id??'new'}`);}catch(e){setError(e instanceof Error?e.message:'保存できませんでした。同じ内容で再試行してください');}finally{setBusy(false);}}
  return <form className={styles.form} onSubmit={e=>{e.preventDefault();if(blocked)return;if(!review)setReview(true);else void save();}}>
- <fieldset disabled={busy} className={styles.fieldset}><p className="subtitle">＊は必須項目です。</p>
- <label>公演回 ＊<select value={stageId} onChange={e=>{setStage(e.target.value);setReview(false);}} required>{p.stages.map(s=><option key={s.id} value={s.id}>{s.stageDate?.slice(0,10)} {s.startTime} {s.stageName}</option>)}</select></label>
- {admin&&<><label>取扱 ＊<select value={castId} onChange={e=>setCast(e.target.value)}><option value="">劇団Birth</option>{casts.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label></>}
+ <fieldset disabled={busy} className={styles.fieldset}><p className="subtitle">* は必須項目です。</p>
+ <label><span>公演回<span className={styles.requiredMark} aria-hidden="true">*</span></span><select value={stageId} onChange={e=>{setStage(e.target.value);setReview(false);}} required>{p.stages.map(s=><option key={s.id} value={s.id}>{s.stageDate?.slice(0,10)} {s.startTime} {s.stageName}</option>)}</select></label>
+ {admin&&<><label><span>取扱<span className={styles.requiredMark} aria-hidden="true">*</span></span><select value={castId} onChange={e=>setCast(e.target.value)}><option value="">劇団Birth</option>{casts.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label></>}
  {lines.map((l,i)=><section className={styles.line} key={l.id??i} aria-label={`チケット明細 ${i+1}`}>
- <label>券種 ＊<select aria-label="券種" value={l.ticketTypeId} disabled={!!l.id} onChange={e=>update(i,{ticketTypeId:e.target.value})} required>{l.id?<option value={l.ticketTypeId}>{l.name}</option>:p.ticketTypes.filter(t=>t.active).map(t=><option key={t.id} value={t.id}>{t.name}（{t.price.toLocaleString()}円）</option>)}</select></label>
- <label>枚数 ＊<IntegerInput min={1} max={100} value={l.quantity} onChange={quantity=>update(i,{quantity})}/></label>
+ <label><span>券種<span className={styles.requiredMark} aria-hidden="true">*</span></span><select aria-label="券種" value={l.ticketTypeId} disabled={!!l.id} onChange={e=>update(i,{ticketTypeId:e.target.value})} required>{l.id?<option value={l.ticketTypeId}>{l.name}</option>:p.ticketTypes.filter(t=>t.active).map(t=><option key={t.id} value={t.id}>{t.name}（{t.price.toLocaleString()}円）</option>)}</select></label>
+ <label><span>枚数<span className={styles.requiredMark} aria-hidden="true">*</span></span><IntegerInput min={1} max={100} value={l.quantity} onChange={quantity=>update(i,{quantity})}/></label>
  {(p.repeaterEnabled||!!l.id)&&<label className={styles.check}><input type="checkbox" checked={l.repeater} onChange={e=>update(i,{repeater:e.target.checked})}/>リピーター割引</label>}
  <p>{!l.id&&!p.ticketTypes.some(t=>t.id===l.ticketTypeId)?'券種・料金は準備中です':<>単価 {amount({...calculated[i],quantity:1}).toLocaleString()}円 ／ 小計 {amount(calculated[i]).toLocaleString()}円</>}</p>
  {l.id&&<small>保存済みの単価・割引額を使用します。券種を変える場合はカードを削除し、追加してください。</small>}
  {lines.length>1&&<button type="button" onClick={()=>{setLines(a=>a.filter((_,j)=>i!==j));setReview(false);}}>この明細を削除</button>}
  </section>)}
  <button type="button" onClick={()=>{setLines(a=>[...a,fresh()]);setReview(false);}} disabled={lines.length>=30}>別の券種・割引を追加</button>
- <label>お名前 ＊<input value={name} onChange={e=>{setName(e.target.value);setReview(false);}} required maxLength={200} autoComplete="name"/></label>
- {!proxy&&<label>メールアドレス ＊<input type="email" value={email} onChange={e=>{setEmail(e.target.value);setReview(false);}} required={!proxy} maxLength={254} autoComplete="email"/></label>}
+ <label><span>お名前<span className={styles.requiredMark} aria-hidden="true">*</span></span><input value={name} onChange={e=>{setName(e.target.value);setReview(false);}} required maxLength={200} autoComplete="name"/></label>
+ {!proxy&&<label><span>メールアドレス<span className={styles.requiredMark} aria-hidden="true">*</span></span><input type="email" value={email} onChange={e=>{setEmail(e.target.value);setReview(false);}} required={!proxy} maxLength={254} autoComplete="email"/></label>}
  <label>備考（任意）<textarea value={note} onChange={e=>setNote(e.target.value)} maxLength={2000}/></label>
  <p>全席自由・当日精算です。リピーター割引の方は、受付で同じ公演の半券をご提示ください。</p>
  <strong className={styles.total}>{!initial&&!p.ticketTypes.length?'券種・料金は準備中です':<>合計 {sum.quantity}枚 ／ {sum.amount.toLocaleString()}円</>}</strong>
