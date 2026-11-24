@@ -10,3 +10,11 @@ test('modified preview is rejected and missing rows never imply deletion',async(
 test('explicit discount columns are validated and preserve discount snapshot',async()=>{const csv=header+',基本単価,割引額,リピーター割引\n'+row.replace(',1000,',',6000,')+',3000,1000,有';const p=await importTicketCsv(10n,actor,csv,'外部A');assert.equal(p.preview[0].lines[0].repeater,true);assert.equal(p.preview[0].amount,6000);await assert.rejects(importTicketCsv(10n,actor,csv.replace(',6000,',',5000,'),'外部A'),/合計額/);});
 
 test('reimport preserves operator cancellation',async()=>{records.push({id:'cancelled',externalKey:'10:外部A:external1',importSource:'外部A',version:2,cancelled:true});const csv=header+'\n'+row;const p=await importTicketCsv(10n,actor,csv,'外部A');await importTicketCsv(10n,actor,csv,'外部A',p.token);assert.equal(changes[0].input.cancelled,true);});
+
+
+test('both legacy and new internal booking numbers cannot be imported as external bookings',async()=>{
+ for(const number of ['BIRTH-12345678-abcd-4321-abcd-123456789012','B-001-0001']){
+  await assert.rejects(importTicketCsv(10n,actor,header+'\n'+row.replace('external1',number),'外部A'),/自前予約/);
+ }
+ assert.equal(changes.length,0);
+});

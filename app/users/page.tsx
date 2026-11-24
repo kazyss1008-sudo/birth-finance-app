@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Shell } from '@/components/Shell';
+import {useParams} from 'next/navigation';
 
 type User = {
   id: string;
@@ -14,6 +15,8 @@ type User = {
 };
 
 export default function UsersPage() {
+  const masterId=useParams<{id?:string}>()?.id;
+
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -113,7 +116,7 @@ export default function UsersPage() {
   if (loading) return <Shell title="ユーザー管理"><div className="card"><p>読み込み中...</p></div></Shell>;
 
   return (
-    <Shell title="ユーザー管理" subtitle="ユーザーの追加・編集・無効化を行います。" actions={<Link href="/performances" className="secondary">公演選択へ戻る</Link>}>
+    <Shell title="ユーザー管理" subtitle="ユーザーの追加・編集・無効化を行います。" actions={<a href={masterId?`/performances/${masterId}/master?section=common`:'/master'} className="secondary">マスタへ戻る</a>}>
       {msg && <div className={msg.type === 'success' ? 'success-msg' : 'error-msg'} style={{ marginBottom: 16 }}>{msg.text}</div>}
 
       <div className="card" style={{ marginBottom: 16 }}>

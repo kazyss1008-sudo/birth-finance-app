@@ -2,17 +2,17 @@ import type { ReactNode } from 'react';
 import { PerformanceNav } from './PerformanceNav';
 import Image from 'next/image';
 
-export function Shell({ title, subtitle, actions, children, hideManual }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode; hideManual?: boolean }) {
+export function Shell({ title, subtitle, actions, children, hideManual, compact }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode; hideManual?: boolean; compact?: boolean }) {
   return (
     <div className="container">
-      <div className="card" style={{ marginBottom: 16 }}>
+      <div className="card" style={{ marginBottom: compact ? 10 : 16, padding: compact ? 14 : undefined }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <Image src="/logo.png" alt="劇団Birth" width={48} height={48} style={{ height: 48, width: 'auto', objectFit: 'contain' }} priority />
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', color: '#e74c3c' }}>BIRTH MANAGEMENT SYSTEM</div>
-              <h1 className="title brand">{title}</h1>
-              {subtitle ? <p className="subtitle">{subtitle}</p> : null}
+              <h1 className="title brand" style={compact?{fontSize:22,margin:'6px 0',whiteSpace:'normal'}:undefined}>{title}</h1>
+              {subtitle ? <p className="subtitle" style={compact?{margin:'4px 0'}:undefined}>{subtitle}</p> : null}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>

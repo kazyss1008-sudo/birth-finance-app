@@ -31,7 +31,7 @@ export async function importTicketCsv(pid: bigint, actor: Actor, text: string, s
             if (seenRows.has(fingerprint))
                 throw new TicketError(`${r.rowNo}行：同一行が重複しています`);
             seenRows.add(fingerprint);
-            if (r.reservationNo?.startsWith('BIRTH-'))
+            if (r.reservationNo && (r.reservationNo.startsWith('BIRTH-') || /^B-[0-9]{3}-[0-9]{4}$/.test(r.reservationNo)))
                 throw new TicketError(`${r.rowNo}行：自前予約はCSVで再登録できません`);
             if (!r.reservationNo)
                 throw new TicketError(`${r.rowNo}行：予約Noが必要です`);

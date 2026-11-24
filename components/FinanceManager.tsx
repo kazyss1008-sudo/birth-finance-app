@@ -1,0 +1,1253 @@
+'use client';
+import { CastAccounts } from '@/components/CastAccounts';
+
+import { useEffect, useState, useCallback, type ComponentProps } from 'react';
+import Link from 'next/link';
+import { Shell } from '@/components/Shell';
+import { useParams, useSearchParams } from 'next/navigation';
+
+type Performance = {
+  id: string; name: string; startDate: string; endDate: string;
+  stageCount: number; defaultNormaUnitPrice: number; status: string;
+  stages: Stage[]; casts: Cast[]; ticketBackRules: Rule[];
+  importHistories: ImportHistory[];
+};
+type Stage = { id: string; stageNo: number; stageName: string; stageDate: string; sortOrder: number; };
+type Cast = { id: string; name: string; normaTicketCount: number; normaUnitPrice: number; isTicketBackTarget: boolean; };
+type Rule = { id: string; stepNo: number; minTicketCount: number; maxTicketCount: number | null; backUnitPrice: number; };
+type ImportHistory = { id: string; fileName: string; importedRowCount: number; status: string; importedAt: string; };
+type Sale = { id: string; handledCastName: string; ticketCount: number; salesAmount: number; visitedAt: string; reservationNo: string | null; ticketType: string | null; paymentMethod: string | null; customerName: string | null; customerKana: string | null; note: string | null; };
+type ExpenseCategory = { id: string; name: string; };
+type Expense = { id: string; expenseDate: string; amount: number; itemName: string; memo: string | null; isSettled: boolean; isProvisional: boolean; createdBy: string; category: { name: string }; creator: { displayName: string }; };
+type Summary = { totalSales: number; totalTickets: number; totalExpenses: number; confirmedExpenses: number; provisionalExpenses: number; totalSponsorship: number; totalGoodsSales: number; totalGara: number; netBalance: number; castDetails: CastDetail[]; };
+type CastDetail = { castId: string; castName: string; ticketCount: number; salesAmount: number; backTotal: number; normaDeduction: number; settlement: number; normaTicketCount: number; normaUnitPrice: number; };
+type EditCast = { id: string; name: string; normaTicketCount: number; normaUnitPrice: number; isTicketBackTarget: boolean; sortOrder: number; changed?: boolean; };
+type GoodsItem = { id: string; name: string; unitPrice: number; sortOrder: number; sales: { id: string; performanceStageId: string; quantity: number; performanceStage: { id: string; stageName: string } }[] };
+type GoodsSaleCell = { goodsId: string; performanceStageId: string; quantity: number };
+
+const TABS = ['CSV取込', '売上', 'キャスト', 'バック', 'グッズ', '経費', '協賛金', '収支'] as const;
+type TabName = typeof TABS[number];
+
+function yen(n: number) { return `¥${n.toLocaleString()}`; }
+function statusLabel(s: string) { return s === 'PREPARING' ? '準備中' : s === 'ACTIVE' ? '進行中' : s === 'CLOSED' ? '終了' : s; }
+
+export default function FinanceManager({masterTab}:{masterTab?:'バック'|'グッズ'}) {
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const id = params.id as string;
+  const requestedTab=searchParams.get('tab');
+  const initialTab = masterTab || (requestedTab==='キャスト'||requestedTab==='バック'?'CSV取込':requestedTab as TabName) || 'CSV取込';
+
+  const [perf, setPerf] = useState<Performance | null>(null);
+  const [activeTab, setActiveTab] = useState<TabName>(TABS.includes(initialTab as TabName) ? initialTab : 'CSV取込');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(()=>{if(masterTab)setActiveTab(masterTab);},[masterTab]);
+  useEffect(()=>{if(!masterTab&&(searchParams.get('tab')==='キャスト'||searchParams.get('tab')==='バック'))location.replace(`/performances/${id}/master?section=${searchParams.get('tab')==='キャスト'?'casts':'back'}`);},[masterTab,id,searchParams]);
+
+  // Tab data states
+  const [sales, setSales] = useState<Sale[] | null>(null);
+  const [expenses, setExpenses] = useState<Expense[] | null>(null);
+  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+  const [users, setUsers] = useState<{ id: string; displayName: string }[]>([]);
+  const [summary, setSummary] = useState<Summary | null>(null);
+  // Sales filter state
+  const [salesFilterDate, setSalesFilterDate] = useState('');
+  const [salesFilterType, setSalesFilterType] = useState('');
+  const [salesFilterPayment, setSalesFilterPayment] = useState('');
+  const [salesFilterCast, setSalesFilterCast] = useState('');
+  const [salesFilterText, setSalesFilterText] = useState('');
+  // Reservation list picker
+  const [showReservationListPicker, setShowReservationListPicker] = useState(false);
+  // CSV import state
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [csvResult, setCsvResult] = useState<{ success: boolean; message: string; details?: string[] } | null>(null);
+
+  // Expense filter state
+  const [expFilterCategory, setExpFilterCategory] = useState('');
+  const [expFilterUser, setExpFilterUser] = useState('');
+  const [expFilterSettled, setExpFilterSettled] = useState<'' | 'unsettled' | 'settled'>('');
+
+  // Expense form state
+  const [expForm, setExpForm] = useState({ expenseDate: '', amount: '', expenseCategoryId: '', itemName: '', memo: '', isProvisional: false });
+  const [expSubmitting, setExpSubmitting] = useState(false);
+  const [showCategorySummary, setShowCategorySummary] = useState(false);
+
+  // Sponsorship state
+  type Sponsorship = { id: string; sponsorName: string; amount: number; memo: string | null; createdAt: string; };
+  const [sponsorships, setSponsorships] = useState<Sponsorship[] | null>(null);
+  const [spForm, setSpForm] = useState({ sponsorName: '', amount: '', memo: '' });
+  const [spSubmitting, setSpSubmitting] = useState(false);
+
+  // Goods state
+  const [goodsList, setGoodsList] = useState<GoodsItem[] | null>(null);
+  const [goodsForm, setGoodsForm] = useState({ name: '', unitPrice: '' });
+  const [goodsEditing, setGoodsEditing] = useState<string | null>(null);
+  const [goodsEditForm, setGoodsEditForm] = useState({ name: '', unitPrice: '' });
+  const [goodsSaleEdits, setGoodsSaleEdits] = useState<Map<string, number>>(new Map());
+  const [goodsSaving, setGoodsSaving] = useState(false);
+
+  // Bulk expense entry state
+  type BulkRow = { expenseDate: string; expenseCategoryId: string; userId: string; itemName: string; amount: string; memo: string; isProvisional: boolean };
+  const emptyBulkRow = (): BulkRow => ({ expenseDate: '', expenseCategoryId: '', userId: '', itemName: '', amount: '', memo: '', isProvisional: false });
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkRows, setBulkRows] = useState<BulkRow[]>([emptyBulkRow()]);
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ success: boolean; message: string; details?: string[] } | null>(null);
+
+  // Cast edit state
+  const [editCasts, setEditCasts] = useState<EditCast[] | null>(null);
+  const [castSaving, setCastSaving] = useState(false);
+
+  // Cast drag & drop
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+
+  // Fetch all performance data in one call
+  const loadAllData = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/performances/${id}/all-data`);
+      const data = await res.json();
+      if (!res.ok) return;
+      setPerf(data.performance);
+      setSales(data.sales);
+      setExpenses(data.expenses);
+      setCategories(data.categories);
+      setUsers(data.users);
+      setGoodsList(data.goods);
+      setSponsorships(data.sponsorships);
+      setSummary(data.summary);
+      if (!editCasts) {
+        setEditCasts(data.performance.casts.map((c: EditCast) => ({ ...c, changed: false })));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [id, editCasts]);
+
+  useEffect(() => { loadAllData(); }, [loadAllData]);
+
+  // Refresh summary only (lightweight)
+  const refreshSummary = useCallback(async () => {
+    // Delay slightly to allow DB replication to catch up, then fetch
+    await new Promise(r => setTimeout(r, 300));
+    const res = await fetch(`/api/performances/${id}/summary`);
+    if (res.ok) setSummary(await res.json());
+  }, [id]);
+
+  // Also recalculate expense totals locally for instant UI feedback
+  useEffect(() => {
+    if (!summary || !expenses) return;
+    const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+    const confirmedExpenses = expenses.filter(e => !e.isProvisional).reduce((s, e) => s + e.amount, 0);
+    const provisionalExpenses = expenses.filter(e => e.isProvisional).reduce((s, e) => s + e.amount, 0);
+    const netBalance = summary.totalSales + (summary.totalSponsorship ?? 0) + (summary.totalGoodsSales ?? 0) - totalExpenses - summary.totalGara;
+    setSummary(prev => prev ? { ...prev, totalExpenses, confirmedExpenses, provisionalExpenses, netBalance } : prev);
+  }, [expenses]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // CSV upload handler
+  const handleCsvUpload = async () => {
+    if (!csvFile) return;
+    setCsvUploading(true);
+    setCsvResult(null);
+    try {
+      const form = new FormData();
+      form.append('file', csvFile);
+      let res = await fetch(`/api/performances/${id}/import`, { method: 'POST', body: form });
+      let data = await res.json();
+      if (res.ok && data.previewToken) {
+        if (!confirm(`従来CSV売上を${data.importedRowCount}行（${data.ticketCount}枚・${data.salesAmount}円）で置き換えます。よろしいですか？`)) return;
+        form.set('confirmation', data.previewToken);
+        res = await fetch(`/api/performances/${id}/import`, {method:'POST',body:form}); data = await res.json();
+      }
+      if (res.ok) {
+        setCsvResult({ success: true, message: `${data.importedRowCount ?? 0}件のデータを取り込みました。` });
+        // Reload all data
+        await loadAllData();
+      } else {
+        const details: string[] = [];
+        if (data.errors && data.errors.length > 0) {
+          details.push(...data.errors.map((r: { rowNo: number; castName: string }) => `行${r.rowNo}: キャスト名「${r.castName}」が一致しません`));
+        }
+        setCsvResult({ success: false, message: data.message || 'インポートに失敗しました。', details });
+      }
+    } catch {
+      setCsvResult({ success: false, message: '通信エラーが発生しました。' });
+    } finally {
+      setCsvUploading(false);
+    }
+  };
+
+  // Add expense
+  const handleAddExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setExpSubmitting(true);
+    try {
+      const res = await fetch(`/api/performances/${id}/expenses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...expForm, amount: Number(expForm.amount) }),
+      });
+      if (res.ok) {
+        setExpForm({ expenseDate: '', amount: '', expenseCategoryId: '', itemName: '', memo: '', isProvisional: false });
+        const updated = await fetch(`/api/performances/${id}/expenses`).then(r => r.json());
+        setExpenses(updated);
+        refreshSummary();
+      }
+    } finally {
+      setExpSubmitting(false);
+    }
+  };
+
+  // Delete expense
+  const handleDeleteExpense = async (expenseId: string) => {
+    if (!confirm('この経費を削除しますか？')) return;
+    await fetch(`/api/performances/${id}/expenses`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expenseId }) });
+    const updated = await fetch(`/api/performances/${id}/expenses`).then(r => r.json());
+    setExpenses(updated);
+    refreshSummary();
+  };
+
+  // Bulk expense handlers
+  const updateBulkRow = (idx: number, field: keyof BulkRow, value: string | boolean) => {
+    setBulkRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
+  };
+  const addBulkRow = () => {
+    setBulkRows(prev => {
+      const prevRow = prev[prev.length - 1];
+      // Sticky: copy date and userId from last row for faster entry
+      return [...prev, { ...emptyBulkRow(), expenseDate: prevRow?.expenseDate ?? '', userId: prevRow?.userId ?? '' }];
+    });
+  };
+  const removeBulkRow = (idx: number) => {
+    setBulkRows(prev => prev.length === 1 ? [emptyBulkRow()] : prev.filter((_, i) => i !== idx));
+  };
+  const resetBulkRows = () => {
+    setBulkRows([emptyBulkRow()]);
+    setBulkResult(null);
+  };
+  const handleBulkSave = async () => {
+    setBulkResult(null);
+    // Client-side validation (matches API)
+    const clientErrors: string[] = [];
+    bulkRows.forEach((r, i) => {
+      const n = i + 1;
+      if (!r.expenseDate) clientErrors.push(`行${n}: 日付未入力`);
+      if (!r.expenseCategoryId) clientErrors.push(`行${n}: カテゴリ未選択`);
+      if (!r.userId) clientErrors.push(`行${n}: 担当者未選択`);
+      if (!r.itemName.trim()) clientErrors.push(`行${n}: 品名未入力`);
+      const amt = Number(r.amount);
+      if (!r.amount || isNaN(amt) || amt < 0) clientErrors.push(`行${n}: 金額が不正`);
+    });
+    if (clientErrors.length > 0) {
+      setBulkResult({ success: false, message: `${clientErrors.length}件のエラーがあります`, details: clientErrors });
+      return;
+    }
+    setBulkSubmitting(true);
+    try {
+      const res = await fetch(`/api/performances/${id}/expenses/bulk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rows: bulkRows.map(r => ({
+            expenseDate: r.expenseDate,
+            amount: Number(r.amount),
+            expenseCategoryId: r.expenseCategoryId,
+            userId: r.userId,
+            itemName: r.itemName.trim(),
+            memo: r.memo,
+            isProvisional: r.isProvisional,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBulkResult({ success: true, message: data.message ?? '登録しました。' });
+        setBulkRows([emptyBulkRow()]);
+        const updated = await fetch(`/api/performances/${id}/expenses`).then(r => r.json());
+        setExpenses(updated);
+        refreshSummary();
+      } else {
+        const details: string[] = Array.isArray(data.errors)
+          ? data.errors.map((e: { row?: number; reason?: string; path?: string; message?: string }) =>
+              e.row !== undefined ? `行${e.row}: ${e.reason}` : `${e.path ?? ''} ${e.message ?? ''}`.trim())
+          : [];
+        setBulkResult({ success: false, message: data.message ?? 'エラーが発生しました。', details });
+      }
+    } catch (err) {
+      setBulkResult({ success: false, message: '通信エラー: ' + String(err) });
+    } finally {
+      setBulkSubmitting(false);
+    }
+  };
+
+  // Unified expense save handler - saves all fields at once
+  const saveExpense = async (expenseId: string, updates: Partial<Expense>) => {
+    const exp = expenses?.find(e => e.id === expenseId);
+    if (!exp) return;
+    const merged = { ...exp, ...updates };
+    const body = {
+      expenseId,
+      isSettled: merged.isSettled,
+      isProvisional: merged.isProvisional,
+      amount: merged.amount,
+      memo: merged.memo,
+      expenseDate: merged.expenseDate?.slice(0, 10),
+      createdBy: merged.createdBy,
+    };
+    try {
+      const res = await fetch(`/api/performances/${id}/expenses`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        console.error('経費保存エラー:', await res.text());
+        return;
+      }
+      setExpenses(prev => prev?.map(e => e.id === expenseId ? { ...e, ...updates } : e) ?? null);
+    } catch (err) {
+      console.error('経費保存エラー:', err);
+    }
+  };
+
+  // Change expense assignee
+  const handleChangeAssignee = async (expenseId: string, createdBy: string) => {
+    await saveExpense(expenseId, { createdBy });
+    const assignedUser = users.find(u => u.id === createdBy);
+    setExpenses(prev => prev?.map(e => e.id === expenseId ? { ...e, createdBy, creator: { displayName: assignedUser?.displayName ?? e.creator.displayName } } : e) ?? null);
+  };
+
+  // Add sponsorship
+  const handleAddSponsorship = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSpSubmitting(true);
+    try {
+      const res = await fetch(`/api/performances/${id}/sponsorships`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sponsorName: spForm.sponsorName, amount: Number(spForm.amount), memo: spForm.memo }),
+      });
+      if (res.ok) {
+        setSpForm({ sponsorName: '', amount: '', memo: '' });
+        const updated = await fetch(`/api/performances/${id}/sponsorships`).then(r => r.json());
+        setSponsorships(updated);
+        refreshSummary();
+      }
+    } finally { setSpSubmitting(false); }
+  };
+
+  // Delete sponsorship
+  const handleDeleteSponsorship = async (sponsorshipId: string) => {
+    if (!confirm('この協賛金を削除しますか？')) return;
+    await fetch(`/api/performances/${id}/sponsorships`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sponsorshipId }) });
+    const updated = await fetch(`/api/performances/${id}/sponsorships`).then(r => r.json());
+    setSponsorships(updated);
+    refreshSummary();
+  };
+
+  // Cast editing helpers
+  const updateCastField = (idx: number, field: string, value: unknown) => {
+    setEditCasts(prev => prev?.map((c, i) => i === idx ? { ...c, [field]: value, changed: true } : c) ?? null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (dragIdx === null || dragIdx === idx) return;
+    setEditCasts(prev => {
+      if (!prev) return null;
+      const arr = [...prev];
+      const [moved] = arr.splice(dragIdx, 1);
+      arr.splice(idx, 0, moved);
+      setDragIdx(idx);
+      return arr.map((c, i) => ({ ...c, sortOrder: i, changed: true }));
+    });
+  };
+
+  const saveCasts = async () => {
+    if (!editCasts) return;
+    setCastSaving(true);
+    try {
+      const changedCasts = editCasts.filter(c => c.changed);
+      await Promise.all(
+        changedCasts.map(c =>
+          fetch(`/api/performances/${id}/casts`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ castId: c.id, name: c.name, normaTicketCount: c.normaTicketCount, normaUnitPrice: c.normaUnitPrice, isTicketBackTarget: c.isTicketBackTarget }),
+          })
+        )
+      );
+      await fetch(`/api/performances/${id}/casts`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: editCasts.map((c, i) => ({ castId: c.id, sortOrder: i })) }),
+      });
+      const updated = await fetch(`/api/performances/${id}/casts`).then(r => r.json());
+      setEditCasts(updated.map((c: EditCast) => ({ ...c, changed: false })));
+      const perfData = await fetch(`/api/performances/${id}`).then(r => r.json());
+      setPerf(perfData);
+      refreshSummary();
+    } finally {
+      setCastSaving(false);
+    }
+  };
+
+  if (loading) return <FinanceLayout embedded={!!masterTab} title="読み込み中..."><div className="card"><p>データを読み込んでいます...</p></div></FinanceLayout>;
+  if (!perf) return <FinanceLayout embedded={!!masterTab} title="エラー"><div className="card"><p>公演データが見つかりません。</p></div></FinanceLayout>;
+
+  return (
+    <FinanceLayout embedded={!!masterTab}
+      title={perf.name}
+      subtitle={`${statusLabel(perf.status)} | ${perf.startDate?.slice(0, 10) ?? ''} - ${perf.endDate?.slice(0, 10) ?? ''}`}
+      actions={<><Link href={`/performances/${id}/tickets`} className="secondary">チケット管理</Link><Link href={`/performances/${id}/schedule`} className="secondary">スケジュール管理</Link><Link href="/performances" className="secondary">公演選択へ戻る</Link></>}
+    >
+      {/* Tabs */}
+      <div className="tabs" hidden={!!masterTab}>
+        {(!masterTab?TABS.filter(t=>t!=='キャスト'&&t!=='バック'):[]).map(tab => (
+          <button key={tab} className={`tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>{tab}</button>
+        ))}
+      </div>
+
+      {/* CSV取込 Tab */}
+      {activeTab === 'CSV取込' && (
+        <div className="grid-2">
+          <div className="card">
+            <h2 className="brand">CSVファイル取込</h2>
+            <p className="subtitle">同じ公演で再取込すると、それまでの売上データはすべて上書きされます。キャスト名が一致しない行があるとエラーになります。</p>
+            <div className="grid" style={{ marginTop: 16 }}>
+              <input className="input" type="file" accept=".csv" onChange={e => setCsvFile(e.target.files?.[0] ?? null)} />
+              <button className="primary" onClick={handleCsvUpload} disabled={!csvFile || csvUploading}>
+                {csvUploading ? 'アップロード中...' : 'CSVをアップロード'}
+              </button>
+            </div>
+            {csvResult && (
+              <div className={csvResult.success ? 'success-msg' : 'error-msg'} style={{ marginTop: 12 }}>
+                <p>{csvResult.message}</p>
+                {csvResult.details && csvResult.details.length > 0 && (
+                  <ul style={{ margin: '8px 0 0 16px', fontSize: 13 }}>
+                    {csvResult.details.map((d, i) => <li key={i}>{d}</li>)}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="card">
+            <h2 className="brand">取込履歴</h2>
+            {perf.importHistories && perf.importHistories.length > 0 ? (
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table className="table">
+                <thead><tr><th>ファイル名</th><th>件数</th><th>状態</th><th>日時</th></tr></thead>
+                <tbody>
+                  {perf.importHistories.map(h => (
+                    <tr key={h.id}>
+                      <td>{h.fileName}</td>
+                      <td>{h.importedRowCount}件</td>
+                      <td><span className="badge">{h.status}</span></td>
+                      <td className="subtitle">{new Date(h.importedAt).toLocaleString('ja-JP')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
+            ) : (
+              <p className="subtitle">取込履歴はありません。</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 売上 Tab */}
+      {activeTab === '売上' && (
+        <div className="card">
+          {(() => {
+            const fmtDateTime = (iso: string) => {
+              if (!iso) return '';
+              const d = new Date(iso);
+              if (isNaN(d.getTime())) return iso.slice(0, 10);
+              return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')} ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
+            };
+            const fmtDate = (iso: string) => {
+              if (!iso) return '';
+              const d = new Date(iso);
+              if (isNaN(d.getTime())) return iso.slice(0, 10);
+              return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+            };
+            const filtered = sales?.filter(s => {
+              if (salesFilterDate && fmtDateTime(s.visitedAt) !== salesFilterDate) return false;
+              if (salesFilterType && (s.ticketType ?? '') !== salesFilterType) return false;
+              if (salesFilterPayment && (s.paymentMethod ?? '') !== salesFilterPayment) return false;
+              if (salesFilterCast && s.handledCastName !== salesFilterCast) return false;
+              if (salesFilterText) {
+                const q = salesFilterText.toLowerCase();
+                const searchable = [s.reservationNo, s.customerName, s.customerKana, s.note, s.handledCastName, s.ticketType, s.paymentMethod].filter(Boolean).join(' ').toLowerCase();
+                if (!searchable.includes(q)) return false;
+              }
+              return true;
+            }) ?? [];
+            const totalTickets = filtered.reduce((s, r) => s + r.ticketCount, 0);
+            const uniqueDates = [...new Set(sales?.map(s => fmtDateTime(s.visitedAt)).filter(Boolean) ?? [])].sort();
+            const uniqueTypes = [...new Set(sales?.map(s => s.ticketType).filter(Boolean) ?? [])];
+            const uniquePayments = [...new Set(sales?.map(s => s.paymentMethod).filter(Boolean) ?? [])];
+            const uniqueCasts = [...new Set(sales?.map(s => s.handledCastName).filter(Boolean) ?? [])].sort();
+            const hasFilter = salesFilterDate || salesFilterType || salesFilterPayment || salesFilterCast || salesFilterText;
+            return (<>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <h2 className="brand" style={{ margin: 0 }}>売上一覧</h2>
+                  <button type="button" onClick={() => setShowReservationListPicker(true)} disabled={!sales || sales.length === 0} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 10, border: 'none', fontWeight: 700, cursor: 'pointer', background: '#edf2ff', color: '#153b96', opacity: (!sales || sales.length === 0) ? 0.4 : 1 }}>📄 予約リスト</button>
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: '#153b96' }}>合計: {totalTickets}枚</div>
+              </div>
+              <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>公演日時</label>
+                  <select className="select" value={salesFilterDate} onChange={e => setSalesFilterDate(e.target.value)} style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10 }}>
+                    <option value="">すべて</option>
+                    {uniqueDates.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>種別</label>
+                  <select className="select" value={salesFilterType} onChange={e => setSalesFilterType(e.target.value)} style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10 }}>
+                    <option value="">すべて</option>
+                    {uniqueTypes.map(t => <option key={t} value={t!}>{t}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>支払方法</label>
+                  <select className="select" value={salesFilterPayment} onChange={e => setSalesFilterPayment(e.target.value)} style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10 }}>
+                    <option value="">すべて</option>
+                    {uniquePayments.map(p => <option key={p} value={p!}>{p}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>取扱窓口</label>
+                  <select className="select" value={salesFilterCast} onChange={e => setSalesFilterCast(e.target.value)} style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10 }}>
+                    <option value="">すべて</option>
+                    {uniqueCasts.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>検索</label>
+                  <input className="input" value={salesFilterText} onChange={e => setSalesFilterText(e.target.value)} placeholder="名前・予約No・備考..." style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10, minWidth: 140 }} />
+                </div>
+                {hasFilter && <button className="ghost" onClick={() => { setSalesFilterDate(''); setSalesFilterType(''); setSalesFilterPayment(''); setSalesFilterCast(''); setSalesFilterText(''); }} style={{ fontSize: 12, padding: '4px 8px' }}>フィルタ解除</button>}
+              </div>
+              {!sales ? (
+                <p className="subtitle">読み込み中...</p>
+              ) : filtered.length === 0 ? (
+                <p className="subtitle" style={{ marginTop: 12 }}>{sales.length === 0 ? '売上データがありません。CSVを取り込んでください。' : '該当する売上がありません。'}</p>
+              ) : (
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginTop: 12 }}>
+                <table className="table" style={{ minWidth: 1100, fontSize: 13 }}>
+                  <thead><tr><th style={{whiteSpace:'nowrap'}}>予約NO</th><th style={{whiteSpace:'nowrap'}}>公演日時</th><th style={{whiteSpace:'nowrap'}}>チケット種別</th><th style={{whiteSpace:'nowrap'}}>枚数</th><th style={{whiteSpace:'nowrap'}}>金額</th><th style={{whiteSpace:'nowrap'}}>支払方法</th><th style={{whiteSpace:'nowrap'}}>名前</th><th style={{whiteSpace:'nowrap'}}>フリガナ</th><th style={{whiteSpace:'nowrap'}}>取扱窓口</th><th style={{minWidth:120}}>備考</th></tr></thead>
+                  <tbody>
+                    {filtered.map(s => (
+                      <tr key={s.id}>
+                        <td style={{ whiteSpace: 'nowrap' }}>{s.reservationNo ?? ''}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{fmtDateTime(s.visitedAt)}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{s.ticketType ?? ''}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{s.ticketCount}枚</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{yen(s.salesAmount)}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{s.paymentMethod ?? ''}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{s.customerName ?? ''}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{s.customerKana ?? ''}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{s.handledCastName}</td>
+                        <td className="subtitle" style={{ fontSize: 12, maxWidth: 200, wordBreak: 'break-word' }}>{s.note ?? ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                </div>
+              )}
+            </>);
+          })()}
+
+          {/* 予約リスト ピッカー モーダル */}
+          {showReservationListPicker && (
+            <div onClick={() => setShowReservationListPicker(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+              <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 20, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(15, 23, 42, 0.3)', position: 'relative' }}>
+                <button type="button" onClick={() => setShowReservationListPicker(false)} aria-label="閉じる" style={{ position: 'absolute', top: 12, right: 14, background: 'none', border: 'none', fontSize: 26, lineHeight: 1, cursor: 'pointer', color: '#94a3b8', padding: 4 }}>×</button>
+                <h2 className="brand" style={{ margin: '0 32px 4px 0' }}>予約リストを出力</h2>
+                <p className="subtitle" style={{ fontSize: 12, marginBottom: 16 }}>出力したい公演日時を選択してください。クリックすると別タブで予約リスト (印刷用) が開きます。</p>
+                {(() => {
+                  const DOW = ['日','月','火','水','木','金','土'];
+                  const map = new Map<string, { iso: string; display: string; count: number; tickets: number }>();
+                  for (const s of sales ?? []) {
+                    const d = new Date(s.visitedAt);
+                    if (isNaN(d.getTime())) continue;
+                    const iso = d.toISOString();
+                    const display = `${d.getUTCMonth()+1}/${d.getUTCDate()}(${DOW[d.getUTCDay()]}) ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
+                    const cur = map.get(iso) ?? { iso, display, count: 0, tickets: 0 };
+                    cur.count++;
+                    cur.tickets += s.ticketCount;
+                    map.set(iso, cur);
+                  }
+                  const items = Array.from(map.values()).sort((a, b) => a.iso.localeCompare(b.iso));
+                  if (items.length === 0) return <p className="subtitle" style={{ textAlign: 'center', padding: '24px 0' }}>公演日時が見つかりません。先にCSVを取り込んでください。</p>;
+                  return (
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      {items.map(it => (
+                        <a
+                          key={it.iso}
+                          href={`/performances/${id}/reservation-list?visitedAt=${encodeURIComponent(it.iso)}` as `/performances/${string}/reservation-list?visitedAt=${string}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setShowReservationListPicker(false)}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f4f7ff', border: '1px solid #dbe2ea', borderRadius: 12, textDecoration: 'none', color: '#153b96', fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          <span style={{ fontSize: 16 }}>📅 {it.display}</span>
+                          <span className="subtitle" style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>合計 {it.tickets}枚</span>
+                        </a>
+                      ))}
+                    </div>
+                  );
+                })()}
+                <div style={{ marginTop: 16, textAlign: 'right' }}>
+                  <button type="button" className="secondary" onClick={() => setShowReservationListPicker(false)}>閉じる</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'キャスト' && <div className="card"><CastAccounts performanceId={id} /></div>}
+
+      {/* バック Tab */}
+      {activeTab === 'バック' && (
+        <div className="card">
+          <h2 className="brand">チケットバックルール</h2>
+          {perf.ticketBackRules && perf.ticketBackRules.length > 0 ? (
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table className="table">
+              <thead><tr><th>ステップ</th><th>最小枚数</th><th>最大枚数</th><th>バック単価</th></tr></thead>
+              <tbody>
+                {perf.ticketBackRules.map(r => (
+                  <tr key={r.id}>
+                    <td>{r.stepNo}</td>
+                    <td>{r.minTicketCount}枚</td>
+                    <td>{r.maxTicketCount != null ? `${r.maxTicketCount}枚` : ''}</td>
+                    <td>{yen(r.backUnitPrice)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </div>
+          ) : (
+            <p className="subtitle">バックルールが登録されていません。</p>
+          )}
+        </div>
+      )}
+
+      {/* グッズ Tab */}
+      {activeTab === 'グッズ' && (
+        <div className="grid">
+          {masterTab && <>
+          {/* グッズ登録フォーム */}
+          <div className="card">
+            <h2 className="brand">グッズ登録</h2>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const res = await fetch(`/api/performances/${id}/goods`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: goodsForm.name, unitPrice: Number(goodsForm.unitPrice) || 0 }),
+              });
+              if (res.ok) { setGoodsForm({ name: '', unitPrice: '' }); setGoodsList(null); fetch(`/api/performances/${id}/goods`).then(r => r.json()).then(setGoodsList); }
+              else { const d = await res.json(); alert(d.message || 'エラー'); }
+            }} className="expense-form" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+              <div className="expense-form-grid">
+                <div><label className="subtitle">グッズ名</label><input className="input" value={goodsForm.name} onChange={e => setGoodsForm(f => ({ ...f, name: e.target.value }))} required style={{ width: '100%' }} /></div>
+                <div><label className="subtitle">単価</label><input className="input" type="number" value={goodsForm.unitPrice} onChange={e => setGoodsForm(f => ({ ...f, unitPrice: e.target.value }))} required style={{ width: '100%' }} /></div>
+              </div>
+              <button className="primary" type="submit">追加</button>
+            </form>
+          </div>
+
+          {/* グッズ一覧 */}
+          {goodsList && goodsList.length > 0 && (
+            <div className="card">
+              <h2 className="brand">登録済みグッズ</h2>
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table className="table">
+                <thead><tr><th>グッズ名</th><th>単価</th><th>販売合計</th><th>売上合計</th><th></th></tr></thead>
+                <tbody>
+                  {goodsList.map(g => {
+                    const totalQty = g.sales.reduce((s, r) => s + r.quantity, 0);
+                    return (
+                      <tr key={g.id}>
+                        <td>
+                          {goodsEditing === g.id
+                            ? <input className="input" value={goodsEditForm.name} onChange={e => setGoodsEditForm(f => ({ ...f, name: e.target.value }))} style={{ padding: '6px 8px' }} />
+                            : <span style={{ fontWeight: 700 }}>{g.name}</span>
+                          }
+                        </td>
+                        <td>
+                          {goodsEditing === g.id
+                            ? <input className="input" type="number" value={goodsEditForm.unitPrice} onChange={e => setGoodsEditForm(f => ({ ...f, unitPrice: e.target.value }))} style={{ width: 100, padding: '6px 8px' }} />
+                            : yen(g.unitPrice)
+                          }
+                        </td>
+                        <td>{totalQty}個</td>
+                        <td style={{ fontWeight: 700 }}>{yen(totalQty * g.unitPrice)}</td>
+                        <td>
+                          {goodsEditing === g.id ? (
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <button className="primary" style={{ fontSize: 12, padding: '6px 10px' }} onClick={async () => {
+                                await fetch(`/api/performances/${id}/goods`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ goodsId: g.id, name: goodsEditForm.name, unitPrice: Number(goodsEditForm.unitPrice) }) });
+                                setGoodsEditing(null); setGoodsList(null); fetch(`/api/performances/${id}/goods`).then(r => r.json()).then(setGoodsList);
+                              }}>保存</button>
+                              <button className="secondary" style={{ fontSize: 12, padding: '6px 10px' }} onClick={() => setGoodsEditing(null)}>取消</button>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <button className="secondary" style={{ fontSize: 12, padding: '6px 10px' }} onClick={() => { setGoodsEditing(g.id); setGoodsEditForm({ name: g.name, unitPrice: String(g.unitPrice) }); }}>編集</button>
+                              <button className="danger" style={{ fontSize: 12 }} onClick={async () => { if (!confirm(`${g.name}を削除しますか？`)) return; await fetch(`/api/performances/${id}/goods`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ goodsId: g.id }) }); setGoodsList(null); fetch(`/api/performances/${id}/goods`).then(r => r.json()).then(setGoodsList); }}>削除</button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              </div>
+            </div>
+          )}
+
+          </>}
+          {/* ステージ別販売実績入力 */}
+          {!masterTab && goodsList && goodsList.length > 0 && perf && perf.stages.length > 0 && (
+            <div className="card">
+              <h2 className="brand">ステージ別販売実績</h2>
+              <p className="subtitle">各セルに販売個数を入力し「保存」を押してください。</p>
+              <div style={{ overflowX: 'auto', marginTop: 12 }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th style={{ position: 'sticky', left: 0, background: '#fff', zIndex: 1 }}>グッズ</th>
+                      {perf.stages.map(st => <th key={st.id} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{st.stageName}<br/><span className="subtitle" style={{ fontSize: 11 }}>{st.stageDate?.slice(5, 10)}</span></th>)}
+                      <th style={{ textAlign: 'center' }}>合計</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {goodsList.map(g => {
+                      let rowTotal = 0;
+                      return (
+                        <tr key={g.id}>
+                          <td style={{ position: 'sticky', left: 0, background: '#fff', fontWeight: 700, whiteSpace: 'nowrap' }}>{g.name}<span className="subtitle" style={{ marginLeft: 6 }}>{yen(g.unitPrice)}</span></td>
+                          {perf.stages.map(st => {
+                            const key = `${g.id}_${st.id}`;
+                            const existing = g.sales.find(s => s.performanceStageId === st.id);
+                            const val = goodsSaleEdits.has(key) ? goodsSaleEdits.get(key)! : (existing?.quantity ?? 0);
+                            rowTotal += val;
+                            return (
+                              <td key={st.id} style={{ textAlign: 'center' }}>
+                                <input className="input" type="number" min="0" value={val || ''} placeholder="0" onFocus={e => e.target.select()} onChange={e => {
+                                  const newMap = new Map(goodsSaleEdits);
+                                  newMap.set(key, Number(e.target.value) || 0);
+                                  setGoodsSaleEdits(newMap);
+                                }} style={{ width: 70, padding: '6px 8px', textAlign: 'center' }} />
+                              </td>
+                            );
+                          })}
+                          <td style={{ textAlign: 'center', fontWeight: 900 }}>{rowTotal}個<br/><span style={{ color: '#153b96' }}>{yen(rowTotal * g.unitPrice)}</span></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                <button className="primary" disabled={goodsSaving} onClick={async () => {
+                  setGoodsSaving(true);
+                  const records: GoodsSaleCell[] = [];
+                  for (const g of goodsList) {
+                    for (const st of perf.stages) {
+                      const key = `${g.id}_${st.id}`;
+                      const existing = g.sales.find(s => s.performanceStageId === st.id);
+                      const qty = goodsSaleEdits.has(key) ? goodsSaleEdits.get(key)! : (existing?.quantity ?? 0);
+                      records.push({ goodsId: g.id, performanceStageId: st.id, quantity: qty });
+                    }
+                  }
+                  await fetch(`/api/performances/${id}/goods-sales`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ records }) });
+                  setGoodsSaleEdits(new Map());
+                  setGoodsList(null);
+                  refreshSummary();
+                  fetch(`/api/performances/${id}/goods`).then(r => r.json()).then(setGoodsList);
+                  setGoodsSaving(false);
+                }}>{goodsSaving ? '保存中...' : '販売実績を保存'}</button>
+              </div>
+            </div>
+          )}
+
+          {goodsList && goodsList.length === 0 && (
+            <div className="card"><p className="subtitle">グッズが登録されていません。マスタの「グッズ」から登録してください。</p></div>
+          )}
+          {!goodsList && <div className="card"><p className="subtitle">読み込み中...</p></div>}
+        </div>
+      )}
+
+      {/* 経費 Tab */}
+      {activeTab === '経費' && (
+        <div className="grid">
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <h2 className="brand" style={{ margin: 0 }}>経費登録</h2>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => { setBulkMode(m => !m); setBulkResult(null); }} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 10, border: 'none', fontWeight: 700, cursor: 'pointer', background: bulkMode ? '#153b96' : '#edf2ff', color: bulkMode ? '#fff' : '#153b96' }}>{bulkMode ? '📝 単一行入力に戻す' : '📋 複数行入力'}</button>
+                <button type="button" className="ghost" onClick={() => {
+                  const url = `${window.location.origin}/quick-expense/${id}`;
+                  navigator.clipboard?.writeText(url).then(
+                    () => alert('簡易登録URLをコピーしました：\n' + url),
+                    () => prompt('簡易登録URL（コピーしてください）：', url)
+                  );
+                }} style={{ fontSize: 12, padding: '4px 10px' }}>📱 簡易登録URL</button>
+              </div>
+            </div>
+            {!bulkMode ? (
+              <form className="expense-form" onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                <div className="expense-form-grid">
+                  <div>
+                    <label className="subtitle">日付</label>
+                    <input className="input" type="date" value={expForm.expenseDate} onChange={e => setExpForm(f => ({ ...f, expenseDate: e.target.value }))} required style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label className="subtitle">カテゴリ</label>
+                    <select className="select" value={expForm.expenseCategoryId} onChange={e => setExpForm(f => ({ ...f, expenseCategoryId: e.target.value }))} required style={{ width: '100%' }}>
+                      <option value="">選択</option>
+                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="subtitle">品名</label>
+                    <input className="input" value={expForm.itemName} onChange={e => setExpForm(f => ({ ...f, itemName: e.target.value }))} required style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label className="subtitle">金額</label>
+                    <input className="input" type="number" value={expForm.amount} onChange={e => setExpForm(f => ({ ...f, amount: e.target.value }))} required style={{ width: '100%' }} />
+                  </div>
+                </div>
+                <div className="expense-form-memo">
+                  <label className="subtitle">メモ</label>
+                  <input className="input" value={expForm.memo} onChange={e => setExpForm(f => ({ ...f, memo: e.target.value }))} placeholder="メモ（任意）" style={{ width: '100%' }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: 13 }}>
+                    <input type="checkbox" checked={expForm.isProvisional} onChange={e => setExpForm(f => ({ ...f, isProvisional: e.target.checked }))} style={{ width: 16, height: 16, accentColor: '#f59e0b' }} />
+                    暫定経費
+                  </label>
+                  <button className="primary" type="submit" disabled={expSubmitting}>{expSubmitting ? '登録中...' : '追加'}</button>
+                </div>
+              </form>
+            ) : (
+              <div style={{ marginTop: 8 }}>
+                <p className="subtitle" style={{ marginBottom: 8 }}>複数行を一括登録します。1件でも不備があると、登録は行われません。</p>
+                {bulkResult && (
+                  <div className={bulkResult.success ? 'success-msg' : 'error-msg'} style={{ marginBottom: 8 }}>
+                    <p style={{ margin: 0, fontWeight: 700 }}>{bulkResult.message}</p>
+                    {bulkResult.details && bulkResult.details.length > 0 && (
+                      <ul style={{ margin: '6px 0 0 18px', fontSize: 13 }}>
+                        {bulkResult.details.map((d, i) => <li key={i}>{d}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                )}
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table className="table" style={{ minWidth: 920, fontSize: 13 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ width: 32, textAlign: 'center' }}>#</th>
+                        <th style={{ whiteSpace: 'nowrap', minWidth: 130 }}>日付 <span style={{ color: '#dc2626' }}>*</span></th>
+                        <th style={{ whiteSpace: 'nowrap', minWidth: 130 }}>カテゴリ <span style={{ color: '#dc2626' }}>*</span></th>
+                        <th style={{ whiteSpace: 'nowrap', minWidth: 110 }}>担当者 <span style={{ color: '#dc2626' }}>*</span></th>
+                        <th style={{ minWidth: 140 }}>品名 <span style={{ color: '#dc2626' }}>*</span></th>
+                        <th style={{ whiteSpace: 'nowrap', minWidth: 100 }}>金額 <span style={{ color: '#dc2626' }}>*</span></th>
+                        <th style={{ minWidth: 140 }}>メモ</th>
+                        <th style={{ width: 60, textAlign: 'center' }}>暫定</th>
+                        <th style={{ width: 36 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bulkRows.map((r, i) => (
+                        <tr key={i} style={r.isProvisional ? { background: '#fffbeb' } : {}}>
+                          <td style={{ textAlign: 'center', fontWeight: 700, color: '#94a3b8' }}>{i + 1}</td>
+                          <td><input className="input" type="date" value={r.expenseDate} onChange={e => updateBulkRow(i, 'expenseDate', e.target.value)} style={{ padding: '6px 8px', fontSize: 13 }} /></td>
+                          <td>
+                            <select className="select" value={r.expenseCategoryId} onChange={e => updateBulkRow(i, 'expenseCategoryId', e.target.value)} style={{ padding: '6px 8px', fontSize: 13 }}>
+                              <option value="">選択</option>
+                              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                          </td>
+                          <td>
+                            <select className="select" value={r.userId} onChange={e => updateBulkRow(i, 'userId', e.target.value)} style={{ padding: '6px 8px', fontSize: 13 }}>
+                              <option value="">選択</option>
+                              {users.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+                            </select>
+                          </td>
+                          <td><input className="input" value={r.itemName} onChange={e => updateBulkRow(i, 'itemName', e.target.value)} placeholder="例：印刷代" style={{ padding: '6px 8px', fontSize: 13 }} /></td>
+                          <td><input className="input" type="number" inputMode="numeric" value={r.amount} onChange={e => updateBulkRow(i, 'amount', e.target.value)} placeholder="0" style={{ padding: '6px 8px', fontSize: 13, textAlign: 'right' }} /></td>
+                          <td><input className="input" value={r.memo} onChange={e => updateBulkRow(i, 'memo', e.target.value)} placeholder="任意" style={{ padding: '6px 8px', fontSize: 13 }} /></td>
+                          <td style={{ textAlign: 'center' }}><input type="checkbox" checked={r.isProvisional} onChange={e => updateBulkRow(i, 'isProvisional', e.target.checked)} style={{ width: 18, height: 18, accentColor: '#f59e0b', cursor: 'pointer' }} /></td>
+                          <td style={{ textAlign: 'center' }}><button type="button" onClick={() => removeBulkRow(i)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontWeight: 700, fontSize: 18 }} title="行を削除">×</button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" className="secondary" onClick={addBulkRow}>＋ 行追加</button>
+                    <button type="button" className="ghost" onClick={resetBulkRows} style={{ fontSize: 13, padding: '8px 12px' }}>クリア</button>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span className="subtitle" style={{ fontSize: 13 }}>合計: {yen(bulkRows.reduce((s, r) => s + (Number(r.amount) || 0), 0))} ／ {bulkRows.length}件</span>
+                    <button type="button" className="primary" onClick={handleBulkSave} disabled={bulkSubmitting}>{bulkSubmitting ? '保存中...' : 'まとめて保存'}</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          {/* ユーザー別未精算サマリ */}
+          {expenses && expenses.length > 0 && (() => {
+            const byUser = new Map<string, { name: string; total: number; settled: number }>();
+            for (const e of expenses) {
+              const key = e.creator?.displayName ?? '不明';
+              const cur = byUser.get(key) ?? { name: key, total: 0, settled: 0 };
+              cur.total += e.amount;
+              if (e.isSettled) cur.settled += e.amount;
+              byUser.set(key, cur);
+            }
+            const users = Array.from(byUser.values());
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
+                {users.map(u => (
+                  <div key={u.name} className="card" style={{ padding: 16 }}>
+                    <div className="subtitle">{u.name}</div>
+                    <div style={{ fontSize: 13, marginTop: 4 }}>立替合計: {yen(u.total)}</div>
+                    <div style={{ fontSize: 13 }}>精算済: {yen(u.settled)}</div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: u.total - u.settled > 0 ? '#dc2626' : '#059669', marginTop: 4 }}>
+                      未精算: {yen(u.total - u.settled)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+          <div className="card">
+            {(() => {
+              const filtered = expenses?.filter(e => {
+                if (expFilterCategory && e.category?.name !== expFilterCategory) return false;
+                if (expFilterUser && e.createdBy !== expFilterUser) return false;
+                if (expFilterSettled === 'unsettled' && e.isSettled) return false;
+                if (expFilterSettled === 'settled' && !e.isSettled) return false;
+                return true;
+              }) ?? [];
+              const filteredSum = filtered.reduce((s, e) => s + e.amount, 0);
+              const uniqueCategories = [...new Set(expenses?.map(e => e.category?.name).filter(Boolean) ?? [])];
+              const uniqueUsers = [...new Map(expenses?.map(e => [e.createdBy, e.creator?.displayName]) ?? []).entries()];
+              return (<>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <h2 className="brand" style={{ margin: 0 }}>経費一覧</h2>
+                    <button type="button" onClick={() => setShowCategorySummary(true)} disabled={!expenses} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 10, border: 'none', fontWeight: 700, cursor: 'pointer', background: '#edf2ff', color: '#153b96', opacity: !expenses ? 0.4 : 1 }}>📊 カテゴリ別集計</button>
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: '#153b96' }}>合計: {yen(filteredSum)}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>カテゴリ</label>
+                    <select className="select" value={expFilterCategory} onChange={e => setExpFilterCategory(e.target.value)} style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10 }}>
+                      <option value="">すべて</option>
+                      {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>担当者</label>
+                    <select className="select" value={expFilterUser} onChange={e => setExpFilterUser(e.target.value)} style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10 }}>
+                      <option value="">すべて</option>
+                      {uniqueUsers.map(([uid, name]) => <option key={uid} value={uid}>{name}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <label className="subtitle" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>精算状況</label>
+                    <select className="select" value={expFilterSettled} onChange={e => setExpFilterSettled(e.target.value as '' | 'unsettled' | 'settled')} style={{ padding: '6px 8px', fontSize: 13, borderRadius: 10 }}>
+                      <option value="">すべて</option>
+                      <option value="unsettled">未精算のみ</option>
+                      <option value="settled">精算済のみ</option>
+                    </select>
+                  </div>
+                  {(expFilterCategory || expFilterUser || expFilterSettled) && <button className="ghost" onClick={() => { setExpFilterCategory(''); setExpFilterUser(''); setExpFilterSettled(''); }} style={{ fontSize: 12, padding: '4px 8px' }}>フィルタ解除</button>}
+                </div>
+                {!expenses ? (
+                  <p className="subtitle">読み込み中...</p>
+                ) : filtered.length === 0 ? (
+                  <p className="subtitle" style={{ marginTop: 12 }}>{expenses.length === 0 ? '経費が登録されていません。' : '該当する経費がありません。'}</p>
+                ) : (
+                  <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginTop: 12 }}>
+                  <table className="table" style={{ minWidth: 650 }}>
+                    <thead><tr><th style={{width:50,textAlign:'center'}}>精算</th><th style={{width:50,textAlign:'center'}}>区分</th><th style={{whiteSpace:'nowrap'}}>日付</th><th style={{whiteSpace:'nowrap'}}>担当者</th><th style={{whiteSpace:'nowrap'}}>カテゴリ</th><th>品名</th><th style={{whiteSpace:'nowrap'}}>金額</th><th>メモ</th><th></th></tr></thead>
+                    <tbody>
+                      {filtered.map(exp => (
+                        <tr key={exp.id} style={{ ...(exp.isSettled ? { opacity: 0.5 } : {}), ...(exp.isProvisional ? { background: '#fffbeb' } : {}) }}>
+                          <td style={{textAlign:'center'}}><input type="checkbox" checked={exp.isSettled} onChange={e => saveExpense(exp.id, { isSettled: e.target.checked })} style={{width:18,height:18,accentColor:'#153b96',cursor:'pointer'}} /></td>
+                          <td style={{textAlign:'center', whiteSpace:'nowrap'}}><button onClick={() => saveExpense(exp.id, { isProvisional: !exp.isProvisional })} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 10, border: '1px solid', cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap', background: exp.isProvisional ? '#fef3c7' : '#e0f2fe', color: exp.isProvisional ? '#b45309' : '#0369a1', borderColor: exp.isProvisional ? '#fbbf24' : '#7dd3fc' }}>{exp.isProvisional ? '暫定' : '確定'}</button></td>
+                          <td>{exp.isProvisional ? <input className="input" type="date" value={exp.expenseDate?.slice(0, 10)} onChange={e => { const val = e.target.value; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, expenseDate: val } : x) ?? null); }} onBlur={e => saveExpense(exp.id, { expenseDate: e.target.value })} style={{ padding: '4px 6px', fontSize: 13, background: '#fffbeb' }} /> : exp.expenseDate?.slice(0, 10)}</td>
+                          <td>
+                            <select className="select" value={exp.createdBy} onChange={e => handleChangeAssignee(exp.id, e.target.value)} style={{padding:'6px 8px',fontSize:13,borderRadius:10,minWidth:90}}>
+                              {users.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+                              {!users.find(u => u.id === exp.createdBy) && <option value={exp.createdBy}>{exp.creator?.displayName}</option>}
+                            </select>
+                          </td>
+                          <td><span className="badge">{exp.category?.name}</span></td>
+                          <td>{exp.itemName}</td>
+                          <td>{exp.isProvisional ? <input className="input" type="number" value={exp.amount} onChange={e => { const val = Number(e.target.value) || 0; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, amount: val } : x) ?? null); }} onBlur={e => saveExpense(exp.id, { amount: Number(e.target.value) || 0 })} style={{ padding: '6px 8px', fontSize: 13, width: 100, background: '#fffbeb' }} /> : yen(exp.amount)}</td>
+                          <td><input className="input" value={exp.memo ?? ''} placeholder="メモ" onChange={e => { const val = e.target.value; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, memo: val } : x) ?? null); }} onBlur={e => saveExpense(exp.id, { memo: e.target.value })} style={{ padding: '6px 8px', fontSize: 13, minWidth: 80 }} /></td>
+                          <td><button className="danger" onClick={() => handleDeleteExpense(exp.id)}>削除</button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  </div>
+                )}
+              </>);
+            })()}
+          </div>
+
+          {/* カテゴリ別集計 ポップアップ */}
+          {showCategorySummary && (
+            <div
+              onClick={() => setShowCategorySummary(false)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}
+            >
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{ background: 'white', borderRadius: 20, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(15, 23, 42, 0.3)', position: 'relative' }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowCategorySummary(false)}
+                  aria-label="閉じる"
+                  style={{ position: 'absolute', top: 12, right: 14, background: 'none', border: 'none', fontSize: 26, lineHeight: 1, cursor: 'pointer', color: '#94a3b8', padding: 4 }}
+                >×</button>
+                <h2 className="brand" style={{ margin: '0 32px 4px 0' }}>カテゴリ別集計</h2>
+                <p className="subtitle" style={{ fontSize: 12, marginBottom: 16 }}>この公演の全経費をカテゴリ別に確定／暫定／合計で集計しています。</p>
+                {(() => {
+                  const map = new Map<string, { confirmed: number; provisional: number }>();
+                  // 0円カテゴリも表示するため、まずアクティブな全カテゴリを0で初期化
+                  for (const c of categories) {
+                    map.set(c.name, { confirmed: 0, provisional: 0 });
+                  }
+                  for (const e of expenses ?? []) {
+                    const key = e.category?.name ?? '未分類';
+                    const cur = map.get(key) ?? { confirmed: 0, provisional: 0 };
+                    if (e.isProvisional) cur.provisional += e.amount;
+                    else cur.confirmed += e.amount;
+                    map.set(key, cur);
+                  }
+                  const rows = Array.from(map.entries())
+                    .map(([name, v]) => ({ name, ...v, total: v.confirmed + v.provisional }))
+                    .sort((a, b) => {
+                      if (b.total !== a.total) return b.total - a.total;
+                      return a.name.localeCompare(b.name, 'ja');
+                    });
+                  const sumConfirmed = rows.reduce((s, r) => s + r.confirmed, 0);
+                  const sumProvisional = rows.reduce((s, r) => s + r.provisional, 0);
+                  const sumTotal = sumConfirmed + sumProvisional;
+                  if (rows.length === 0) {
+                    return <p className="subtitle" style={{ textAlign: 'center', padding: '24px 0' }}>カテゴリが登録されていません。</p>;
+                  }
+                  return (
+                    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                      <table className="table" style={{ fontSize: 13, minWidth: 460 }}>
+                        <thead>
+                          <tr>
+                            <th>カテゴリ</th>
+                            <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>確定</th>
+                            <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>暫定</th>
+                            <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>合計</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rows.map(r => (
+                            <tr key={r.name}>
+                              <td><span className="badge">{r.name}</span></td>
+                              <td style={{ textAlign: 'right', whiteSpace: 'nowrap', color: '#1f2937' }}>{r.confirmed ? yen(r.confirmed) : '-'}</td>
+                              <td style={{ textAlign: 'right', whiteSpace: 'nowrap', color: r.provisional ? '#b45309' : '#94a3b8' }}>{r.provisional ? yen(r.provisional) : '-'}</td>
+                              <td style={{ textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 700, color: '#153b96' }}>{yen(r.total)}</td>
+                            </tr>
+                          ))}
+                          <tr style={{ background: '#f4f7ff', fontWeight: 900 }}>
+                            <td>合計</td>
+                            <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>{yen(sumConfirmed)}</td>
+                            <td style={{ textAlign: 'right', whiteSpace: 'nowrap', color: sumProvisional ? '#b45309' : '#94a3b8' }}>{sumProvisional ? yen(sumProvisional) : '-'}</td>
+                            <td style={{ textAlign: 'right', whiteSpace: 'nowrap', color: '#153b96' }}>{yen(sumTotal)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+                <div style={{ marginTop: 16, textAlign: 'right' }}>
+                  <button type="button" className="secondary" onClick={() => setShowCategorySummary(false)}>閉じる</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 収支 Tab */}
+      {activeTab === '収支' && (
+        <div className="grid">
+          {!summary ? (
+            <div className="card"><p className="subtitle">読み込み中...</p></div>
+          ) : (
+            <>
+              {/* 最終収支 */}
+              <div className="card" style={{ border: '3px solid', borderColor: summary.netBalance >= 0 ? '#059669' : '#e74c3c', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '16px 20px', marginBottom: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#64748b', marginBottom: 8 }}>最終収支</div>
+                <div style={{ fontSize: 42, lineHeight: 1.1, fontWeight: 900, color: summary.netBalance >= 0 ? '#059669' : '#e74c3c' }}>{yen(summary.netBalance)}</div>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>売上 + グッズ + 協賛 - 経費 - ギャラ</div>
+              </div>
+              {/* 内訳 */}
+              <div className="balance-grid">
+                <div className="card" style={{ padding: 16, background: '#f0f4ff' }}>
+                  <div className="subtitle" style={{ fontSize: 12 }}>チケット売上 <span style={{ marginLeft: 4 }}>{summary.totalTickets}枚</span></div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#153b96' }}>{yen(summary.totalSales)}</div>
+                </div>
+                <div className="card" style={{ padding: 16, background: '#f0f4ff' }}>
+                  <div className="subtitle" style={{ fontSize: 12 }}>グッズ売上</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#153b96' }}>{yen(summary.totalGoodsSales)}</div>
+                </div>
+                <div className="card" style={{ padding: 16, background: '#f0f4ff' }}>
+                  <div className="subtitle" style={{ fontSize: 12 }}>協賛金</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#153b96' }}>{yen(summary.totalSponsorship)}</div>
+                </div>
+                <div className="card" style={{ padding: 16, background: '#fef2f2' }}>
+                  <div className="subtitle" style={{ fontSize: 12 }}>総経費</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#e74c3c' }}>{yen(summary.totalExpenses)}</div>
+                  {summary.provisionalExpenses > 0 && (
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                      確定 {yen(summary.confirmedExpenses)} ／ <span style={{ color: '#b45309' }}>暫定 {yen(summary.provisionalExpenses)}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="card" style={{ padding: 16, background: -summary.totalGara >= 0 ? '#f0fdf4' : '#fef2f2' }}>
+                  <div className="subtitle" style={{ fontSize: 12 }}>ギャラ収支</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: -summary.totalGara >= 0 ? '#059669' : '#e74c3c' }}>{yen(-summary.totalGara)}</div>
+                </div>
+              </div>
+              <div className="card">
+                <h2 className="brand">キャスト毎精算管理</h2>
+                {summary.castDetails && summary.castDetails.length > 0 ? (
+                  <>
+                    {/* PC: テーブル表示 */}
+                    <div className="hide-mobile" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                      <table className="table">
+                        <thead><tr><th>キャスト</th><th>販売枚数</th><th>売上金額</th><th>バック総額</th><th>ノルマ分</th><th>精算額</th><th></th></tr></thead>
+                        <tbody>
+                          {summary.castDetails.map(c => (
+                            <tr key={c.castId} style={c.castId === '0' ? { background: '#f0fdf4', fontStyle: 'italic' } : {}}>
+                              <td>{c.castName}</td>
+                              <td>{c.ticketCount}枚</td>
+                              <td>{yen(c.salesAmount)}</td>
+                              <td>{c.castId === '0' ? '-' : yen(c.backTotal)}</td>
+                              <td>{c.castId === '0' ? '-' : yen(c.normaDeduction)}</td>
+                              <td style={{ color: c.castId === '0' ? '#153b96' : (c.settlement >= 0 ? '#059669' : '#e74c3c'), fontWeight: 700 }}>{c.castId === '0' ? yen(c.salesAmount) : yen(c.settlement)}</td>
+                              <td>{c.castId !== '0' && <Link className="secondary" href={`/performances/${id}/casts/${c.castId}/settlement`}>内訳</Link>}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* スマホ: カード表示 */}
+                    <div className="show-mobile" style={{ display: 'none' }}>
+                      {summary.castDetails.map(c => (
+                        <div key={c.castId} className="card" style={{ padding: 14, marginBottom: 8, border: '1px solid #e5e7eb', ...(c.castId === '0' ? { background: '#f0fdf4' } : {}) }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <span style={{ fontWeight: 700, fontSize: 15 }}>{c.castName}</span>
+                            {c.castId !== '0' && <Link className="secondary" href={`/performances/${id}/casts/${c.castId}/settlement`} style={{ fontSize: 12 }}>内訳→</Link>}
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: 13 }}>
+                            <span className="subtitle">販売枚数</span><span style={{ textAlign: 'right' }}>{c.ticketCount}枚</span>
+                            <span className="subtitle">売上金額</span><span style={{ textAlign: 'right' }}>{yen(c.salesAmount)}</span>
+                            {c.castId !== '0' && <><span className="subtitle">バック総額</span><span style={{ textAlign: 'right' }}>{yen(c.backTotal)}</span></>}
+                            {c.castId !== '0' && <><span className="subtitle">ノルマ分</span><span style={{ textAlign: 'right' }}>{yen(c.normaDeduction)}</span></>}
+                          </div>
+                          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e5e7eb', fontWeight: 900, fontSize: 16, textAlign: 'right', color: c.castId === '0' ? '#153b96' : (c.settlement >= 0 ? '#059669' : '#e74c3c') }}>
+                            {c.castId === '0' ? `売上 ${yen(c.salesAmount)}` : `精算額 ${yen(c.settlement)}`}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <p className="subtitle">キャストデータがありません。</p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* 協賛金 Tab */}
+      {activeTab === '協賛金' && (
+        <div className="grid">
+          <div className="card">
+            <h2 className="brand">協賛金登録</h2>
+            <form className="expense-form" onSubmit={handleAddSponsorship} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+              <div className="expense-form-grid">
+                <div>
+                  <label className="subtitle">協賛者名</label>
+                  <input className="input" value={spForm.sponsorName} onChange={e => setSpForm(f => ({ ...f, sponsorName: e.target.value }))} placeholder="例: 株式会社○○" required style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <label className="subtitle">金額</label>
+                  <input className="input" type="number" value={spForm.amount} onChange={e => setSpForm(f => ({ ...f, amount: e.target.value }))} required style={{ width: '100%' }} />
+                </div>
+              </div>
+              <div className="expense-form-memo">
+                <label className="subtitle">メモ</label>
+                <input className="input" value={spForm.memo} onChange={e => setSpForm(f => ({ ...f, memo: e.target.value }))} placeholder="任意" style={{ width: '100%' }} />
+              </div>
+              <button className="primary" type="submit" disabled={spSubmitting}>{spSubmitting ? '登録中...' : '追加'}</button>
+            </form>
+          </div>
+          <div className="card">
+            <h2 className="brand">協賛金一覧</h2>
+            {!sponsorships ? (
+              <p className="subtitle">読み込み中...</p>
+            ) : sponsorships.length === 0 ? (
+              <p className="subtitle">協賛金がまだ登録されていません。</p>
+            ) : (
+              <>
+                <div style={{ marginBottom: 12, fontSize: 18, fontWeight: 900, color: '#153b96' }}>
+                  合計: {yen(sponsorships.reduce((s, sp) => s + sp.amount, 0))}
+                </div>
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                <table className="table">
+                  <thead><tr><th>協賛者名</th><th>金額</th><th>メモ</th><th></th></tr></thead>
+                  <tbody>
+                    {sponsorships.map(sp => (
+                      <tr key={sp.id}>
+                        <td>{sp.sponsorName}</td>
+                        <td>{yen(sp.amount)}</td>
+                        <td><input className="input" value={sp.memo ?? ''} placeholder="メモ" onChange={e => { const val = e.target.value; setSponsorships(prev => prev?.map(x => x.id === sp.id ? { ...x, memo: val } : x) ?? null); }} onBlur={e => { fetch(`/api/performances/${id}/sponsorships`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sponsorshipId: sp.id, memo: e.target.value }) }); }} style={{ padding: '6px 8px', fontSize: 13, minWidth: 80 }} /></td>
+                        <td><button className="danger" onClick={() => handleDeleteSponsorship(sp.id)}>削除</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </FinanceLayout>
+  );
+}
+
+function FinanceLayout({embedded,...props}:ComponentProps<typeof Shell>&{embedded:boolean}){return embedded?<>{props.children}</>:<Shell {...props}/>;}

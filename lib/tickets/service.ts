@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
@@ -24,6 +24,21 @@ export async function actorFor(performanceId: bigint, publicCast?: string, castO
 }
 export async function lockPerformance(tx: Prisma.TransactionClient, id: bigint) {
     await tx.$queryRaw `SELECT id FROM performances WHERE id = ${id} FOR UPDATE`;
+}
+async function nextReservationNumber(tx: Prisma.TransactionClient, stageId: bigint) {
+    if (stageId < BigInt(1) || stageId > BigInt(999))
+        throw new TicketError('公演回コードが予約番号の3桁上限を超えています。管理者へお問い合わせください');
+    const prefix = `B-${String(stageId).padStart(3, '0')}-`;
+    // Serialize number allocation for this immutable stage code until the transaction commits.
+    // Read in a separate statement after the lock so waiters see the latest committed number.
+    await tx.$queryRaw `SELECT 1 AS locked FROM pg_advisory_xact_lock(648839201, ${Number(stageId)}::integer)`;
+    const [row] = await tx.$queryRaw<{ next: number }[]>`
+        SELECT COALESCE(MAX(SUBSTRING(number FROM ${`^${prefix}([0-9]{4})$`})::integer), 0) + 1 AS next
+        FROM reservations WHERE number LIKE ${`${prefix}%`}
+    `;
+    if (row.next > 9999)
+        throw new TicketError('この公演回の予約番号が4桁上限に達しました。管理者へお問い合わせください');
+    return `${prefix}${String(row.next).padStart(4, '0')}`;
 }
 export async function saveBooking(performanceId: bigint, actor: Actor, raw: unknown, reservationId?: string) {
     const input = bookingInput.parse(raw);
@@ -102,7 +117,7 @@ export async function mutateBooking(tx: Prisma.TransactionClient, performanceId:
     if (old)
         await tx.reservationLine.deleteMany({ where: { reservationId: old.id } });
     const cleanLines = lines.map(l => ({ ticketTypeId: l.ticketTypeId, name: l.name, basePrice: l.basePrice, discount: l.discount, repeater: l.repeater, quantity: l.quantity }));
-    const saved = old ? await tx.reservation.update({ where: { id: old.id }, data: { ...data, version: { increment: 1 }, lines: { create: cleanLines } }, include: { lines: true } }) : await tx.reservation.create({ data: { ...data, performanceId, number: `BIRTH-${randomUUID()}`, requestKey: input.requestKey, requestHash: hash, lines: { create: cleanLines } }, include: { lines: true } });
+    const saved = old ? await tx.reservation.update({ where: { id: old.id }, data: { ...data, version: { increment: 1 }, lines: { create: cleanLines } }, include: { lines: true } }) : await tx.reservation.create({ data: { ...data, performanceId, number: await nextReservationNumber(tx, stage.id), requestKey: input.requestKey, requestHash: hash, lines: { create: cleanLines } }, include: { lines: true } });
     // Recheck the time after lock waits and data work, immediately before recording results.
     assertWindow(actor.kind === 'admin', perf.ticketSalesStart, old ? [old.stage.stageDate, stage.stageDate] : [stage.stageDate]);
     await tx.reservationHistory.create({ data: { reservationId: saved.id, actor: `${actor.kind}:${actor.id}`, ...(old ? { before: jsonValue(old) as unknown as Prisma.InputJsonValue } : {}), after: jsonValue(saved) as unknown as Prisma.InputJsonValue } });

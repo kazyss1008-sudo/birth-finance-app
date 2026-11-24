@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Shell } from '@/components/Shell';
+import {useParams} from 'next/navigation';
 
 type Category = {
   id: string;
@@ -12,6 +13,8 @@ type Category = {
 };
 
 export default function ExpenseCategoriesPage() {
+  const masterId=useParams<{id?:string}>()?.id;
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -136,7 +139,7 @@ export default function ExpenseCategoriesPage() {
   };
 
   return (
-    <Shell title="経費カテゴリ管理" subtitle="システム全体で使用する経費カテゴリの設定です。" actions={<Link href="/performances" className="secondary">公演選択へ戻る</Link>}>
+    <Shell title="経費カテゴリ管理" subtitle="システム全体で使用する経費カテゴリの設定です。" actions={<a href={masterId?`/performances/${masterId}/master?section=common`:'/master'} className="secondary">マスタへ戻る</a>}>
       {msg && (
         <div className="card" style={{ marginBottom: 12, background: msg.type === 'success' ? '#f0fdf4' : '#fef2f2', borderColor: msg.type === 'success' ? '#bbf7d0' : '#fecaca' }}>
           <p style={{ margin: 0, color: msg.type === 'success' ? '#059669' : '#dc2626' }}>{msg.text}</p>

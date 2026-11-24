@@ -9,7 +9,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/reserve/') || pathname.startsWith('/api/booking/') ||
     pathname.startsWith('/api/cast/') || pathname.startsWith('/api/cron/') ||
     pathname === '/api/line/webhook' || pathname.startsWith('/api/line/rehearsal-image/') ||
-    pathname === '/cast-guide.html' || /^\/performances\/\d+\/cast(?:\/\d+|\/tickets)?$/.test(pathname) ||
+    pathname === '/cast-guide.html' || /^\/performances\/\d+\/cast(?:\/\d+|\/tickets(?:\/[A-Za-z0-9-]+)?)?$/.test(pathname) ||
     pathname === '/login' ||
     pathname === '/setup-password' ||
     pathname === '/change-password' ||

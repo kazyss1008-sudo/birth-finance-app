@@ -2,9 +2,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Shell } from '@/components/Shell';
+import {useParams} from 'next/navigation';
 type Settings = { schedulerOwner?: 'schedule'|'finance'; mode: 'TEST' | 'PRODUCTION'; testTargetId: string | null; productionTargetId: string | null; rehearsalImageEnabled: boolean };
 type Destination = { id: string; name: string; type: string };
 export default function LineSettingsPage() {
+  const masterId=useParams<{id?:string}>()?.id;
+
   const [settings, setSettings] = useState<Settings>({ mode: 'TEST', testTargetId: null, productionTargetId: null, rehearsalImageEnabled: false });
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [connected, setConnected] = useState(false);
@@ -65,7 +68,7 @@ export default function LineSettingsPage() {
     } catch (e) { setMessage(e instanceof Error ? e.message : 'テスト送信に失敗しました'); }
     finally { setBusy(false); }
   }
-  return <Shell title="LINE通知設定" subtitle="劇団Birthスケジュール管理 @773bgnjo" actions={<Link href="/performances" className="secondary">公演一覧へ戻る</Link>}>
+  return <Shell title="LINE通知設定" subtitle="劇団Birthスケジュール管理 @773bgnjo" actions={<a href={masterId?`/performances/${masterId}/master?section=common`:'/master'} className="secondary">マスタへ戻る</a>}>
     <div className="card" style={{ maxWidth: 800, margin: '0 auto' }}>
       <h2 className="brand">テストは個人宛、本番は運営グループへ</h2><label>定時通知の担当アプリ<select className="select" value={settings.schedulerOwner??'schedule'} onChange={e=>update({schedulerOwner:e.target.value as 'schedule'|'finance'})}><option value="schedule">旧スケジュール管理</option><option value="finance">基幹システム</option></select></label>
       <p style={{ lineHeight: 1.8 }}>朝の変更通知はテストモードでは送信しません。「個人宛にテスト送信」は、モードにかかわらず指定した個人宛にだけサンプルを送り、実際の変更履歴は通知済みにしません。</p>

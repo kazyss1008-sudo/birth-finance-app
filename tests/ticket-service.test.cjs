@@ -5,7 +5,7 @@ const stage={id:1n,performanceId:10n,stageDate:new Date('2099-12-20'),startTime:
 const p={id:10n,name:'検証公演',venue:'会場',ticketSalesEnabled:true,ticketSalesStart:new Date('2000-01-01'),repeaterEnabled:true,repeaterDiscount:1000,ticketTypes:[{id:'adult',name:'一般',price:3000,active:true}]};
 const cast={id:2n,performanceId:10n,email:'cast@example.invalid',schedulePasswordHash:'hash',scheduleAuthVersion:1,name:'役者'};
 const db={
- $queryRaw:async()=>{state.locks++},
+ $queryRaw:async(strings,...values)=>{state.locks++;if(strings.join('').includes('MAX(SUBSTRING(number')){const pattern=new RegExp(values[0]);const numbers=state.reservations.map(r=>pattern.exec(r.number)?.[1]).filter(Boolean).map(Number);return [{next:Math.max(0,...numbers)+1}]}},
  performance:{findUnique:async()=>p},cast:{findUnique:async()=>cast,findFirst:async({where})=>where.id===cast.id?cast:null},
  performanceStage:{findFirst:async({where})=>where.id===1n?stage:{...stage,id:where.id,stageDate:new Date('2000-01-01')}},
  reservation:{
@@ -80,4 +80,45 @@ test('CSV source label stays separate from its stable reimport key',async()=>{
  const {mutateBooking}=require('../lib/tickets/service.ts');
  const result=await mutateBooking(db,10n,admin,input({source:'外部A',externalNumber:'external-1'}),'hash',undefined,{source:'外部A',lines:[{ticketTypeId:null,name:'一般',basePrice:3000,discount:0,repeater:false,quantity:1}]});
  assert.equal(result.source,'CSV');assert.equal(result.importSource,'外部A');assert.equal(result.externalKey,'10:外部A:external-1');
+});
+
+test('short numbers are sequential, ignore legacy UUIDs, and remain stable on replay and editing',async()=>{
+ stage.capacity=10;
+ state.reservations.push({id:'legacy',number:'BIRTH-12345678-abcd-4321-abcd-123456789012',cancelled:true,lines:[]});
+ const data=input();
+ const first=await saveBooking(10n,publicActor,data);
+ assert.equal(first.number,'B-001-0001');
+ assert.equal(state.mails[0].subject.includes(first.number),true);
+ assert.equal(Object.values(state.sales)[0].reservationNo,first.number);
+ assert.equal((await saveBooking(10n,publicActor,data)).number,first.number);
+ const second=await saveBooking(10n,admin,input());
+ assert.equal(second.number,'B-001-0002');
+ const cancelled=await saveBooking(10n,admin,input({version:1,cancelled:true}),first.id);
+ assert.equal(cancelled.number,first.number);
+ assert.equal((await saveBooking(10n,admin,input())).number,'B-001-0003');
+ assert.equal(state.reservations[0].number,'BIRTH-12345678-abcd-4321-abcd-123456789012');
+});
+
+test('simultaneous bookings receive different short numbers',async()=>{
+ stage.capacity=10;
+ const results=await Promise.all([saveBooking(10n,admin,input()),saveBooking(10n,admin,input())]);
+ assert.deepEqual(results.map(r=>r.number),['B-001-0001','B-001-0002']);
+});
+
+
+test('each stage starts at 0001, moving a reservation keeps its issued number',async()=>{
+ stage.capacity=10;
+ const first=await saveBooking(10n,admin,input());
+ const other=await saveBooking(10n,admin,input({stageId:'2'}));
+ assert.equal(first.number,'B-001-0001');assert.equal(other.number,'B-002-0001');
+ const moved=await saveBooking(10n,admin,input({version:1,stageId:'2',lines:first.lines}),first.id);
+ assert.equal(moved.number,'B-001-0001');
+ assert.equal((await saveBooking(10n,admin,input())).number,'B-001-0002');
+});
+
+test('fixed-width codes reject overflow and do not reuse cancelled numbers',async()=>{
+ state.reservations.push({id:'last',number:'B-001-9999',cancelled:true,lines:[]});
+ await assert.rejects(saveBooking(10n,admin,input()),/4桁上限/);
+ await assert.rejects(saveBooking(10n,admin,input({stageId:'1000'})),/3桁上限/);
+ assert.equal(state.reservations.length,1);assert.equal(state.history.length,0);
 });
