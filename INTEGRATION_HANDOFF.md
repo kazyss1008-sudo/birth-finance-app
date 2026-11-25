@@ -285,3 +285,16 @@ CastNavからマイページを削除（スケジュール登録/チケット管
 - 924aeaba05d32436d1d799f0655d531ba2f2708aをpush、Deployment BLbPbffhJNj3uBKmsu5Yu6EGSSt4がReady。Nullable地図URL列の本番反映済み。
 - 最終の認証境界確認で、/api/performances/{id}/headingが既存middlewareの管理者チェックに遮られキャストの上部表示だけ取得できない点を発見。停止操作より先にデプロイが完了したため、/api/cast/heading/{id}へ移動して追加リリースする。API本体のactorForによる本人/管理者認証と公演の境界は維持。未認証拒否と安全なselectのテストを追加し、全94テストと最終ビルド成功。
 - scheduleは共有スキーマのみa485417で同期し、financeの列追加完了後にpush。キャスト向け上部API調整のDB変更はなし。
+
+### 最終反映確認
+
+- finance最終コミット5a042fb68b1cbe12e758edfc6de351ded71e5a83、Deployment AoiqCMesmrH9EMeMZYhiNDmdDfL3がReady、GitHub Vercelステータスsuccess。scheduleはa485417765d260310e24844716f8f9fd3f31f8d8、Deployment Bnxzg8GQR9kGtEFu9BWtyknquBA3がsuccess。両共有スキーマ同期済み。
+- 新しい劇団扱いURLはhttps://birth2003-tickets.vercel.app/reserve/3/birth。HTTP200と本番スマホ390pxで横はみ出しなし、曜日入り全公演回、チェックボックスの通常/特典付きチケット種別、指定文言を確認。確認画像/private/tmp/birth-live-reservation-updated.png。
+- LINEのUser-Agentで初期HTMLを取得し、title/og:titleが「Let'sビンボー！ 予約ページ」、OGがhead内、canonicalが新予約URLであることを確認。LINEアプリのキャッシュそのものの消去・プレビュー表示は操作していない。
+- 最終URLの未認証heading/予約APIはいずれも401で「ログインしてください」。管理画面の本番表示確認は既存セッションが期限切れでログイン画面へ遷移したため、追加の本人ログインは依頼せず、隔離ブラウザー・APIテストで確認済みの範囲を採用。本番での予約作成・更新・メール送信はなし。
+- 以上で依頼分のリリース完了。地図URLは自動推定・設定せず未設定時の行省略を維持。既存メール本文/発行済み予約番号は変更しない。完了記録だけローカル追記で追加デプロイはしない。
+
+## 2026-11-25 公演設定の見出し余白の調整
+
+- 添付画像の「公演回」の上が近く下が遠い点を修正。settingsのグリッド行間に見出し/説明文/カードの標準マージンが重なっていたため、共通のCSSで余白を整理。「チケット種別」も同じルールを適用し、見出しの上34px・下14pxに統一。
+- 隔離ビルド成功。架空APIのPC/390pxで両見出しの実間隔を計測し、画面でも確認。スマホのページ全体の横はみ出しなし。画像/private/tmp/birth-master-spacing.png。表示のみの変更のためロジックテストは再実行せず、本番反映する。
