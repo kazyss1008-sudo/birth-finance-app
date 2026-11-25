@@ -9,7 +9,7 @@ try{const ctx=await browser.newContext();const page=await ctx.newPage();
 await page.route('**/*',async route=>{const url=new URL(route.request().url());if(url.origin!==base)return route.abort();if(!url.pathname.startsWith('/api/'))return route.continue();let data;
 if(url.pathname.startsWith('/api/booking/')){if(route.request().method()==='POST'){posted.push(route.request().postDataJSON());data={number:'BIRTH-TEST-NEW',mailState:'UNCONFIGURED'};}else data={...performance,handlerName:'劇団Birth'};}
 else if(url.pathname==='/api/cast/tickets/10'){if(route.request().method()==='POST'){posted.push(route.request().postDataJSON());data={ok:true};}else data={performance,reservations:[reservation],casts:mode==='admin'?[{id:'2',name:'検証役者'}]:[],actor:{kind:mode,castId:mode==='admin'?null:'2'}};}
-else if(url.pathname==='/api/performances/10/heading')data={status:'ACTIVE',startDate:'2099-12-20',endDate:'2099-12-20'};
+else if(url.pathname==='/api/cast/heading/10')data={status:'ACTIVE',startDate:'2099-12-20',endDate:'2099-12-20'};
 else if(url.pathname==='/api/performances/10/casts')data=[{id:'2',name:'検証役者',roleName:'検証役'}];
 else if(url.pathname==='/api/cast/grid')data={performance:{id:'10',name:performance.name},casts:[{id:'2',performanceId:'10',name:'検証役者',roleName:'役'}],rehearsals:[{id:'1',date:'2099-12-01',startTime:'18:00',endTime:'21:00',location:'稽古場'}],schedules:[]};
 else if(url.pathname==='/api/performances/10/schedule-grid')data={performance:{id:'10',name:performance.name},casts:[{id:'2',performanceId:'10',name:'検証役者',roleName:'役'}],rehearsals:[{id:'1',date:'2099-12-01',startTime:'18:00',endTime:'21:00',location:'稽古場'}],schedules:[]};

@@ -1,6 +1,6 @@
 const {test,beforeEach}=require('node:test');const assert=require('node:assert/strict');const Module=require('node:module');const original=Module._load;let actor,seen,sent,record,performanceQuery,aggregateQuery;
 const db={reservationLine:{findMany:async query=>{aggregateQuery=query;return[{ticketTypeId:'adult',name:'通常',quantity:2,reservation:{stageId:1n}},{ticketTypeId:'adult',name:'通常',quantity:3,reservation:{stageId:1n}}]}},performance:{findUnique:async args=>{performanceQuery=args;return{id:10n}}},reservation:{findMany:async args=>{seen=args;return[{id:'own',castId:2n}]},findFirst:async()=>record},cast:{findMany:async()=>{throw Error('cast cannot query other cast directory')}}};
-Module._load=function(id,...args){if(id==='@/lib/prisma')return{prisma:db};if(id==='@/lib/tickets/service')return{actorFor:async()=>actor,saveBooking:async()=>({id:'saved'})};if(id==='@/lib/tickets/notification')return{deliverReservationMail:async()=>sent++};return original.call(this,id,...args)};
+Module._load=function(id,...args){if(id==='@/lib/prisma')return{prisma:db};if(id==='@/lib/tickets/service')return{actorFor:async()=>{if(!actor)throw new (require('../lib/tickets/domain.ts').TicketError)('ログインしてください',401);return actor;},saveBooking:async()=>({id:'saved'})};if(id==='@/lib/tickets/notification')return{deliverReservationMail:async()=>sent++};return original.call(this,id,...args)};
 const route=require('../app/api/cast/tickets/[id]/route.ts');const ctx={params:Promise.resolve({id:'10'})};const req=body=>new Request('http://localhost/api/cast/tickets/10',{method:'POST',body:JSON.stringify(body)});
 beforeEach(()=>{actor={kind:'cast',id:'2',castId:2n};sent=0;record={id:'r',cancelled:false}});
 test('cast list query is scoped to performance AND own cast with no management history or directory',async()=>{const r=await route.GET(new Request('http://localhost'),ctx);assert.equal(r.status,200);assert.deepEqual(seen.where,{performanceId:10n,deletedAt:null,castId:2n});assert.equal(performanceQuery.select.defaultNormaUnitPrice,undefined);assert.equal(performanceQuery.include,undefined);assert.equal(r.headers.get('cache-control'),'no-store');assert.equal(seen.include.history,false);assert.deepEqual((await r.json()).casts,[])});
@@ -17,4 +17,11 @@ test('cast sees only grouped overall quantities, never other customer records',a
  assert.deepEqual(aggregateQuery.where,{reservation:{performanceId:10n,cancelled:false,deletedAt:null}});
  assert.deepEqual(aggregateQuery.select,{ticketTypeId:true,name:true,quantity:true,reservation:{select:{stageId:true}}});
  assert.deepEqual(data.reservations,[{id:'own',castId:'2'}]);
+});
+
+test('header information requires authentication and exposes only status and dates',async()=>{
+ const heading=require('../app/api/cast/heading/[id]/route.ts');
+ actor=null;assert.equal((await heading.GET(new Request('http://localhost/api/cast/heading/10?scope=cast'),ctx)).status,401);
+ actor={kind:'cast',id:'2',castId:2n};assert.equal((await heading.GET(new Request('http://localhost/api/cast/heading/10?scope=cast'),ctx)).status,200);
+ assert.deepEqual(performanceQuery.select,{status:true,startDate:true,endDate:true});
 });

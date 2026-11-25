@@ -12,7 +12,7 @@ export function PerformanceSubtitle({ fallback }: { fallback?: string }) {
   useEffect(() => {
     if (!id) return;
     let active = true;
-    fetch(`/api/performances/${id}/heading${cast ? '?scope=cast' : ''}`).then(async r => {
+    fetch(`/api/cast/heading/${id}${cast ? '?scope=cast' : ''}`).then(async r => {
       if (!r.ok) return;
       const p = await r.json();
       if (active) setHeading({ id, text: performanceSubtitle(p) });
