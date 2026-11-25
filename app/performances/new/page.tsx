@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Shell } from '@/components/Shell';
 
 /* ---------- types ---------- */
@@ -486,11 +485,6 @@ export default function NewPerformancePage() {
     <Shell
       title="新規公演作成"
       subtitle="ウィザード形式で公演情報を登録します。"
-      actions={
-        <Link href="/performances" className="secondary">
-          一覧に戻る
-        </Link>
-      }
     >
       <StepIndicator current={step} />
 

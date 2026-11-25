@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Shell } from '@/components/Shell';
 
 export default function ChangePasswordPage() {
@@ -44,7 +43,7 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <Shell title="パスワード変更" subtitle="現在のパスワードを入力して新しいパスワードに変更します。" actions={<Link href="/performances" className="secondary">戻る</Link>}>
+    <Shell title="パスワード変更" subtitle="現在のパスワードを入力して新しいパスワードに変更します。">
       <div className="grid-2">
         <div className="card" style={{ background: 'linear-gradient(135deg, #153b96, #305fd6)', color: 'white' }}>
           <div style={{ fontSize: 12, letterSpacing: '0.25em', opacity: 0.85, fontWeight: 700 }}>BIRTH FINANCE SYSTEM</div>

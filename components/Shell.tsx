@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { PerformanceSubtitle } from './PerformanceSubtitle';
-import { PerformanceNav } from './PerformanceNav';
+import { PerformanceNav, PerformanceHeaderActions } from './PerformanceNav';
 import Image from 'next/image';
 
 export function Shell({ title, subtitle, actions, children, hideManual }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode; hideManual?: boolean }) {
@@ -17,12 +17,12 @@ export function Shell({ title, subtitle, actions, children, hideManual }: { titl
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            {actions}
-            {!hideManual && <a href="/manual.html" target="_blank" rel="noopener noreferrer" className="secondary" style={{ textDecoration: 'none', whiteSpace: 'nowrap' }}>📖 マニュアル</a>}
+            <PerformanceHeaderActions hideManual={hideManual} />
           </div>
         </div>
       </div>
       <PerformanceNav />
+      {actions && <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}>{actions}</div>}
       {children}
     </div>
   );

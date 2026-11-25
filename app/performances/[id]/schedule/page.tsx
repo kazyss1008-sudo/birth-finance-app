@@ -4,7 +4,6 @@ import { useParams, useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
 import { Shell } from '@/components/Shell';
 import { ScheduleCards, type ScheduleDraft } from '@/components/ScheduleCards';
-import Link from 'next/link';
 import gridStyles from './grid.module.css';
 import { makeDayCard } from '@/lib/day-attendance';
 import { RehearsalDayCard } from '@/components/RehearsalDayCard';
@@ -57,9 +56,6 @@ export default function PerformanceDetailPage() {
     <Shell
       title={perf.name}
       subtitle={perf.startDate ? `${perf.startDate} 〜 ${perf.endDate ?? ''}` : '稽古スケジュール管理'}
-      actions={<>
-        <Link href="/performances" className="secondary" style={{ textDecoration: 'none', whiteSpace: 'nowrap' }}>← 公演一覧</Link>
-      </>}
     >
       {msg && <div className="success-msg" style={{ marginBottom: 12 }}>{msg}</div>}
       {err && <div className="error-msg" style={{ marginBottom: 12 }}>{err}</div>}
