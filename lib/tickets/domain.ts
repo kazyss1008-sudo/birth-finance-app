@@ -51,12 +51,12 @@ export function snapshotLines(input: BookingInput['lines'], old: Snapshot[], typ
             used.add(l.id);
             const saved = old.find(o => o.id === l.id);
             if (!saved || (saved.ticketTypeId ?? "") !== l.ticketTypeId)
-                throw new TicketError('既存明細の券種は変更できません。削除して新しいカードを追加してください');
+                throw new TicketError('既存明細のチケット種別は変更できません。削除して新しいカードを追加してください');
             return { ...saved, quantity: l.quantity, repeater: l.repeater };
         }
         const type = types.find(t => t.id === l.ticketTypeId && t.active);
         if (!type)
-            throw new TicketError('販売中の券種を選んでください');
+            throw new TicketError('販売中のチケット種別を選んでください');
         if (l.repeater && !enabled)
             throw new TicketError('この公演ではリピーター割引を設定できません');
         return { ticketTypeId: type.id, name: type.name, basePrice: type.price, discount: enabled ? discount : 0, repeater: l.repeater, quantity: l.quantity };

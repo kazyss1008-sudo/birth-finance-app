@@ -15,11 +15,24 @@ export async function GET(_req: Request, { params }: Context) {
         const { id } = await params;
         const pid = BigInt(id);
         const actor = await actorFor(pid, undefined, new URL(_req.url).searchParams.get('scope') === 'cast');
-        const performance = await prisma.performance.findUnique({ where: { id: pid }, select: { id:true,name:true,venue:true,ticketSalesEnabled:true,ticketSalesStart:true,repeaterEnabled:true,repeaterDiscount:true,ticketTypes: true, stages: { orderBy: { sortOrder: 'asc' } } } });
+        const performance = await prisma.performance.findUnique({ where: { id: pid }, select: { id:true,name:true,venue:true,venueMapUrl:true,ticketSalesEnabled:true,ticketSalesStart:true,repeaterEnabled:true,repeaterDiscount:true,ticketTypes: true, stages: { orderBy: { sortOrder: 'asc' } } } });
         if (!performance) throw new TicketError('公演がありません',404);
         const reservations = await prisma.reservation.findMany({ where: { performanceId: pid, deletedAt: null, ...(actor.kind === 'cast' ? { castId: actor.castId } : {}) }, include: { lines: true, stage: true, mail: { select: { state: true, attemptedAt: true, sentAt: true } }, history: actor.kind === 'admin' }, orderBy: { createdAt: 'desc' } });
         const casts = actor.kind === 'admin' ? await prisma.cast.findMany({ where: { performanceId: pid }, select: { id: true, name: true }, orderBy: { sortOrder: 'asc' } }) : [];
-        return reply({ performance, reservations, casts, actor });
+        // Only grouped quantities cross the cast boundary; never other customers' records.
+        const stageTotals = [] as {stageId:string;ticketTypeId:string|null;name:string;quantity:number}[];
+        if (actor.kind === 'cast') {
+            const lines = await prisma.reservationLine.findMany({where:{reservation:{performanceId:pid,cancelled:false,deletedAt:null}},select:{ticketTypeId:true,name:true,quantity:true,reservation:{select:{stageId:true}}}});
+            const totals = new Map<string, typeof stageTotals[number]>();
+            for(const line of lines){
+                const key=JSON.stringify([String(line.reservation.stageId),line.ticketTypeId,line.name]);
+                const current=totals.get(key);
+                if(current)current.quantity+=line.quantity;
+                else totals.set(key,{stageId:String(line.reservation.stageId),ticketTypeId:line.ticketTypeId,name:line.name,quantity:line.quantity});
+            }
+            stageTotals.push(...totals.values());
+        }
+        return reply({ performance, reservations, casts, actor, stageTotals });
     }
     catch (e) {
         return failure(e);

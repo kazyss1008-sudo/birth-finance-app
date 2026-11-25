@@ -122,7 +122,7 @@ export default function CastSettlementPage() {
             <thead><tr><th>公演日</th><th>販売枚数</th></tr></thead>
             <tbody>
               {data.salesByDate.map(row => (
-                <tr key={row.date}><td>{row.date}</td><td>{row.ticketCount}枚</td></tr>
+                <tr key={row.date.replaceAll('-', '/')}><td>{row.date.replaceAll('-', '/')}</td><td>{row.ticketCount}枚</td></tr>
               ))}
             </tbody>
           </table>

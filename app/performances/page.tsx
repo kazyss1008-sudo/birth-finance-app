@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 function formatDate(d: Date | null) {
   if (!d) return '';
-  return d.toISOString().slice(0, 10);
+  return d.toISOString().slice(0, 10).replaceAll('-', '/');
 }
 
 function statusLabel(s: string) {

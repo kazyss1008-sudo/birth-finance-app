@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { PerformanceSubtitle } from './PerformanceSubtitle';
 import { PerformanceNav } from './PerformanceNav';
 import Image from 'next/image';
 
@@ -12,7 +13,7 @@ export function Shell({ title, subtitle, actions, children, hideManual, compact 
             <div style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', color: '#e74c3c' }}>BIRTH MANAGEMENT SYSTEM</div>
               <h1 className="title brand" style={compact?{fontSize:22,margin:'6px 0',whiteSpace:'normal'}:undefined}>{title}</h1>
-              {subtitle ? <p className="subtitle" style={compact?{margin:'4px 0'}:undefined}>{subtitle}</p> : null}
+              <PerformanceSubtitle fallback={subtitle} />
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>

@@ -1,15 +1,18 @@
+import { slashDate } from '@/lib/display-date';
 import { useRef, useState } from 'react';
 import type {Booking,TicketPerformance} from './TicketForm';
 import styles from './Tickets.module.css';
-export function StageMatrix({performance:p,reservations,admin}:{performance:TicketPerformance;reservations:Booking[];admin:boolean}){
+export type StageCount={stageId:string;ticketTypeId:string|null;name:string;quantity:number};
+export function StageMatrix({performance:p,reservations,admin,showCapacity=admin,counts,title}:{performance:TicketPerformance;reservations:Booking[];admin:boolean;showCapacity?:boolean;counts?:StageCount[];title?:string}){
  const captureRef=useRef<HTMLDivElement>(null);
  const [capturing,setCapturing]=useState(false);
  const [error,setError]=useState('');
  const active=reservations.filter(r=>!r.cancelled&&!r.deletedAt);
  const columns=new Map(p.ticketTypes.map(t=>[t.id,t.name]));
- const key=(line:Booking['lines'][number])=>line.ticketTypeId||`history:${line.name}`;
- for(const r of active)for(const l of r.lines)if(!columns.has(key(l)))columns.set(key(l),l.name);
- const count=(stageId:string|null,typeId?:string)=>active.filter(r=>stageId===null||r.stageId===stageId).reduce((sum,r)=>sum+r.lines.filter(l=>!typeId||key(l)===typeId).reduce((n,l)=>n+l.quantity,0),0);
+ const key=(line:{ticketTypeId:string|null;name:string})=>line.ticketTypeId||`history:${line.name}`;
+ const quantities=counts??active.flatMap(r=>r.lines.map(l=>({stageId:r.stageId,...l})));
+ for(const line of quantities)if(!columns.has(key(line)))columns.set(key(line),line.name);
+ const count=(stageId:string|null,typeId?:string)=>quantities.filter(l=>(stageId===null||l.stageId===stageId)&&(!typeId||key(l)===typeId)).reduce((sum,l)=>sum+l.quantity,0);
  async function handleScreenshot(){
   if(!admin||!captureRef.current)return;
   setCapturing(true);setError('');
@@ -38,5 +41,5 @@ export function StageMatrix({performance:p,reservations,admin}:{performance:Tick
   }catch{setError('画像を作成できませんでした。もう一度お試しください。');}
   finally{setCapturing(false);}
  }
- return <section className={styles.line}><div className={styles.matrixHeading}><h2>公演回別の予約枚数{admin?'・残席':''}</h2>{admin&&<button type="button" className={`secondary show-mobile ${styles.matrixShare}`} style={{display:'none'}} onClick={handleScreenshot} disabled={capturing}>{capturing?'作成中...':'📷 スクショ共有'}</button>}</div>{error&&<p role="alert">{error}</p>}<div ref={captureRef} className={styles.matrixCapture}><h3>{p.name}</h3><p className="subtitle">{admin?'有効な予約の枚数・残席です。':'自分扱いの有効な予約の枚数です。'}割引の有無を合算しています。</p><div className={styles.matrixScroll}><table className={styles.matrix}><thead><tr><th scope="col">公演回</th>{[...columns].map(([id,name])=><th scope="col" key={id}>{name}</th>)}<th scope="col">合計</th>{admin&&<><th scope="col">定員</th><th scope="col">残席</th></>}</tr></thead><tbody>{p.stages.map(s=><tr key={s.id}><th scope="row">{s.stageDate?.slice(0,10)} {s.startTime}<small>{s.stageName}</small></th>{[...columns].map(([id])=><td key={id}>{count(s.id,id)}枚</td>)}<td><strong>{count(s.id)}枚</strong></td>{admin&&<><td>{s.capacity??'未設定'}</td><td>{s.capacity===null?'未設定':`${s.capacity-count(s.id)}席`}</td></>}</tr>)}</tbody><tfoot><tr><th scope="row">全公演回の合計</th>{[...columns].map(([id])=><td key={id}>{count(null,id)}枚</td>)}<td>{count(null)}枚</td>{admin&&<><td>—</td><td>—</td></>}</tr></tfoot></table></div></div></section>;
+ return <section className={styles.line}><div className={styles.matrixHeading}><h2>{title??(showCapacity?'予約枚数・残席':'自分扱いの予約枚数')}</h2>{admin&&<button type="button" className={`secondary show-mobile ${styles.matrixShare}`} style={{display:'none'}} onClick={handleScreenshot} disabled={capturing}>{capturing?'作成中...':'📷 スクショ共有'}</button>}</div>{error&&<p role="alert">{error}</p>}<div ref={captureRef} className={styles.matrixCapture}><div className={styles.matrixScroll}><table className={styles.matrix}><thead><tr><th scope="col">公演回</th>{[...columns].map(([id,name])=><th scope="col" key={id}>{name}</th>)}<th scope="col">合計</th>{showCapacity&&<><th scope="col">定員</th><th scope="col">残席</th></>}</tr></thead><tbody>{p.stages.map(s=><tr key={s.id}><th scope="row">{slashDate(s.stageDate)} {s.startTime}<small>{s.stageName}</small></th>{[...columns].map(([id])=><td key={id}>{count(s.id,id)}枚</td>)}<td><strong>{count(s.id)}枚</strong></td>{showCapacity&&<><td>{s.capacity??'未設定'}</td><td>{s.capacity===null?'未設定':`${s.capacity-count(s.id)}席`}</td></>}</tr>)}</tbody><tfoot><tr><th scope="row">合計</th>{[...columns].map(([id])=><td key={id}>{count(null,id)}枚</td>)}<td>{count(null)}枚</td>{showCapacity&&<><td>—</td><td>—</td></>}</tr></tfoot></table></div></div></section>;
 }

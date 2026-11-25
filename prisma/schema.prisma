@@ -61,6 +61,7 @@ model Performance {
   repeaterEnabled Boolean @default(false) @map("repeater_enabled")
   repeaterDiscount Int @default(1000) @map("repeater_discount")
   venue String @default("")
+  venueMapUrl String? @map("venue_map_url")
   ticketTypes TicketType[]
   reservations Reservation[]
   stages                PerformanceStage[]

@@ -53,7 +53,7 @@ test('actor resolution never accepts a cast from another performance',async()=>{
  state.cast=cast;assert.equal((await actorFor(10n)).id,'2');await assert.rejects(actorFor(11n),/ログイン/);
 });
 test('receipt contains required details but no cast attribution',async()=>{
- const r=await saveBooking(10n,actor,input());const body=mailText(r,p,stage);assert.match(body,/申込内容\n　/);assert.match(body,/リピーター割引/);assert.match(body,/4000円/);assert.match(body,/合計金額：/);assert.match(body,/日時：\d{4}年\d{1,2}月\d{1,2}日 \d{2}:\d{2}〜/);assert.match(body,/当日精算/);assert.match(body,/会場/);assert.doesNotMatch(body,/役者|取扱|お支払い予定額|半券/);
+ const r=await saveBooking(10n,actor,input());const body=mailText(r,p,stage);assert.match(body,/申込内容\n　/);assert.match(body,/リピーター割引/);assert.match(body,/4000円/);assert.match(body,/合計金額：/);assert.match(body,/日時：\d{4}年\d{1,2}月\d{1,2}日\([日月火水木金土]\) \d{2}:\d{2}〜/);assert.match(body,/当日精算/);assert.match(body,/会場/);assert.doesNotMatch(body,/役者|取扱|お支払い予定額|半券/);assert.match(body,/※お支払いは現金のみとなります。/);
 });
 test('ticket back and quota respond to quantity, not discount or type price, and cancellation clears sales',async()=>{
  const {calculateTicketBack}=require('../lib/ticketBack.ts');const rules=[{minTicketCount:1,maxTicketCount:1,backUnitPrice:100},{minTicketCount:2,maxTicketCount:null,backUnitPrice:200}];
@@ -87,22 +87,22 @@ test('short numbers are sequential, ignore legacy UUIDs, and remain stable on re
  state.reservations.push({id:'legacy',number:'BIRTH-12345678-abcd-4321-abcd-123456789012',cancelled:true,lines:[]});
  const data=input();
  const first=await saveBooking(10n,publicActor,data);
- assert.equal(first.number,'B-001-0001');
+ assert.equal(first.number,'B-12201400-0001');
  assert.equal(state.mails[0].subject.includes(first.number),true);
  assert.equal(Object.values(state.sales)[0].reservationNo,first.number);
  assert.equal((await saveBooking(10n,publicActor,data)).number,first.number);
  const second=await saveBooking(10n,admin,input());
- assert.equal(second.number,'B-001-0002');
+ assert.equal(second.number,'B-12201400-0002');
  const cancelled=await saveBooking(10n,admin,input({version:1,cancelled:true}),first.id);
  assert.equal(cancelled.number,first.number);
- assert.equal((await saveBooking(10n,admin,input())).number,'B-001-0003');
+ assert.equal((await saveBooking(10n,admin,input())).number,'B-12201400-0003');
  assert.equal(state.reservations[0].number,'BIRTH-12345678-abcd-4321-abcd-123456789012');
 });
 
 test('simultaneous bookings receive different short numbers',async()=>{
  stage.capacity=10;
  const results=await Promise.all([saveBooking(10n,admin,input()),saveBooking(10n,admin,input())]);
- assert.deepEqual(results.map(r=>r.number),['B-001-0001','B-001-0002']);
+ assert.deepEqual(results.map(r=>r.number),['B-12201400-0001','B-12201400-0002']);
 });
 
 
@@ -110,16 +110,16 @@ test('each stage starts at 0001, moving a reservation keeps its issued number',a
  stage.capacity=10;
  const first=await saveBooking(10n,admin,input());
  const other=await saveBooking(10n,admin,input({stageId:'2'}));
- assert.equal(first.number,'B-001-0001');assert.equal(other.number,'B-002-0001');
+ assert.equal(first.number,'B-12201400-0001');assert.equal(other.number,'B-01011400-0001');
  const moved=await saveBooking(10n,admin,input({version:1,stageId:'2',lines:first.lines}),first.id);
- assert.equal(moved.number,'B-001-0001');
- assert.equal((await saveBooking(10n,admin,input())).number,'B-001-0002');
+ assert.equal(moved.number,'B-12201400-0001');
+ assert.equal((await saveBooking(10n,admin,input())).number,'B-12201400-0002');
 });
 
 test('fixed-width codes reject overflow and do not reuse cancelled numbers',async()=>{
- state.reservations.push({id:'last',number:'B-001-9999',cancelled:true,lines:[]});
+ state.reservations.push({id:'last',number:'B-12201400-9999',cancelled:true,lines:[]});
  await assert.rejects(saveBooking(10n,admin,input()),/4桁上限/);
- await assert.rejects(saveBooking(10n,admin,input({stageId:'1000'})),/3桁上限/);
+
  assert.equal(state.reservations.length,1);assert.equal(state.history.length,0);
 });
 
@@ -149,5 +149,14 @@ test('only administrators can remove cancelled bookings; deletion preserves numb
  await deleteCancelledBooking(10n,admin,r.id,2);assert.equal(state.history.length,3);
  await assert.rejects(saveBooking(10n,admin,input({version:3}),r.id),/削除済み/);
  await assert.rejects(saveBooking(10n,publicActor,body),/削除済み/);
- const next=await saveBooking(10n,admin,input());assert.equal(next.number,'B-001-0002');
+ const next=await saveBooking(10n,admin,input());assert.equal(next.number,'B-12201400-0002');
+});
+
+test('receipt map URL is included only when configured, with weekday and separated contact note',()=>{
+ const booking={customerName:'お客様',number:'B-02101900-0001',lines:[]};
+ const show={stageDate:new Date('2027-02-10'),startTime:'19:00'};
+ const withMap=mailText(booking,{name:'公演',venue:'会場',venueMapUrl:'https://maps.google.com/test'},show);
+ assert.match(withMap,/2027年2月10日\(水\) 19:00〜/);assert.match(withMap,/会場：会場\n　https:\/\/maps.google.com\/test\n予約番号/);
+ assert.match(withMap,/\n\n※変更・キャンセル/);
+ const noMap=mailText(booking,{name:'公演',venue:'会場',venueMapUrl:null},show);assert.match(noMap,/会場：会場\n予約番号/);
 });

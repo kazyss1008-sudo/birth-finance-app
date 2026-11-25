@@ -1,5 +1,5 @@
-const {test,beforeEach}=require('node:test');const assert=require('node:assert/strict');const Module=require('node:module');const original=Module._load;let actor,seen,sent,record,performanceQuery;
-const db={performance:{findUnique:async args=>{performanceQuery=args;return{id:10n}}},reservation:{findMany:async args=>{seen=args;return[{id:'own',castId:2n}]},findFirst:async()=>record},cast:{findMany:async()=>{throw Error('cast cannot query other cast directory')}}};
+const {test,beforeEach}=require('node:test');const assert=require('node:assert/strict');const Module=require('node:module');const original=Module._load;let actor,seen,sent,record,performanceQuery,aggregateQuery;
+const db={reservationLine:{findMany:async query=>{aggregateQuery=query;return[{ticketTypeId:'adult',name:'通常',quantity:2,reservation:{stageId:1n}},{ticketTypeId:'adult',name:'通常',quantity:3,reservation:{stageId:1n}}]}},performance:{findUnique:async args=>{performanceQuery=args;return{id:10n}}},reservation:{findMany:async args=>{seen=args;return[{id:'own',castId:2n}]},findFirst:async()=>record},cast:{findMany:async()=>{throw Error('cast cannot query other cast directory')}}};
 Module._load=function(id,...args){if(id==='@/lib/prisma')return{prisma:db};if(id==='@/lib/tickets/service')return{actorFor:async()=>actor,saveBooking:async()=>({id:'saved'})};if(id==='@/lib/tickets/notification')return{deliverReservationMail:async()=>sent++};return original.call(this,id,...args)};
 const route=require('../app/api/cast/tickets/[id]/route.ts');const ctx={params:Promise.resolve({id:'10'})};const req=body=>new Request('http://localhost/api/cast/tickets/10',{method:'POST',body:JSON.stringify(body)});
 beforeEach(()=>{actor={kind:'cast',id:'2',castId:2n};sent=0;record={id:'r',cancelled:false}});
@@ -10,3 +10,11 @@ test('cross-origin mutation is rejected before booking work',async()=>{const r=a
 
 
 test('cross-origin deletion is rejected before any booking mutation',async()=>{const r=await route.DELETE(new Request('http://localhost/api/cast/tickets/10',{method:'DELETE',headers:{origin:'https://other.example'},body:'{}'}),ctx);assert.equal(r.status,403);assert.equal(sent,0)});
+
+test('cast sees only grouped overall quantities, never other customer records',async()=>{
+ const response=await route.GET(new Request('http://localhost'),ctx);const data=await response.json();
+ assert.deepEqual(data.stageTotals,[{stageId:'1',ticketTypeId:'adult',name:'通常',quantity:5}]);
+ assert.deepEqual(aggregateQuery.where,{reservation:{performanceId:10n,cancelled:false,deletedAt:null}});
+ assert.deepEqual(aggregateQuery.select,{ticketTypeId:true,name:true,quantity:true,reservation:{select:{stageId:true}}});
+ assert.deepEqual(data.reservations,[{id:'own',castId:'2'}]);
+});

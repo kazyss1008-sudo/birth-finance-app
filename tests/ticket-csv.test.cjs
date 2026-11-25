@@ -13,7 +13,7 @@ test('reimport preserves operator cancellation',async()=>{records.push({id:'canc
 
 
 test('both legacy and new internal booking numbers cannot be imported as external bookings',async()=>{
- for(const number of ['BIRTH-12345678-abcd-4321-abcd-123456789012','B-001-0001']){
+ for(const number of ['BIRTH-12345678-abcd-4321-abcd-123456789012','B-001-0001','B-02101900-0001']){
   await assert.rejects(importTicketCsv(10n,actor,header+'\n'+row.replace('external1',number),'外部A'),/自前予約/);
  }
  assert.equal(changes.length,0);

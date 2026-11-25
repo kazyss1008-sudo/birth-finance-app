@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import styles from './login.module.css';
 import editor from '@/components/ScheduleCards.module.css';
+import { PerformanceSubtitle } from '@/components/PerformanceSubtitle';
 import { CastNav } from '@/components/CastNav';
 import { ScheduleCards } from '@/components/ScheduleCards';
 
@@ -215,7 +216,7 @@ export default function CastNGPage() {
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', color: '#e74c3c' }}>BIRTH MANAGEMENT SYSTEM</div>
                 <div style={{ fontSize: 20, fontWeight: 900, color: '#153b96' }}>{cast.name} 様</div>
                 <div style={{ fontSize: 13, color: '#64748b' }}>
-                  {perf?.name} — {showSchedule?'スケジュール登録':'マイページ'}
+                  {perf?.name}<PerformanceSubtitle />
                   {cast.roleName && <span style={{ marginLeft: 8 }}>役: {cast.roleName}</span>}
                 </div>
               </div>

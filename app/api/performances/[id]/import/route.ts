@@ -68,7 +68,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     if (rows.some(r=>!Number.isInteger(r.ticketCount)||r.ticketCount<1||!Number.isInteger(r.salesAmount)||r.salesAmount<0||!Number.isFinite(new Date(r.visitedAt).getTime()))) return NextResponse.json({message:'枚数・金額・日時を確認してください'},{status:422});
     const duplicateKeys = rows.map(r=>r.reservationNo ? JSON.stringify([r.reservationNo,r.visitedAt,r.ticketType,r.handledCastName]) : null).filter(Boolean);
-    if (new Set(duplicateKeys).size !== duplicateKeys.length) return NextResponse.json({message:'同じ予約・券種の重複行があります。確認してください'},{status:422});
+    if (new Set(duplicateKeys).size !== duplicateKeys.length) return NextResponse.json({message:'同じ予約・チケット種別の重複行があります。確認してください'},{status:422});
     const result = await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM performances WHERE id = ${performanceId} FOR UPDATE`;
       const perf = await tx.performance.findUnique({where:{id:performanceId}});

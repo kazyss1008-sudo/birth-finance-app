@@ -1,11 +1,12 @@
 'use client';
+import {showDateTime} from '@/lib/display-date';
 import { useEffect, useState } from 'react';
 import { amount, totals, cutoff, type Snapshot } from '@/lib/tickets/domain';
 import {IntegerInput} from './IntegerInput';
 import styles from './Tickets.module.css';
 export type TicketMaster={id:string;name:string;price:number;active:boolean};
 export type TicketStage={id:string;stageName:string;stageDate:string|null;startTime:string|null;capacity:number|null};
-export type TicketPerformance={id:string;name:string;venue:string;ticketSalesStart:string|null;ticketSalesEnabled:boolean;repeaterEnabled:boolean;repeaterDiscount:number;ticketTypes:TicketMaster[];stages:TicketStage[]};
+export type TicketPerformance={id:string;name:string;venue:string;venueMapUrl?:string|null;ticketSalesStart:string|null;ticketSalesEnabled:boolean;repeaterEnabled:boolean;repeaterDiscount:number;ticketTypes:TicketMaster[];stages:TicketStage[]};
 export type Booking={id:string;number:string;version:number;stageId:string;castId:string|null;source:string;externalKey:string|null;customerName:string;email:string;phone:string;note:string;cancelled:boolean;deletedAt?:string|null;lines:Snapshot[];mail?:{state:string;sentAt?:string|null;attemptedAt?:string|null};history?:{id:string;actor:string;createdAt:string;before:unknown;after:unknown}[]};
 export function TicketForm({performance:p, initial, admin=false, proxy=false, casts=[], submit, close}:{performance:TicketPerformance;initial?:Booking;admin?:boolean;proxy?:boolean;casts?:{id:string;name:string}[];submit:(body:unknown)=>Promise<void>;close?:()=>void}){
  const fresh=()=>({ticketTypeId:p.ticketTypes.find(t=>t.active)?.id??'',quantity:1,repeater:false});
@@ -24,23 +25,24 @@ export function TicketForm({performance:p, initial, admin=false, proxy=false, ca
  async function save(cancelled=false){if(blocked)return;setBusy(true);setError('');try{await submit({id:initial?.id,version:initial?.version,requestKey:key,stageId,castId:castId||null,customerName:name,email,phone,note,lines:lines.map(l=>({id:l.id,ticketTypeId:l.ticketTypeId,quantity:l.quantity,repeater:l.repeater})),cancelled});sessionStorage.removeItem(`birth-booking:${location.pathname}:${initial?.id??'new'}`);}catch(e){setError(e instanceof Error?e.message:'保存できませんでした。同じ内容で再試行してください');}finally{setBusy(false);}}
  return <form className={styles.form} onSubmit={e=>{e.preventDefault();if(blocked)return;if(!review)setReview(true);else void save();}}>
  <fieldset disabled={busy} className={styles.fieldset}><p className="subtitle">* は必須項目です。</p>
- <label><span>公演回<span className={styles.requiredMark} aria-hidden="true">*</span></span><select value={stageId} onChange={e=>{setStage(e.target.value);setReview(false);}} required>{p.stages.map(s=><option key={s.id} value={s.id}>{s.stageDate?.slice(0,10)} {s.startTime} {s.stageName}</option>)}</select></label>
+ <label><span>公演回<span className={styles.requiredMark} aria-hidden="true">*</span></span><select value={stageId} onChange={e=>{setStage(e.target.value);setReview(false);}} required>{p.stages.map(s=><option key={s.id} value={s.id}>{showDateTime(s.stageDate,s.startTime)} {s.stageName}</option>)}</select></label>
  {admin&&<><label><span>取扱<span className={styles.requiredMark} aria-hidden="true">*</span></span><select value={castId} onChange={e=>setCast(e.target.value)}><option value="">劇団Birth</option>{casts.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label></>}
+ <fieldset className={styles.typeChoices}><legend>チケット種別<span className={styles.requiredMark} aria-hidden="true">*</span></legend>{p.ticketTypes.filter(t=>t.active).map(t=><label className={styles.check} key={t.id}><input type="checkbox" disabled={lines.length>=30&&!lines.some(l=>!l.id&&l.ticketTypeId===t.id)} checked={lines.some(l=>!l.id&&l.ticketTypeId===t.id)} onChange={e=>{setLines(current=>e.target.checked?[...current,{ticketTypeId:t.id,quantity:1,repeater:false}]:current.filter(l=>l.id||l.ticketTypeId!==t.id));setReview(false);}}/>{t.name}（{t.price.toLocaleString()}円）</label>)}</fieldset>
  {lines.map((l,i)=><section className={styles.line} key={l.id??i} aria-label={`チケット明細 ${i+1}`}>
- <label><span>券種<span className={styles.requiredMark} aria-hidden="true">*</span></span><select aria-label="券種" value={l.ticketTypeId} disabled={!!l.id} onChange={e=>update(i,{ticketTypeId:e.target.value})} required>{l.id?<option value={l.ticketTypeId}>{l.name}</option>:p.ticketTypes.filter(t=>t.active).map(t=><option key={t.id} value={t.id}>{t.name}（{t.price.toLocaleString()}円）</option>)}</select></label>
+ <h3>{calculated[i].name}</h3>
  <label><span>枚数<span className={styles.requiredMark} aria-hidden="true">*</span></span><IntegerInput min={1} max={100} value={l.quantity} onChange={quantity=>update(i,{quantity})}/></label>
  {(p.repeaterEnabled||!!l.id)&&<label className={styles.check}><input type="checkbox" checked={l.repeater} onChange={e=>update(i,{repeater:e.target.checked})}/>リピーター割引</label>}
- <p>{!l.id&&!p.ticketTypes.some(t=>t.id===l.ticketTypeId)?'券種・料金は準備中です':<>単価 {amount({...calculated[i],quantity:1}).toLocaleString()}円 ／ 小計 {amount(calculated[i]).toLocaleString()}円</>}</p>
- {l.id&&<small>保存済みの単価・割引額を使用します。券種を変える場合はカードを削除し、追加してください。</small>}
+ <p>{!l.id&&!p.ticketTypes.some(t=>t.id===l.ticketTypeId)?'チケット種別・料金は準備中です':<>単価 {amount({...calculated[i],quantity:1}).toLocaleString()}円 ／ 小計 {amount(calculated[i]).toLocaleString()}円</>}</p>
+ {l.id&&<small>保存済みの単価・割引額を使用します。チケット種別を変える場合はカードを削除し、追加してください。</small>}
+ <button type="button" onClick={()=>{setLines(a=>[...a,{ticketTypeId:l.ticketTypeId,quantity:1,repeater:false}]);setReview(false);}} disabled={lines.length>=30||!p.ticketTypes.some(t=>t.active&&t.id===l.ticketTypeId)}>チケットを追加</button>
  {lines.length>1&&<button type="button" onClick={()=>{setLines(a=>a.filter((_,j)=>i!==j));setReview(false);}}>この明細を削除</button>}
  </section>)}
- <button type="button" onClick={()=>{setLines(a=>[...a,fresh()]);setReview(false);}} disabled={lines.length>=30}>別の券種・割引を追加</button>
  <label><span>お名前<span className={styles.requiredMark} aria-hidden="true">*</span></span><input value={name} onChange={e=>{setName(e.target.value);setReview(false);}} required maxLength={200} autoComplete="name"/></label>
  {!proxy&&<label><span>メールアドレス<span className={styles.requiredMark} aria-hidden="true">*</span></span><input type="email" value={email} onChange={e=>{setEmail(e.target.value);setReview(false);}} required={!proxy} maxLength={254} autoComplete="email"/></label>}
  <label>備考（任意）<textarea value={note} onChange={e=>setNote(e.target.value)} maxLength={2000}/></label>
- <p>全席自由・当日精算です。リピーター割引の方は、受付で同じ公演の半券をご提示ください。</p>
- <strong className={styles.total}>{!initial&&!p.ticketTypes.length?'券種・料金は準備中です':<>合計 {sum.quantity}枚 ／ {sum.amount.toLocaleString()}円</>}</strong>
- {review&&<div className={styles.line} role="status"><h3>予約内容の確認</h3><p>{name} 様 ／ {email}</p><p>{p.stages.find(s=>s.id===stageId)?.stageDate?.slice(0,10)} {p.stages.find(s=>s.id===stageId)?.startTime}</p>{calculated.map((l,i)=><p key={i}>{l.name} {l.repeater?'（リピーター割引）':''} {l.quantity}枚：{amount(l).toLocaleString()}円</p>)}<p>当日お支払い：{sum.amount.toLocaleString()}円</p></div>}
+ <p>全席自由・当日精算です。<br/>リピーター割引の方は、受付で本公演チケットの半券をご提示いただく必要がございます。</p>
+ <strong className={styles.total}>{!initial&&!p.ticketTypes.length?'チケット種別・料金は準備中です':<>合計 {sum.quantity}枚 ／ {sum.amount.toLocaleString()}円</>}</strong>
+ {review&&<div className={styles.line} role="status"><h3>予約内容の確認</h3><p>{name} 様 ／ {email}</p><p>{showDateTime(selectedStage?.stageDate,selectedStage?.startTime)}</p>{calculated.map((l,i)=><p key={i}>{l.name} {l.repeater?'（リピーター割引）':''} {l.quantity}枚：{amount(l).toLocaleString()}円</p>)}<p>当日お支払い：{sum.amount.toLocaleString()}円</p></div>}
  {error&&<p role="alert">{error}</p>}
  {blocked&&<p role="status">{(!p.ticketSalesStart||now<new Date(p.ticketSalesStart).getTime()) && !(selectedStage?.stageDate&&now>=cutoff(new Date(selectedStage.stageDate)).getTime())?'販売開始前です。販売開始まで少々お待ちください':'販売を終了しています。当日券をご希望の場合は直接お問い合わせください。tac.birth2003@gmail.com'}</p>}<div className={styles.actions}><button type="submit" disabled={blocked||!lines.length||sum.quantity>100}>{busy?'保存中…':review?(initial?'変更を保存':'予約を確定'):'予約内容を確認'}</button>{initial&&!initial.cancelled&&<button disabled={blocked} type="button" onClick={()=>{if(confirm('この予約をキャンセルしますか？'))void save(true);}}>予約をキャンセル</button>}{close&&<button type="button" onClick={close}>閉じる</button>}</div>
  </fieldset></form>;

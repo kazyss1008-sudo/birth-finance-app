@@ -1,4 +1,5 @@
 'use client';
+import {slashDate} from '@/lib/display-date';
 import { CastAccounts } from '@/components/CastAccounts';
 
 import { useEffect, useState, useCallback, type ComponentProps } from 'react';
@@ -361,7 +362,7 @@ export default function FinanceManager({masterTab}:{masterTab?:'バック'|'グ�
   return (
     <FinanceLayout embedded={!!masterTab}
       title={perf.name}
-      subtitle={`${statusLabel(perf.status)} | ${perf.startDate?.slice(0, 10) ?? ''} - ${perf.endDate?.slice(0, 10) ?? ''}`}
+      subtitle={`${statusLabel(perf.status)} | ${slashDate(perf.startDate)} - ${slashDate(perf.endDate)}`}
       actions={<><Link href="/performances" className="secondary">公演選択へ戻る</Link></>}
     >
       {/* Tabs */}
@@ -378,14 +379,14 @@ export default function FinanceManager({masterTab}:{masterTab?:'バック'|'グ�
             const fmtDateTime = (iso: string) => {
               if (!iso) return '';
               const d = new Date(iso);
-              if (isNaN(d.getTime())) return iso.slice(0, 10);
-              return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')} ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
+              if (isNaN(d.getTime())) return slashDate(iso);
+              return `${d.getUTCFullYear()}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')} ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
             };
             const fmtDate = (iso: string) => {
               if (!iso) return '';
               const d = new Date(iso);
-              if (isNaN(d.getTime())) return iso.slice(0, 10);
-              return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+              if (isNaN(d.getTime())) return slashDate(iso);
+              return `${d.getUTCFullYear()}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}`;
             };
             const filtered = sales?.filter(s => {
               if (salesFilterDate && fmtDateTime(s.visitedAt) !== salesFilterDate) return false;
@@ -641,7 +642,7 @@ export default function FinanceManager({masterTab}:{masterTab?:'バック'|'グ�
                   <thead>
                     <tr>
                       <th style={{ position: 'sticky', left: 0, background: '#fff', zIndex: 1 }}>グッズ</th>
-                      {perf.stages.map(st => <th key={st.id} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{st.stageName}<br/><span className="subtitle" style={{ fontSize: 11 }}>{st.stageDate?.slice(5, 10)}</span></th>)}
+                      {perf.stages.map(st => <th key={st.id} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{st.stageName}<br/><span className="subtitle" style={{ fontSize: 11 }}>{slashDate(st.stageDate).slice(5)}</span></th>)}
                       <th style={{ textAlign: 'center' }}>合計</th>
                     </tr>
                   </thead>
@@ -907,7 +908,7 @@ export default function FinanceManager({masterTab}:{masterTab?:'バック'|'グ�
                         <tr key={exp.id} style={{ ...(exp.isSettled ? { opacity: 0.5 } : {}), ...(exp.isProvisional ? { background: '#fffbeb' } : {}) }}>
                           <td style={{textAlign:'center'}}><input type="checkbox" checked={exp.isSettled} onChange={e => saveExpense(exp.id, { isSettled: e.target.checked })} style={{width:18,height:18,accentColor:'#153b96',cursor:'pointer'}} /></td>
                           <td style={{textAlign:'center', whiteSpace:'nowrap'}}><button onClick={() => saveExpense(exp.id, { isProvisional: !exp.isProvisional })} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 10, border: '1px solid', cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap', background: exp.isProvisional ? '#fef3c7' : '#e0f2fe', color: exp.isProvisional ? '#b45309' : '#0369a1', borderColor: exp.isProvisional ? '#fbbf24' : '#7dd3fc' }}>{exp.isProvisional ? '暫定' : '確定'}</button></td>
-                          <td>{exp.isProvisional ? <input className="input" type="date" value={exp.expenseDate?.slice(0, 10)} onChange={e => { const val = e.target.value; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, expenseDate: val } : x) ?? null); }} onBlur={e => saveExpense(exp.id, { expenseDate: e.target.value })} style={{ padding: '4px 6px', fontSize: 13, background: '#fffbeb' }} /> : exp.expenseDate?.slice(0, 10)}</td>
+                          <td>{exp.isProvisional ? <input className="input" type="date" value={exp.expenseDate?.slice(0, 10)} onChange={e => { const val = e.target.value; setExpenses(prev => prev?.map(x => x.id === exp.id ? { ...x, expenseDate: val } : x) ?? null); }} onBlur={e => saveExpense(exp.id, { expenseDate: e.target.value })} style={{ padding: '4px 6px', fontSize: 13, background: '#fffbeb' }} /> : slashDate(exp.expenseDate)}</td>
                           <td>
                             <select className="select" value={exp.createdBy} onChange={e => handleChangeAssignee(exp.id, e.target.value)} style={{padding:'6px 8px',fontSize:13,borderRadius:10,minWidth:90}}>
                               {users.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}

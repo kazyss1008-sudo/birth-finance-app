@@ -5,7 +5,7 @@ import { lockPerformance } from '@/lib/tickets/service';
 import { TicketError } from '@/lib/tickets/domain';
 import { reply, failure, checkOrigin } from '@/lib/tickets/http';
 const schema = z.object({
-    name: z.string().trim().min(1).max(200), ticketSalesEnabled: z.boolean(), ticketSalesStart: z.string().datetime({ offset: true }).nullable(), venue: z.string().max(500), repeaterEnabled: z.boolean(), repeaterDiscount: z.number().int().min(0).max(1000000),
+    name: z.string().trim().min(1).max(200), ticketSalesEnabled: z.boolean(), ticketSalesStart: z.string().datetime({ offset: true }).nullable(), venue: z.string().max(500), venueMapUrl: z.union([z.literal(''), z.string().trim().max(2000).url().refine(value => ['http:', 'https:'].includes(new URL(value).protocol), '地図URLはhttpまたはhttpsで入力してください')]).nullish(), repeaterEnabled: z.boolean(), repeaterDiscount: z.number().int().min(0).max(1000000),
     ticketTypes: z.array(z.object({ id: z.string().optional(), name: z.string().trim().min(1).max(100), price: z.number().int().min(0).max(1000000), active: z.boolean() })).max(100),
     stages: z.array(z.object({ id: z.string().regex(/^\d+$/).optional(), stageName: z.string().trim().min(1).max(100), stageDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), capacity: z.number().int().min(0).max(100000) })).max(100)
 });
@@ -26,16 +26,16 @@ export async function PUT(req: Request, { params }: {
                 throw new TicketError('既存CSV売上のある公演は新規受付を開始できません。既存売上を保持して移行計画を確認してください');
             const { ticketTypes, stages, ...data } = input;
             if (data.ticketSalesEnabled && (!data.ticketSalesStart || !data.venue.trim() || !ticketTypes.some(t => t.active) || !stages.length))
-                throw new TicketError('販売開始日時・会場・券種・公演回を設定してください');
+                throw new TicketError('販売開始日時・会場・チケット種別・公演回を設定してください');
             const existing = await tx.performanceStage.findMany({ where: { performanceId: pid } });
             if (new Set(stages.map(s => s.id).filter(Boolean)).size !== stages.filter(s => s.id).length)
                 throw new TicketError('公演回が重複しています');
-            await tx.performance.update({ where: { id: pid }, data: { ...data, ticketSalesStart: data.ticketSalesStart ? new Date(data.ticketSalesStart) : null } });
+            await tx.performance.update({ where: { id: pid }, data: { ...data, venueMapUrl: data.venueMapUrl?.trim() || null, ticketSalesStart: data.ticketSalesStart ? new Date(data.ticketSalesStart) : null } });
             for (const t of ticketTypes) {
                 if (t.id) {
                     const n = await tx.ticketType.updateMany({ where: { id: t.id, performanceId: pid }, data: { name: t.name, price: t.price, active: t.active } });
                     if (!n.count)
-                        throw new TicketError('券種がありません');
+                        throw new TicketError('チケット種別がありません');
                 }
                 else
                     await tx.ticketType.create({ data: { performanceId: pid, name: t.name, price: t.price, active: t.active } });
@@ -78,12 +78,12 @@ export async function DELETE(req: Request, {params}: {params:Promise<{id:string}
         await prisma.$transaction(async tx=>{
             await lockPerformance(tx,pid);
             const type=await tx.ticketType.findFirst({where:{id:ticketTypeId,performanceId:pid}});
-            if(!type) throw new TicketError('券種がありません',404);
+            if(!type) throw new TicketError('チケット種別がありません',404);
             const used=await tx.reservationLine.count({where:{ticketTypeId}});
             const history=await tx.reservationHistory.findFirst({where:{reservation:{performanceId:pid},OR:[{before:{path:['lines'],array_contains:[{ticketTypeId}]}},{after:{path:['lines'],array_contains:[{ticketTypeId}]}}]},select:{id:true}});
-            if(used||history) throw new TicketError('予約で使用された券種は削除できません。販売を止める場合は「販売中」を外してください。',409);
+            if(used||history) throw new TicketError('予約で使用されたチケット種別は削除できません。販売を止める場合は「販売中」を外してください。',409);
             const performance=await tx.performance.findUnique({where:{id:pid},select:{ticketSalesEnabled:true}});
-            if(performance?.ticketSalesEnabled&&type.active&&await tx.ticketType.count({where:{performanceId:pid,active:true}})<=1) throw new TicketError('受付中の最後の券種は削除できません。先に新規受付を停止してください。',409);
+            if(performance?.ticketSalesEnabled&&type.active&&await tx.ticketType.count({where:{performanceId:pid,active:true}})<=1) throw new TicketError('受付中の最後のチケット種別は削除できません。先に新規受付を停止してください。',409);
             await tx.ticketType.delete({where:{id:ticketTypeId}});
         });
         return reply({ok:true});
