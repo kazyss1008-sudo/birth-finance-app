@@ -10,13 +10,14 @@ import {CastNav} from './CastNav';
 import {type StageCount,StageMatrix} from './StageMatrix';
 import {Shell} from './Shell';
 type Data={stageTotals?:StageCount[];performance:TicketPerformance;reservations:Booking[];casts:{id:string;name:string}[];actor:{kind:string;castId:string|null}};
-export default function TicketManager({id,castOnly=false,bookingId}:{id:string;castOnly?:boolean;bookingId?:string}){
+export default function TicketManager({id,castOnly=false,bookingId,formMode}:{id:string;castOnly?:boolean;bookingId?:string;formMode?:'new'|'edit'}){
+ const [saved,setSaved]=useState<'added'|'changed'|'cancelled'|null>(null);
  const [handlerFilter,setHandlerFilter]=useState('');const [copied,setCopied]=useState('');
  const [stageFilter,setStageFilter]=useState('');const [statusFilter,setStatusFilter]=useState('active');const [busy,setBusy]=useState(false);const [now,setNow]=useState(Date.now());
- const [data,setData]=useState<Data|null>(null);const [error,setError]=useState('');const [edit,setEdit]=useState<Booking|'new'|null>(null);const [q,setQ]=useState('');const origin=BOOKING_ORIGIN;const [tab,setTab]=useState('予約一覧');
+ const [data,setData]=useState<Data|null>(null);const [error,setError]=useState('');const [q,setQ]=useState('');const origin=BOOKING_ORIGIN;const [tab,setTab]=useState('予約一覧');
  const load=useCallback(async()=>{const r=await fetch(`/api/cast/tickets/${id}${castOnly?'?scope=cast':''}`);const d=await r.json();if(!r.ok)throw new Error(d.error);setData(d);},[id,castOnly]);
  useEffect(()=>{const view=new URLSearchParams(location.search).get('view');if(view==='stages')setTab('公演回・残席');if(view==='settings'&&!castOnly){location.replace(`/performances/${id}/master`);return;}load().catch(e=>setError(e.message));},[load]);
- async function post(body:unknown){const r=await fetch(`/api/cast/tickets/${id}${castOnly?'?scope=cast':''}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error);setEdit(null);await load();}
+ async function post(body:unknown,reload=true){const r=await fetch(`/api/cast/tickets/${id}${castOnly?'?scope=cast':''}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error);if(reload)await load();return d;}
  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(timer);},[]);
  async function operate(action:'cancel'|'delete',r:Booking){
   if(!confirm(action==='cancel'?'この予約をキャンセルしますか？':'このキャンセル済み予約を一覧から削除しますか？'))return;
@@ -29,15 +30,24 @@ export default function TicketManager({id,castOnly=false,bookingId}:{id:string;c
  if(!data)return <main className={styles.page}><p>{error||'読み込み中…'}</p><a href={`/performances/${id}/cast`}>キャストログイン</a></main>;
  const {performance:p,reservations,casts,actor}=data;const admin=actor.kind==='admin';
  const listBase=castOnly?`/performances/${id}/cast/tickets`:`/performances/${id}/tickets`;
+ if(formMode){
+  const initial=formMode==='edit'?reservations.find(r=>r.id===bookingId):undefined;
+  const title=formMode==='new'?'予約を追加':'予約内容を変更';
+  return <Shell title={p.name} subtitle={title} hideManual={!admin}><main className={styles.page}>{!admin&&<CastNav id={id} active="tickets"/>}
+   {saved?<section className={styles.line} role="status"><h2>{saved==='added'?'予約を追加しました':saved==='cancelled'?'予約をキャンセルしました':'予約内容を変更しました'}</h2><div className={styles.actions}><button type="button" onClick={()=>location.assign(listBase)}>予約一覧に戻る</button></div></section>:<>
+    <a href={listBase}>← 予約一覧に戻る</a><h2>{title}</h2>
+    {formMode==='edit'&&!initial?<p role="alert">予約が見つかりません。</p>:<TicketForm key={initial?`${initial.id}:${initial.version}`:'new'} performance={p} initial={initial} admin={admin} proxy casts={casts} submit={async body=>{await post(body,false);setSaved((body as {cancelled?:boolean}).cancelled?'cancelled':formMode==='new'?'added':'changed');window.scrollTo(0,0);}}/>}
+   </>}
+  </main></Shell>;
+ }
  if(bookingId){
   const r=reservations.find(r=>r.id===bookingId);
   const stage=r?p.stages.find(s=>s.id===r.stageId):undefined;
   const closed=!admin&&(!p.ticketSalesStart||now<new Date(p.ticketSalesStart).getTime()||!stage?.stageDate||now>=cutoff(new Date(stage.stageDate)).getTime());
   return <Shell title={p.name} subtitle="予約詳細" hideManual={!admin}><main className={styles.page}>{!admin&&<CastNav id={id} active="tickets"/>}<a href={listBase}>← 予約一覧に戻る</a>{error&&<p role="alert">{error}</p>}{!r?<p role="alert">予約が見つかりません。</p>:<>
   <BookingDetail r={r} p={p} casts={casts} admin={admin}/>
-  <div className={styles.actions}><button disabled={closed||busy} onClick={()=>setEdit(r)}>予約内容を変更{r.cancelled?'・再開':''}</button>{!r.cancelled&&<button type="button" className={styles.cancelButton} disabled={closed||busy} onClick={()=>operate('cancel',r)}>予約をキャンセル</button>}{admin&&r.cancelled&&<button type="button" className={styles.deleteButton} disabled={busy} onClick={()=>operate('delete',r)}>この予約を削除</button>}{admin&&!r.cancelled&&r.mail&&r.mail.state!=='SENT'&&<button onClick={()=>{if(confirm('予約時点の受付メールを再送します。変更済みの場合は現在の予約内容と異なります。Gmailの送信済みを確認し、未送信であることを確認しましたか？'))post({action:'resend',id:r.id,reviewed:true}).catch(e=>setError(e.message));}}>受付メール再送</button>}</div>
+  <div className={styles.actions}><button disabled={closed||busy} onClick={()=>location.assign(`${listBase}/${r.id}/edit`)}>予約内容を変更{r.cancelled?'・再開':''}</button>{!r.cancelled&&<button type="button" className={styles.cancelButton} disabled={closed||busy} onClick={()=>operate('cancel',r)}>予約をキャンセル</button>}{admin&&r.cancelled&&<button type="button" className={styles.deleteButton} disabled={busy} onClick={()=>operate('delete',r)}>この予約を削除</button>}{admin&&!r.cancelled&&r.mail&&r.mail.state!=='SENT'&&<button onClick={()=>{if(confirm('予約時点の受付メールを再送します。変更済みの場合は現在の予約内容と異なります。Gmailの送信済みを確認し、未送信であることを確認しましたか？'))post({action:'resend',id:r.id,reviewed:true}).catch(e=>setError(e.message));}}>受付メール再送</button>}</div>
   {closed&&<p>この公演回の変更受付は終了しました。劇団へご連絡ください。</p>}
-  {edit&&<TicketForm key={`${r.id}:${r.version}`} performance={p} initial={r} admin={admin} proxy casts={casts} submit={post} close={()=>setEdit(null)}/>}
   </>}</main></Shell>;
  }
  const urls=admin?[{id:'birth',name:'劇団Birth'},...casts]:[{id:actor.castId!,name:'自分の販売URL'}];
@@ -48,9 +58,8 @@ export default function TicketManager({id,castOnly=false,bookingId}:{id:string;c
  <section role="tabpanel" id="ticket-panel-予約URL" hidden={tab!=='予約URL'} className={styles.line}><h2>予約ページURL一覧</h2><div className={styles.urlGrid}>{urls.map(c=>{const url=`${origin}/reserve/${id}/${c.id}`;return <div key={c.id} className={styles.urlCard}><h3>{c.name}</h3><input className={styles.url} aria-label={`${c.name}の予約URL`} readOnly value={url} onFocus={e=>e.target.select()}/><div className={styles.actions}><button onClick={async()=>{try{await navigator.clipboard.writeText(url);setCopied(c.id);setTimeout(()=>setCopied(current=>current===c.id?'':current),2000);}catch{setError('URLを選択してコピーしてください');}}}>{copied===c.id?'✓ コピーしました':'コピー'}</button><a href={url} target="_blank" rel="noreferrer">ページを開く</a></div></div>;})}</div></section>
  {admin&&<div role="tabpanel" id="ticket-panel-CSV取込" hidden={tab!=='CSV取込'}><TicketCsv id={id} saved={load}/></div>}
  <div role="tabpanel" id="ticket-panel-予約一覧" hidden={tab!=='予約一覧'}>
- <div className={styles.reservationToolbar}><div className={styles.actions}><button onClick={()=>setEdit('new')}>予約を追加</button></div>
+ <div className={styles.reservationToolbar}><div className={styles.actions}><button onClick={()=>location.assign(`${listBase}/new`)}>予約を追加</button></div>
  <label>予約検索<input aria-label="予約検索" value={q} onChange={e=>setQ(e.target.value)} placeholder="予約番号・お名前・メール・経路"/></label></div>
- {edit&&<TicketForm key={edit==='new'?'new':`${edit.id}:${edit.version}`} performance={p} initial={edit==='new'?undefined:edit} admin={admin} proxy casts={casts} submit={post} close={()=>setEdit(null)}/>}
  <div className={styles.reservationFilters}><label>公演回<select aria-label="公演回で絞り込み" value={stageFilter} onChange={e=>setStageFilter(e.target.value)}><option value="">すべての公演回</option>{p.stages.map(stage=><option key={stage.id} value={stage.id}>{showDateTime(stage.stageDate,stage.startTime)} {stage.stageName}</option>)}</select></label>{admin&&<label>取扱<select aria-label="取扱で絞り込み" value={handlerFilter} onChange={e=>setHandlerFilter(e.target.value)}><option value="">すべての取扱</option><option value="birth">劇団Birth</option>{casts.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>}<label>予約状態<select aria-label="予約状態で絞り込み" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="active">有効な予約のみ</option><option value="cancelled">キャンセル済みのみ</option><option value="all">キャンセルを含むすべて</option></select></label></div>
  <ReservationList reservations={reservations} p={p} casts={casts} q={q} base={listBase} stageFilter={stageFilter} statusFilter={statusFilter} handlerFilter={handlerFilter}/>
 </div></main></Shell>;

@@ -41,6 +41,7 @@ export function TicketForm({performance:p, initial, admin=false, proxy=false, ca
  <button type="button" onClick={()=>{setLines(a=>[...a,fresh()]);setReview(false);}} disabled={lines.length>=30||!p.ticketTypes.some(t=>t.active)}>チケットを追加</button>
  <label><span>お名前<span className={styles.requiredMark} aria-hidden="true">*</span></span><input value={name} onChange={e=>{setName(e.target.value);setReview(false);}} required maxLength={200} autoComplete="name"/></label>
  {!proxy&&<label><span>メールアドレス<span className={styles.requiredMark} aria-hidden="true">*</span></span><input type="email" value={email} onChange={e=>{setEmail(e.target.value);setReview(false);}} required={!proxy} maxLength={254} autoComplete="email"/></label>}
+ {proxy&&initial?.email&&<div className={styles.line}><strong>メールアドレス</strong><p>{initial.email}</p></div>}
  <label>備考（任意）<textarea value={note} onChange={e=>setNote(e.target.value)} maxLength={2000}/></label>
  <p>全席自由・当日精算です。<br/>リピーター割引の方は、受付で本公演チケットの半券をご提示いただく必要がございます。</p>
  <strong className={styles.total}>{!initial&&!p.ticketTypes.length?'チケット種別・料金は準備中です':<>合計 {sum.quantity}枚 ／ {sum.amount.toLocaleString()}円</>}</strong>

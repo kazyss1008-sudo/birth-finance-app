@@ -248,3 +248,16 @@ test('finance cron stays dormant unless this deployment is explicitly enabled', 
 test('shared DB ownership prevents finance cron while old schedule remains owner',async()=>{
  state.owner='schedule';const before=state.line.length;const r=await digest.GET(new Request('http://localhost',{headers:{authorization:`Bearer ${process.env.CRON_SECRET}`}}));assert.equal((await r.json()).skipped,true);assert.equal(state.line.length,before);delete state.owner;
 });
+
+
+test('cast booking form routes pass middleware while admin forms require admin login', async () => {
+  for (const path of ['/performances/10/cast/tickets/new', '/performances/10/cast/tickets/11111111-1111-4111-8111-111111111111/edit']) {
+    const response = await middleware(new NextRequest('http://localhost'+path));
+    assert.equal(response.headers.get('x-middleware-next'), '1');
+  }
+  for (const path of ['/performances/10/tickets/new', '/performances/10/tickets/11111111-1111-4111-8111-111111111111/edit']) {
+    const response = await middleware(new NextRequest('http://localhost'+path));
+    assert.equal(response.status, 307);
+    assert.match(response.headers.get('location'), /\/login$/);
+  }
+});
