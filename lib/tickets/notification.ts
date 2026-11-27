@@ -1,6 +1,7 @@
 import { showDateTime } from '@/lib/display-date';
 import { prisma } from '@/lib/prisma';
 import { sendMail } from '@/lib/mail';
+import { reservationMailHtml } from './mail-html';
 import { amount, totals, type Snapshot, TicketError } from './domain';
 export function mailText(r: {
     customerName: string;
@@ -35,7 +36,7 @@ export async function deliverReservationMail(id: string, retry = false, reviewed
     if (!claimed.count)
         return;
     try {
-        await sendMail(mail.recipient, mail.subject, mail.body, `reservation:${id}`);
+        await sendMail(mail.recipient, mail.subject, mail.body, `reservation:${id}`, reservationMailHtml(mail.body));
         await prisma.reservationMail.update({ where: { reservationId: id }, data: { state: 'SENT', sentAt: new Date() } });
     }
     catch {

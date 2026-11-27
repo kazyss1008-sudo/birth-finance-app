@@ -9,7 +9,7 @@ export function mailConfigured() {
   return !!(process.env.RESEND_API_KEY && process.env.MAIL_FROM);
 }
 
-export async function sendMail(to: string, subject: string, text: string, key: string) {
+export async function sendMail(to: string, subject: string, text: string, key: string, html?: string) {
   if (!mailConfigured()) throw new Error('メール送信設定が未完了です');
   if (process.env.GMAIL_USER || process.env.GMAIL_APP_PASSWORD) {
     const user = process.env.GMAIL_USER!.trim();
@@ -21,7 +21,7 @@ export async function sendMail(to: string, subject: string, text: string, key: s
     });
     try {
       const result = await transport.sendMail({
-        from: { name: '劇団Birth', address: user }, replyTo: 'tac.birth2003@gmail.com', to, subject, text,
+        from: { name: '劇団Birth', address: user }, replyTo: 'tac.birth2003@gmail.com', to, subject, text, ...(html ? { html } : {}),
         // Stable for tracing retries. SMTP itself does not guarantee deduplication.
         messageId: `<${createHash('sha256').update(key).digest('hex')}@gmail.com>`,
       });
@@ -42,7 +42,7 @@ export async function sendMail(to: string, subject: string, text: string, key: s
   if (!apiKey || !from) throw new Error('メール送信設定が未完了です');
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': key },
-    body: JSON.stringify({ from, to: [to], subject, text }), signal: AbortSignal.timeout(15000),
+    body: JSON.stringify({ from, to: [to], subject, text, ...(html ? { html } : {}) }), signal: AbortSignal.timeout(15000),
   });
   if (!response.ok) throw new Error('メールを送信できませんでした');
 }

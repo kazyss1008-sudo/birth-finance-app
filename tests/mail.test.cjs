@@ -63,3 +63,10 @@ test('authentication and recipient rejection fail safely and always close transp
     assert.equal(JSON.stringify(logs).includes('private'), false);
   } finally { console.error = originalError; }
 });
+
+test('Gmail sends HTML together with the plain text fallback', async () => {
+ state.rejected=false;
+ await sendMail('test@example.invalid','予約','会場：会場','html-test','<a href="https://maps.google.com/">会場地図</a>');
+ assert.equal(state.messages.at(-1).text,'会場：会場');
+ assert.equal(state.messages.at(-1).html,'<a href="https://maps.google.com/">会場地図</a>');
+});
