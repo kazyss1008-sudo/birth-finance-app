@@ -35,6 +35,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     }),
     prisma.sale.findMany({
       where: { performanceId },
+      include: { reservation: { select: { lines: { select: { id: true, ticketTypeId: true, name: true, basePrice: true, discount: true, repeater: true, quantity: true } } } } },
       orderBy: [{ visitedAt: 'asc' }, { handledCastName: 'asc' }],
     }),
     prisma.expense.findMany({

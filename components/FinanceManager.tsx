@@ -1,4 +1,6 @@
 'use client';
+import {saleDetailRows} from '@/lib/tickets/sale-rows';
+import type {Snapshot} from '@/lib/tickets/domain';
 import {slashDate} from '@/lib/display-date';
 import { CastAccounts } from '@/components/CastAccounts';
 
@@ -17,7 +19,7 @@ type Stage = { id: string; stageNo: number; stageName: string; stageDate: string
 type Cast = { id: string; name: string; normaTicketCount: number; normaUnitPrice: number; isTicketBackTarget: boolean; };
 type Rule = { id: string; stepNo: number; minTicketCount: number; maxTicketCount: number | null; backUnitPrice: number; };
 type ImportHistory = { id: string; fileName: string; importedRowCount: number; status: string; importedAt: string; };
-type Sale = { id: string; handledCastName: string; ticketCount: number; salesAmount: number; visitedAt: string; reservationNo: string | null; ticketType: string | null; paymentMethod: string | null; customerName: string | null; customerKana: string | null; note: string | null; };
+type Sale = { reservation?: {lines:Snapshot[]} | null; id: string; handledCastName: string; ticketCount: number; salesAmount: number; visitedAt: string; reservationNo: string | null; ticketType: string | null; paymentMethod: string | null; customerName: string | null; customerKana: string | null; note: string | null; };
 type ExpenseCategory = { id: string; name: string; };
 type Expense = { id: string; expenseDate: string; amount: number; itemName: string; memo: string | null; isSettled: boolean; isProvisional: boolean; createdBy: string; category: { name: string }; creator: { displayName: string }; };
 type Summary = { totalSales: number; totalTickets: number; totalExpenses: number; confirmedExpenses: number; provisionalExpenses: number; totalSponsorship: number; totalGoodsSales: number; totalGara: number; netBalance: number; castDetails: CastDetail[]; };
@@ -387,7 +389,8 @@ export default function FinanceManager({masterTab}:{masterTab?:'バック'|'グ�
               if (isNaN(d.getTime())) return slashDate(iso);
               return `${d.getUTCFullYear()}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}`;
             };
-            const filtered = sales?.filter(s => {
+            const displaySales = saleDetailRows(sales ?? []);
+            const filtered = displaySales.filter(s => {
               if (salesFilterDate && fmtDateTime(s.visitedAt) !== salesFilterDate) return false;
               if (salesFilterType && (s.ticketType ?? '') !== salesFilterType) return false;
               if (salesFilterPayment && (s.paymentMethod ?? '') !== salesFilterPayment) return false;
@@ -400,10 +403,10 @@ export default function FinanceManager({masterTab}:{masterTab?:'バック'|'グ�
               return true;
             }) ?? [];
             const totalTickets = filtered.reduce((s, r) => s + r.ticketCount, 0);
-            const uniqueDates = [...new Set(sales?.map(s => fmtDateTime(s.visitedAt)).filter(Boolean) ?? [])].sort();
-            const uniqueTypes = [...new Set(sales?.map(s => s.ticketType).filter(Boolean) ?? [])];
-            const uniquePayments = [...new Set(sales?.map(s => s.paymentMethod).filter(Boolean) ?? [])];
-            const uniqueCasts = [...new Set(sales?.map(s => s.handledCastName).filter(Boolean) ?? [])].sort();
+            const uniqueDates = [...new Set(displaySales.map(s => fmtDateTime(s.visitedAt)).filter(Boolean) ?? [])].sort();
+            const uniqueTypes = [...new Set(displaySales.map(s => s.ticketType).filter(Boolean) ?? [])];
+            const uniquePayments = [...new Set(displaySales.map(s => s.paymentMethod).filter(Boolean) ?? [])];
+            const uniqueCasts = [...new Set(displaySales.map(s => s.handledCastName).filter(Boolean) ?? [])].sort();
             const hasFilter = salesFilterDate || salesFilterType || salesFilterPayment || salesFilterCast || salesFilterText;
             return (<>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
